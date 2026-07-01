@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="PFC Predictor">
+<title>Portsmouth 2026/27 Predictor Hub</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap');
+  
+  :root {
+    --navy: #002b66; 
+    --navy-dark: #001a40; 
+    --navy-light: #f0f4fa;
+    --gold: #e6b800; 
+    --gold-dark: #b38f00;
+    --white: #ffffff; 
+    --grey-50: #f9fafb;
+    --grey-100: #f3f4f6; 
+    --grey-200: #e5e7eb; 
+    --grey-400: #9ca3af;
+    --grey-600: #4b5563; 
+    --grey-800: #1f2937; 
+    --red: #dc2626;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', sans-serif;
+    background: linear-gradient(135deg, var(--grey-100) 0%, #eef2f7 100%);
+    color: var(--grey-800);
+    min-height: 100vh;
+    padding-bottom: calc(100px + env(safe-area-inset-bottom));
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  header {
+    background: linear-gradient(135deg, var(--navy) 0%, var(--navy-dark) 100%);
+    color: var(--white);
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 4px solid var(--gold);
+    box-shadow: 0 4px 12px rgba(0, 43, 102, 0.15);
+  }
+
+  header h1 { font-family: 'Bebas Neue', sans-serif; font-size: 26px; letter-spacing: 1px; }
+  
+  .main { max-width: 800px; margin: 0 auto; padding: 16px; }
+  
+  /* Secure Profile Setup UI Block */
+  .registration-box { 
+    background: var(--white); 
+    border-radius: 12px; 
+    padding: 16px; 
+    margin-bottom: 16px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .input-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .input-field { 
+    flex: 1; 
+    min-width: 180px;
+    border: 2px solid var(--grey-200); 
+    border-radius: 8px; 
+    padding: 10px 14px; 
+    font-size: 14px; 
+    outline: none; 
+    -webkit-user-select: text;
+    user-select: text;
+  }
+  .input-field:focus { border-color: var(--navy); }
+
+  .btn { 
+    background: var(--navy); 
+    color: var(--white); 
+    border: none; 
+    border-radius: 8px; 
+    padding: 10px 20px; 
+    font-size: 14px; 
+    font-weight: 600; 
+    cursor: pointer; 
+    transition: background 0.2s;
+  }
+  .btn:active { opacity: 0.9; }
+  .btn-gold { background: var(--gold); color: var(--navy-dark); }
+
+  .gameweek-selector {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--white);
+    padding: 12px 16px;
+    border-radius: 12px;
+    margin-bottom: 16px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  }
+  .gameweek-title { font-family: 'Bebas Neue', sans-serif; font-size: 24px; color: var(--navy-dark); }
+
+  .tabs { display: flex; gap: 4px; margin-bottom: 16px; background: var(--white); border-radius: 12px; padding: 6px; }
+  .tab { flex: 1; padding: 12px 6px; text-align: center; font-size: 13px; font-weight: 600; color: var(--grey-600); border-radius: 8px; cursor: pointer; border: none; background: transparent; }
+  .tab.active { background: var(--navy); color: var(--white); }
+
+  /* Match Display Configuration */
+  .match-card { 
+    background: var(--white); 
+    border-radius: 12px; 
+    padding: 16px; 
+    margin-bottom: 12px; 
+    box-shadow: 0 2px 6px rgba(0,0,0,0.04); 
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    border-left: 4px solid var(--grey-200);
+  }
+  .match-card.unpredicted { border-left-color: var(--gold); background: #fffdf5; }
+  
+  .score-row { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 12px; }
+  .match-team { font-size: 14px; font-weight: 700; color: var(--navy-dark); }
+  .match-team.home { text-align: right; }
+  
+  .score-inputs { display: flex; align-items: center; gap: 6px; }
+  .score-input { 
+    width: 44px; 
+    height: 44px; 
+    text-align: center; 
+    font-size: 20px; 
+    font-weight: 700; 
+    font-family: 'Bebas Neue', sans-serif; 
+    border: 2px solid var(--grey-200); 
+    border-radius: 8px; 
+    outline: none; 
+    -webkit-user-select: text;
+    user-select: text;
+  }
+  .score-input.has-value { border-color: var(--navy); background: var(--navy-light); }
+
+  /* Goalscorer Field Implementation */
+  .goalscorer-box {
+    border-top: 1px dashed var(--grey-200);
+    padding-top: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .goalscorer-label { font-size: 11px; font-weight: 600; color: var(--grey-600); }
+  .goalscorer-input { 
+    width: 100%; 
+    border: 1px solid var(--grey-200); 
+    border-radius: 6px; 
+    padding: 8px; 
+    font-size: 13px; 
+    outline: none; 
+    -webkit-user-select: text;
+    user-select: text;
+  }
+
+  .save-bar { position: fixed; bottom: 16px; left: 0; right: 0; display: none; justify-content: center; z-index: 99; }
+  .save-bar.active { display: flex; }
+
+  .view-row { background: var(--grey-50); padding: 10px; border-radius: 6px; font-size: 13px; margin-bottom: 6px; border-left: 3px solid var(--navy); display: flex; justify-content: space-between; }
+  
+  .admin-section { background: var(--white); border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+  .admin-section h3 { font-family: 'Bebas Neue', sans-serif; font-size: 20px; color: var(--navy-dark); margin-bottom: 12px; }
+
+  .toast { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); background: var(--navy-dark); color: white; padding: 12px 24px; border-radius: 8px; font-size: 14px; opacity: 0; transition: all 0.3s; z-index: 9999; pointer-events: none; }
+  .toast.show { opacity: 1; }
+
+  #pullIndicator { text-align: center; padding: 8px; background: var(--gold); color: var(--navy-dark); font-weight: bold; font-size: 12px; display: none; }
+</style>
+</head>
+<body>
+
+<div id="pullIndicator">Pulling updates from Supabase...</div>
+
+<header>
+  <div>
+    <h1>PFC Predictor Panel</h1>
+    <p style="font-size:11px; opacity:0.8;" id="statusText">Syncing secure gateway...</p>
+  </div>
+</header>
+
+<div class="main">
+  <div class="registration-box">
+    <div style="font-size:13px; font-weight:700; color:var(--navy-dark)">Secure League Profile Configuration</div>
+    <div class="input-row">
+      <input type="text" id="playerName" class="input-field" placeholder="Manager Name (e.g. PompeyJohn)">
+      <input type="text" id="playerPaypal" class="input-field" placeholder="PayPal Identifier (Audits & Winnings)">
+      <input type="password" pattern="[0-9]*" inputmode="numeric" id="playerPin" class="input-field" placeholder="Private 4-Digit PIN" maxlength="4" style="flex: 0 0 140px;">
+    </div>
+    <p style="font-size:11px; color:var(--grey-600);">* Your private PIN stops anyone else from tampering with your match predictions.</p>
+    <button class="btn btn-gold" onclick="saveProfile()" style="width:100%;">Verify & Lock Registration</button>
+  </div>
+
+  <div class="gameweek-selector">
+    <button class="btn" onclick="changeGameweek(-1)">◀</button>
+    <div class="gameweek-title" id="gameweekLabel">Gameweek 1</div>
+    <button class="btn" onclick="changeGameweek(1)">▶</button>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" id="tabBtn-predict" onclick="switchTab('predict')">My Entries</button>
+    <button class="tab" id="tabBtn-view" onclick="switchTab('view')">Rival Slips</button>
+    <button class="tab" id="tabBtn-admin" onclick="switchTab('admin')">Admin Gate</button>
+  </div>
+
+  <div id="tab-predict" class="tab-content">
+    <div id="predictionsContent"></div>
+    <div class="save-bar" id="predSaveBar">
+      <button class="btn btn-gold" style="padding:14px 40px; box-shadow:0 4px 12px rgba(0,0,0,0.2);" onclick="savePredictions()">Submit Match Slips</button>
+    </div>
+  </div>
+
+  <div id="tab-view" class="tab-content" style="display:none;">
+    <div id="viewContent"></div>
+  </div>
+
+  <div id="tab-admin" class="tab-content" style="display:none;">
+    <div id="adminLock" style="text-align:center; background:white; padding:20px; border-radius:12px;">
+      <h3>6-Digit Administrative Passcode Required</h3><br>
+      <input type="password" pattern="[0-9]*" inputmode="numeric" id="adminPin" maxlength="6" style="font-size:24px; text-align:center; width:180px; padding:6px; margin-bottom:12px;">
+      <br>
+      <button class="btn" onclick="verifyAdminPIN()">Authenticate Access</button>
+    </div>
+    
+    <div id="adminDashboard" style="display:none;">
+      <div class="admin-section">
+        <h3>Manager Registry & PayPal Payment Cross-Checks</h3>
+        <div id="adminUserAuditContent" style="max-height:160px; overflow-y:auto; font-size:13px; display:flex; flex-direction:column; gap:4px;"></div>
+      </div>
+      <div class="admin-section">
+        <h3>Enter Final Official Scores</h3>
+        <div id="adminFixturesContent"></div>
+        <button class="btn btn-gold" style="width:100%; margin-top:12px;" onclick="saveOfficialResults()">Publish Scores & Lock Results</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  // INSERT YOUR EXACT RETRIEVED SUPABASE DATABASE CONFIG DETAILS HERE
+  const SUPABASE_URL = "https://your-supabase-url.supabase.co"; 
+  const SUPABASE_ANON_KEY = "your-anon-key";
+  let supabase = null;
+
+  let currentGameweek = 1;
+  let currentPlayer = localStorage.getItem('pfc_player_name') || '';
+  let playerPaypal = localStorage.getItem('pfc_player_paypal') || '';
+  let fixtures = [];
+  let userPredictions = {};
+  let globalPredictions = [];
+  let isAdminUnlocked = false;
+
+  if (currentPlayer) document.getElementById('playerName').value = currentPlayer;
+  if (playerPaypal) document.getElementById('playerPaypal').value = playerPaypal;
+
+  try {
+    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    document.getElementById('statusText').innerText = "Connected to Supabase Platform Engine";
+  } catch(e) { document.getElementById('statusText').innerText = "Offline Cache Storage Route Engaged"; }
+
+  async function appInit() {
+    await fetchActiveGameweekState();
+    await loadGameweekData();
+    setupPullToRefresh();
+  }
+  appInit();
+
+  async function fetchActiveGameweekState() {
+    try {
+      const { data } = await supabase.from('fixtures').select('gameweek').filter('home_score', 'is', null).order('gameweek', { ascending: true }).limit(1);
+      if (data && data.length > 0) currentGameweek = data[0].gameweek;
+    } catch(e) {}
+    document.getElementById('gameweekLabel').innerText = `Gameweek ${currentGameweek}`;
+  }
+
+  async function changeGameweek(dir) {
+    currentGameweek += dir;
+    if (currentGameweek < 1) currentGameweek = 1;
+    if (currentGameweek > 46) currentGameweek = 46;
+    document.getElementById('gameweekLabel').innerText = `Gameweek ${currentGameweek}`;
+    await loadGameweekData();
+    if (isAdminUnlocked) renderAdminDashboard();
+  }
+
+  async function loadGameweekData() {
+    try {
+      const { data: fData } = await supabase.from('fixtures').select('*').eq('gameweek', currentGameweek).order('id', { ascending: true });
+      fixtures = fData || [];
+
+      if (currentPlayer) {
+        const { data: pData } = await supabase.from('predictions').select('*').eq('player_name', currentPlayer).eq('gameweek', currentGameweek);
+        userPredictions = {};
+        if (pData) pData.forEach(p => { userPredictions[p.fixture_id] = p; });
+      }
+
+      const { data: gData } = await supabase.from('predictions').select('*').eq('gameweek', currentGameweek);
+      globalPredictions = gData || [];
+
+      renderPredictions();
+      renderGlobalPicks();
+    } catch(err) {}
+  }
+
+  function renderPredictions() {
+    const container = document.getElementById('predictionsContent');
+    if (!currentPlayer) {
+      container.innerHTML = '<div style="text-align:center; padding:40px; color:var(--grey-600);">⚠️ Save your Profile parameters above to clear access credentials and make entries.</div>';
+      document.getElementById('predSaveBar').classList.remove('active');
+      return;
+    }
+
+    let html = '';
+    fixtures.forEach(match => {
+      const pred = userPredictions[match.id] || {};
+      const homeVal = pred.home_score !== undefined && pred.home_score !== null ? pred.home_score : '';
+      const awayVal = pred.away_score !== undefined && pred.away_score !== null ? pred.away_score : '';
+      const scorerVal = pred.first_goalscorer || '';
+      const isUnpredicted = homeVal === '' || awayVal === '';
+
+      html += `
+        <div class="match-card ${isUnpredicted ? 'unpredicted' : ''}">
+          <div class="score-row">
+            <div class="match-team home">${match.home_team}</div>
+            <div class="score-inputs">
+              <input type="number" class="score-input ${homeVal !== '' ? 'has-value' : ''}" id="home-${match.id}" value="${homeVal}">
+              <span style="color:var(--grey-400); font-weight:bold;">–</span>
+              <input type="number" class="score-input ${awayVal !== '' ? 'has-value' : ''}" id="away-${match.id}" value="${awayVal}">
+            </div>
+            <div class="match-team">${match.away_team}</div>
+          </div>
+          <div class="goalscorer-box">
+            <div class="goalscorer-label">First Goalscorer / Edge-Case Submission:</div>
+            <input type="text" class="goalscorer-input" id="scorer-${match.id}" value="${scorerVal}" placeholder="Type player name. For 0-0 or Own Goal, type 'No Goalscorer'">
+          </div>
+        </div>
+      `;
+    });
+
+    container.innerHTML = html;
+    document.getElementById('predSaveBar').classList.add('active');
+  }
+
+  async function saveProfile() {
+    const name = document.getElementById('playerName').value.trim();
+    const paypal = document.getElementById('playerPaypal').value.trim();
+    const pin = document.getElementById('playerPin').value.trim();
+    
+    if(!name || !pin) return showToast("A unique manager name and verification PIN sequence are required.", true);
+
+    try {
+      const { data: existingProfile } = await supabase.from('profiles').select('*').eq('player_name', name).maybeSingle();
+
+      if (existingProfile && existingProfile.access_pin && existingProfile.access_pin.toString() !== pin) {
+        return showToast("Access Denied: This Manager handle is locked by a different PIN.", true);
+      }
+
+      await supabase.from('profiles').upsert({ player_name: name, paypal_account: paypal, access_pin: pin }, { onConflict: 'player_name' });
+      
+      currentPlayer = name;
+      playerPaypal = paypal;
+      localStorage.setItem('pfc_player_name', name);
+      localStorage.setItem('pfc_player_paypal', paypal);
+      
+      showToast("Security Identity Verified & Locked!");
+      loadGameweekData();
+    } catch(e) { showToast("Database verification fault.", true); }
+  }
+
+  async function savePredictions() {
+    const pin = document.getElementById('playerPin').value.trim();
+    if(!pin) return showToast("Please input your verification profile PIN code above.", true);
+
+    try {
+      const { data: check } = await supabase.from('profiles').select('access_pin').eq('player_name', currentPlayer).maybeSingle();
+      if(check && check.access_pin && check.access_pin.toString() !== pin) {
+        return showToast("PIN verification mismatch error.", true);
+      }
+
+      const rows = [];
+      fixtures.forEach(match => {
+        const hVal = document.getElementById(`home-${match.id}`).value;
+        const aVal = document.getElementById(`away-${match.id}`).value;
+        const scorer = document.getElementById(`scorer-${match.id}`).value.trim();
+        
+        if (hVal !== '' && aVal !== '') {
+          rows.push({
+            player_name: currentPlayer,
+            fixture_id: match.id,
+            gameweek: currentGameweek,
+            home_score: parseInt(hVal),
+            away_score: parseInt(aVal),
+            first_goalscorer: scorer || 'No Goalscorer'
+          });
+        }
+      });
+
+      for (const row of rows) {
+        await supabase.from('predictions').upsert(row, { onConflict: 'player_name,fixture_id' });
+      }
+      showToast("Prediction slip transmitted successfully!");
+      await loadGameweekData();
+    } catch(e) { showToast("Data sync execution failure.", true); }
+  }
+
+  function renderGlobalPicks() {
+    const container = document.getElementById('viewContent');
+    let html = '';
+    fixtures.forEach(match => {
+      html += `<div class="admin-section"><h4>${match.home_team} vs ${match.away_team}</h4><div style="margin-top:8px;">`;
+      const picks = globalPredictions.filter(p => p.fixture_id === match.id);
+      if(picks.length === 0) html += '<div style="font-size:12px; color:var(--grey-400);">No sheets locked in for this game yet.</div>';
+      picks.forEach(p => {
+        html += `<div class="view-row"><span><strong>${p.player_name}:</strong> Score: ${p.home_score}-${p.away_score}</span><span style="color:var(--grey-600)">Scorer: <em>${p.first_goalscorer}</em></span></div>`;
+      });
+      html += '</div></div>';
+    });
+    container.innerHTML = html;
+  }
+
+  function switchTab(id) {
+    document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
+    document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+    document.getElementById(`tab-${id}`).style.display = 'block';
+    document.getElementById(`tabBtn-${id}`).classList.add('active');
+  }
+
+  function verifyAdminPIN() {
+    if (document.getElementById('adminPin').value === "189800") {
+      isAdminUnlocked = true;
+      document.getElementById('adminLock').style.display = 'none';
+      document.getElementById('adminDashboard').style.display = 'block';
+      renderAdminDashboard();
+    } else { showToast("Invalid Administrator PIN Code.", true); }
+  }
+
+  async function renderAdminDashboard() {
+    try {
+      const { data: profiles } = await supabase.from('profiles').select('*');
+      if (profiles) {
+        document.getElementById('adminUserAuditContent').innerHTML = profiles.map(p => `
+          <div style="padding:6px; background:var(--grey-50); border-radius:6px; display:flex; justify-content:space-between; border:1px solid var(--grey-200);">
+            <strong>${p.player_name}</strong>
+            <span style="color:var(--navy); font-family:monospace;">PayPal Account: ${p.paypal_account || 'None Entered'}</span>
+          </div>
+        `).join('');
+      }
+    } catch(e) {}
+    
+    document.getElementById('adminFixturesContent').innerHTML = fixtures.map(match => `
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; font-size:13px; background:var(--grey-50); padding:6px; border-radius:6px;">
+        <span style="flex:1; text-align:right; margin-right:10px;">${match.home_team}</span>
+        <div>
+          <input type="number" id="admin-h-${match.id}" value="${match.home_score !== null ? match.home_score : ''}" style="width:34px; text-align:center;">
+          <input type="number" id="admin-a-${match.id}" value="${match.away_score !== null ? match.away_score : ''}" style="width:34px; text-align:center;">
+        </div>
+        <span style="flex:1; text-align:left; margin-left:10px;">${match.away_team}</span>
+      </div>
+    `).join('');
+  }
+
+  async function saveOfficialResults() {
+    try {
+      for (const match of fixtures) {
+        const h = document.getElementById(`admin-h-${match.id}`).value;
+        const a = document.getElementById(`admin-a-${match.id}`).value;
+        if (h !== '' && a !== '') {
+          await supabase.from('fixtures').update({ home_score: parseInt(h), away_score: parseInt(a) }).eq('id', match.id);
+        }
+      }
+      showToast("Official records finalized & published!");
+      await loadGameweekData();
+    } catch(e) { showToast("Failed writing logs.", true); }
+  }
+
+  function setupPullToRefresh() {
+    let startY = 0, pulling = false;
+    const indicator = document.getElementById('pullIndicator');
+    document.addEventListener('touchstart', e => {
+      if (window.scrollY === 0) { startY = e.touches[0].clientY; pulling = true; }
+    }, { passive: true });
+    document.addEventListener('touchend', e => {
+      if (!pulling) return;
+      const dist = e.changedTouches[0].clientY - startY;
+      if (dist > 70) {
+        indicator.style.display = 'block';
+        loadGameweekData().finally(() => { setTimeout(() => { indicator.style.display = 'none'; }, 600); });
+      }
+      pulling = false;
+    }, { passive: true });
+  }
+
+  function showToast(msg, err = false) {
+    const t = document.getElementById('toast'); t.innerText = msg;
+    t.style.background = err ? 'var(--red)' : 'var(--navy-dark)'; t.className = 'toast show';
+    setTimeout(() => { t.className = 'toast'; }, 2500);
+  }
+</script>
+</body>
+</html>
