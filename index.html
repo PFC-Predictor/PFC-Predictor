@@ -324,18 +324,70 @@
     font-family:'Bebas Neue', Impact, sans-serif; font-size:16px; letter-spacing:0.5px;
     text-align:center; margin-bottom:12px; color:rgba(255,255,255,0.75);
   }
-  .prize-podium{display:flex; align-items:flex-end; gap:8px; justify-content:center;}
-  .prize-place{flex:1; text-align:center; border-radius:12px; padding:10px 6px;}
-  .prize-place.first{background:rgba(212,175,55,0.18); border:1px solid rgba(212,175,55,0.4); padding-top:16px;}
-  .prize-place.second{background:rgba(255,255,255,0.08);}
-  .prize-place.third{background:rgba(255,255,255,0.06);}
-  .prize-place .pp-medal{font-size:20px;}
-  .prize-place .pp-amount{font-family:'Bebas Neue', Impact, sans-serif; font-size:22px; color:var(--gold);}
-  .prize-place.second .pp-amount, .prize-place.third .pp-amount{color:rgba(255,255,255,0.85); font-size:18px;}
-  .prize-card .pc-note{text-align:center; font-size:11px; color:rgba(255,255,255,0.6); margin-top:12px;}
-  .prize-card .pc-potential{
-    text-align:center; font-size:11px; color:rgba(255,255,255,0.55);
-    margin-top:10px; padding-top:10px; border-top:1px dashed rgba(255,255,255,0.2);
+  ..prize-podium {
+  display:flex;
+  align-items:flex-end;
+  justify-content:center;
+  gap:8px;
+}
+
+.prize-place {
+  flex:1;
+  text-align:center;
+  border-radius:12px;
+  padding:10px 6px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+}
+
+.prize-place.first {
+  background:rgba(212,175,55,0.18);
+  border:1px solid rgba(212,175,55,0.4);
+  padding-top:16px;
+  transform:translateY(-10px);
+}
+
+.prize-place.second {
+  background:rgba(255,255,255,0.08);
+}
+
+.prize-place.third {
+  background:rgba(255,255,255,0.06);
+}
+
+.prize-place .pp-medal {
+  font-size:20px;
+}
+
+.prize-place .pp-amount {
+  font-family:'Bebas Neue', Impact, sans-serif;
+  font-size:22px;
+  color:var(--gold);
+}
+
+.prize-place.second .pp-amount,
+.prize-place.third .pp-amount {
+  color:rgba(255,255,255,0.85);
+  font-size:18px;
+}
+
+.prize-card .pc-note {
+  text-align:center;
+  font-size:11px;
+  color:rgba(255,255,255,0.6);
+  margin-top:12px;
+}
+
+.prize-card .pc-potential {
+  text-align:center;
+  font-size:11px;
+  color:rgba(255,255,255,0.55);
+  margin-top:10px;
+  padding-top:10px;
+  border-top:1px dashed rgba(255,255,255,0.2);
+}
+
   }
   .prize-card .pc-potential strong{color:rgba(255,255,255,0.8);}
   .mover-card{border-radius:14px; padding:12px; text-align:center;}
@@ -1145,16 +1197,34 @@ document.getElementById("btn-instructions").addEventListener("click", () => {
       <p><span class="badge-pill badge-gold">+3</span> exact score &nbsp; <span class="badge-pill badge-blue">+1</span> correct result &nbsp; <span class="badge-pill badge-green">+2</span> first Pompey goalscorer. Maximum 5 points per match — the exact score point replaces the correct-result point rather than stacking with it.</p>
     </div>
     <div class="modal-section">
-      <h4>4. Prize structure</h4>
-      <p id="instructions-prize">Entry is £10 per player. 10% goes to league administration. The remaining pool splits 60% to first, 30% to second, 10% to third.</p>
-    </div>`;
-  fetchAllPlayersAdmin().then(players => {
-    const prize = computePrizePool(players);
-    const gbp = n => `£${n.toFixed(2)}`;
-    document.getElementById("instructions-prize").innerHTML += `<br><strong>Current figures:</strong> 1st ${gbp(prize.first)} · 2nd ${gbp(prize.second)} · 3rd ${gbp(prize.third)}`;
-  }).catch(() => {});
-  openModal("modal-instructions");
+     <h4>4. Prize structure</h4>
+<p id="instructions-prize">
+Entry is £10 per player. 10% goes to league administration.  
+The prize pool now follows a live, tiered structure for transparency:  
+Fewer than 20 verified payers – winner takes the entire pool.  
+Twenty to thirty‑nine – 70% to first and 30% to second.  
+Forty or more – the traditional 60% to first, 30% to second, 10% to third.
+</p>
+</div>`;
+fetchAllPlayersAdmin().then(players => {
+  const prize = computePrizePool(players);
+  const gbp = n => `£${n.toFixed(2)}`;
+
+  let breakdown = "";
+  if (players.length < 20) {
+    breakdown = `1st ${gbp(prize.first)} (winner takes all)`;
+  } else if (players.length < 40) {
+    breakdown = `1st ${gbp(prize.first)} · 2nd ${gbp(prize.second)}`;
+  } else {
+    breakdown = `1st ${gbp(prize.first)} · 2nd ${gbp(prize.second)} · 3rd ${gbp(prize.third)}`;
+  }
+
+  document.getElementById("instructions-prize").innerHTML +=
+    `<br><strong>Current figures:</strong> ${breakdown}`;
+}).catch(() => {});
+openModal("modal-instructions");
 });
+
 
 let pendingWhatsNewId = null;
 
@@ -2311,16 +2381,33 @@ function computePrizePool(players) {
   const verifiedCount = countingPlayers.filter(p => p.payment_verified).length;
   const totalCollected = verifiedCount * ENTRY_FEE;
   const adminFee = totalCollected * ADMIN_FEE_PCT;
-  const pool = totalCollected - adminFee;
+  const prizePool = totalCollected - adminFee;
+
+  let firstPct, secondPct, thirdPct;
+
+  if (verifiedCount < 20) {
+    firstPct = 1.0;
+    secondPct = 0;
+    thirdPct = 0;
+  } else if (verifiedCount < 40) {
+    firstPct = 0.7;
+    secondPct = 0.3;
+    thirdPct = 0;
+  } else {
+    firstPct = 0.6;
+    secondPct = 0.3;
+    thirdPct = 0.1;
+  }
+
   return {
     registered: players.length,
     entries: countingPlayers.length,
     verifiedCount,
     totalCollected,
     adminFee,
-    first: pool * 0.6,
-    second: pool * 0.3,
-    third: pool * 0.1
+    first: prizePool * firstPct,
+    second: prizePool * secondPct,
+    third: prizePool * thirdPct
   };
 }
 
@@ -2354,16 +2441,49 @@ async function renderAdminPaymentDashboard() {
   });
 
   slot.innerHTML = `
-    <div class="card">
-      <div class="admin-header">💰 Payment Dashboard</div>
-      <div class="prize-grid">
-        <div class="prize-tile"><div class="label">Registered</div><div class="value">${prize.registered}</div></div>
-        <div class="prize-tile"><div class="label">Verified paid</div><div class="value">${prize.verifiedCount}</div></div>
-        <div class="prize-tile"><div class="label">Collected</div><div class="value">${gbp(prize.totalCollected)}</div></div>
-        <div class="prize-tile"><div class="label">Admin fee (10%)</div><div class="value">${gbp(prize.adminFee)}</div></div>
-        <div class="prize-tile"><div class="label">1st place (60%)</div><div class="value">${gbp(prize.first)}</div></div>
-        <div class="prize-tile"><div class="label">2nd place (30%)</div><div class="value">${gbp(prize.second)}</div></div>
-        <div class="prize-tile"><div class="label">3rd place (10%)</div><div class="value">${gbp(prize.third)}</div></div>
+   <div class="card">
+  <div class="admin-header">💰 Payment Dashboard</div>
+  <div class="prize-grid">
+    <div class="prize-tile"><div class="label">Registered</div><div class="value">${prize.registered}</div></div>
+    <div class="prize-tile"><div class="label">Verified paid</div><div class="value">${prize.verifiedCount}</div></div>
+    <div class="prize-tile"><div class="label">Collected</div><div class="value">${gbp(prize.totalCollected)}</div></div>
+    <div class="prize-tile"><div class="label">Admin fee (10%)</div><div class="value">${gbp(prize.adminFee)}</div></div>
+
+    <div class="prize-tile">
+      <div class="label">
+        1st place ${
+          prize.verifiedCount < 20
+            ? "(100%)"
+            : prize.verifiedCount < 40
+              ? "(70%)"
+              : "(60%)"
+        }
+      </div>
+      <div class="value">${gbp(prize.first)}</div>
+    </div>
+
+    ${prize.verifiedCount >= 20 ? `
+      <div class="prize-tile">
+        <div class="label">
+          2nd place ${
+            prize.verifiedCount < 40
+              ? "(30%)"
+              : "(30%)"
+          }
+        </div>
+        <div class="value">${gbp(prize.second)}</div>
+      </div>
+    ` : ""}
+
+    ${prize.verifiedCount >= 40 ? `
+      <div class="prize-tile">
+        <div class="label">3rd place (10%)</div>
+        <div class="value">${gbp(prize.third)}</div>
+      </div>
+    ` : ""}
+  </div>
+</div>
+
       </div>
       <div class="deadline-row">
         <span>Deadline:</span>
@@ -2517,16 +2637,35 @@ async function renderPrizePoolCard() {
   }
 
   slot.innerHTML = `
-    <div class="prize-card">
-      <div class="pc-title">💰 PRIZE POOL — ${prize.verifiedCount} PAID IN OUT OF ${prize.entries} ENTRIES</div>
-      <div class="prize-podium">
-        <div class="prize-place second"><div class="pp-medal">🥈</div><div class="pp-amount">${gbp(prize.second)}</div></div>
-        <div class="prize-place first"><div class="pp-medal">🥇</div><div class="pp-amount">${gbp(prize.first)}</div></div>
-        <div class="prize-place third"><div class="pp-medal">🥉</div><div class="pp-amount">${gbp(prize.third)}</div></div>
+  <div class="prize-card">
+  <div class="pc-title">💰 PRIZE POOL — ${prize.verifiedCount} PAID IN OUT OF ${prize.entries} ENTRIES</div>
+
+  <div class="prize-podium">
+
+    ${prize.verifiedCount >= 20 ? `
+      <div class="prize-place second">
+        <div class="pp-medal">🥈</div>
+        <div class="pp-amount">${gbp(prize.second)}</div>
       </div>
-      <div class="pc-note">Based on verified entries so far — get more mates to pay in and this grows.</div>
-      ${potentialLine}
-    </div>`;
+    ` : ""}
+
+    <div class="prize-place first">
+      <div class="pp-medal">🥇</div>
+      <div class="pp-amount">${gbp(prize.first)}</div>
+    </div>
+
+    ${prize.verifiedCount >= 40 ? `
+      <div class="prize-place third">
+        <div class="pp-medal">🥉</div>
+        <div class="pp-amount">${gbp(prize.third)}</div>
+      </div>
+    ` : ""}
+  </div>
+
+  <div class="pc-note">Based on verified entries so far — prize tiers adjust live as more players pay in.</div>
+  ${potentialLine}
+</div>
+
 }
 
 async function renderLeaderboard() {
