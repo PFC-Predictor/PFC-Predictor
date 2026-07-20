@@ -1399,12 +1399,26 @@ async function renderChat() {
     return;
   }
   feed.innerHTML = messages.map(m => `
-    <div style="margin-bottom:10px;">
-      <div style="font-weight:700; font-size:12px; color:var(--navy);">${m.players?.display_name || "Unknown"}</div>
-      <div style="font-size:13px;">${escapeHtml(m.message_text)}</div>
-      <div style="font-size:10px; color:var(--grey);">${new Date(m.created_at).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}</div>
+    <div style="margin-bottom:10px; display:flex; justify-content:space-between; gap:8px;">
+      <div style="flex:1; min-width:0;">
+        <div style="font-weight:700; font-size:12px; color:var(--navy);">${m.players?.display_name || "Unknown"}</div>
+        <div style="font-size:13px;">${escapeHtml(m.message_text)}</div>
+        <div style="font-size:10px; color:var(--grey);">${new Date(m.created_at).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}</div>
+      </div>
+      ${currentPlayer?.is_admin ? `<button data-delete-message="${m.id}" style="background:none; border:none; color:var(--grey); font-size:16px; flex-shrink:0; height:fit-content;">🗑️</button>` : ""}
     </div>`).join("");
   feed.scrollTop = feed.scrollHeight;
+
+  feed.querySelectorAll("[data-delete-message]").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      if (!confirm("Delete this message?")) return;
+      await fetch(`${REST_URL}/messages?id=eq.${btn.dataset.deleteMessage}`, {
+        method: "DELETE",
+        headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${getAccessToken()}` }
+      });
+      renderChat();
+    });
+  });
 }
 function escapeHtml(str) {
   const div = document.createElement("div");
@@ -2294,6 +2308,15 @@ function computePrizePool(players) {
   };
 }
 
+function whatsappNudgeLink(phoneNumber) {
+  const digits = phoneNumber.replace(/\D/g, "");
+  // UK numbers are typically stored starting with 0 — WhatsApp needs the
+  // international form with the leading 0 dropped and 44 in its place.
+  const intl = digits.startsWith("0") ? `44${digits.slice(1)}` : digits;
+  const message = "Hi! Please don't forget to pay your £10 entry via PayPal — you'll find the link in your Profile tab. Thanks!";
+  return `https://wa.me/${intl}?text=${encodeURIComponent(message)}`;
+}
+
 async function renderAdminPaymentDashboard() {
   const slot = document.getElementById("admin-slot");
   slot.innerHTML = `<div class="placeholder-note">Loading payment dashboard…</div>`;
@@ -2343,6 +2366,7 @@ async function renderAdminPaymentDashboard() {
           <div class="pactions">
             <button class="btn-verify" data-verify="${p.id}" ${p.payment_verified ? "disabled" : ""}>${p.payment_verified ? "Paid ✓" : "Verify"}</button>
             <button class="btn-verify" style="background:var(--grey-light); color:var(--text);" data-exempt="${p.id}" data-current="${p.pool_exempt}">${p.pool_exempt ? "Un-exempt" : "Exempt"}</button>
+            ${!p.payment_verified && !p.pool_exempt && p.phone_number ? `<a href="${whatsappNudgeLink(p.phone_number)}" target="_blank" rel="noopener" class="btn-verify" style="background:#25D366; color:var(--white); text-decoration:none; display:inline-block;">WhatsApp</a>` : ""}
             ${!p.payment_verified ? `<button class="btn-purge" data-purge="${p.id}" data-name="${p.display_name}">Purge</button>` : ""}
           </div>
         </div>`;
