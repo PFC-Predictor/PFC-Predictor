@@ -1204,10 +1204,52 @@ setInterval(() => {
 }, 30000);
 
 /* ============================================================
-   ADMIN: PAYMENT DASHBOARD + PRIZE POOL CALCULATOR
-   Uses sbFetchAll for the player list — this is one of the
-   three places the row cap must be bypassed.
+   ADMIN: RE-LINK / MERGE (for a player whose device lost its
+   session and started a fresh account). Predictions can't
+   simply be reassigned in bulk — the (player_id, fixture_id)
+   unique constraint means a fixture predicted under both the
+   old and new account would collide. Conflicting rows are left
+   under the old account and reported, not silently dropped.
    ============================================================ */
+async function mergePlayerAccounts(oldId, newId) {
+  const [oldPreds, newPreds, oldMsgs] = await Promise.all([
+    sbFetchAll(`predictions?player_id=eq.${oldId}&select=*`),
+    sbFetchAll(`predictions?player_id=eq.${newId}&select=fixture_id`),
+    sbFetchAll(`messages?player_id=eq.${oldId}&select=id`)
+  ]);
+  const newFixtureIds = new Set(newPreds.map(p => p.fixture_id));
+
+  const headers = {
+    apikey: SUPABASE_ANON_KEY,
+    Authorization: `Bearer ${getAccessToken()}`,
+    "Content-Type": "application/json"
+  };
+
+  let moved = 0;
+  const skipped = [];
+  for (const pred of oldPreds) {
+    if (newFixtureIds.has(pred.fixture_id)) { skipped.push(pred.fixture_id); continue; }
+    const res = await fetch(`${REST_URL}/predictions?id=eq.${pred.id}`, {
+      method: "PATCH", headers, body: JSON.stringify({ player_id: newId })
+    });
+    if (res.ok) moved++;
+  }
+
+  if (oldMsgs.length > 0) {
+    await fetch(`${REST_URL}/messages?player_id=eq.${oldId}`, {
+      method: "PATCH", headers, body: JSON.stringify({ player_id: newId })
+    });
+  }
+
+  // Deactivate the orphaned account rather than delete it — any skipped
+  // predictions stay safely attached to it for manual review.
+  await fetch(`${REST_URL}/players?id=eq.${oldId}`, {
+    method: "PATCH", headers,
+    body: JSON.stringify({ is_active: false })
+  });
+
+  return { moved, skipped, messagesMoved: oldMsgs.length };
+}
 const ENTRY_FEE = 10;
 const ADMIN_FEE_PCT = 0.10;
 
@@ -1342,7 +1384,7 @@ async function renderAdminPaymentDashboard() {
         return `
         <div class="player-row ${overdue ? 'overdue' : ''}">
           <div class="pinfo">
-            <div class="pname">${p.display_name}${overdue ? " ⚠️" : ""}${p.pool_exempt ? " <span style=\"color:var(--grey); font-weight:400;\">(exempt)</span>" : ""}</div>
+            <div class="pname">${p.display_name}${overdue ? " ⚠️" : ""}${p.pool_exempt ? " <span style=\"color:var(--grey); font-weight:400;\">(exempt)</span>" : ""}${!p.is_active ? " <span style=\"color:var(--grey); font-weight:400;\">(inactive)</span>" : ""}</div>
             <div class="pmeta">${p.phone_number || "no mobile on file"} · joined ${new Date(p.created_at).toLocaleDateString("en-GB")}</div>
           </div>
           <div class="pactions">
@@ -1352,6 +1394,27 @@ async function renderAdminPaymentDashboard() {
           </div>
         </div>`;
       }).join("")}
+    </div>
+
+    <div class="card">
+      <div class="admin-header">🔗 Re-link a lost session</div>
+      <p style="font-size:12px; color:var(--grey); margin-top:-4px;">
+        Use this when someone loses their session, starts a fresh account, then contacts you.
+        Pick their old orphaned account and their new one — prediction and chat history moves
+        across. Any fixture predicted under both accounts is left on the old one and reported
+        below for you to check by hand.
+      </p>
+      <div class="deadline-row" style="flex-wrap:wrap;">
+        <select id="merge-old" style="flex:1; min-width:120px; height:36px; border-radius:8px; border:1px solid var(--grey-light);">
+          ${players.map(p => `<option value="${p.id}">${p.display_name}${!p.is_active ? " (inactive)" : ""}</option>`).join("")}
+        </select>
+        <span>→</span>
+        <select id="merge-new" style="flex:1; min-width:120px; height:36px; border-radius:8px; border:1px solid var(--grey-light);">
+          ${players.map(p => `<option value="${p.id}">${p.display_name}${!p.is_active ? " (inactive)" : ""}</option>`).join("")}
+        </select>
+        <button id="btn-merge">Merge</button>
+      </div>
+      <div id="merge-status" style="font-size:12px; color:var(--grey);"></div>
     </div>`;
 
   document.getElementById("btn-save-deadline").addEventListener("click", async () => {
@@ -1388,6 +1451,24 @@ async function renderAdminPaymentDashboard() {
       try { await purgeUnverifiedPlayer(btn.dataset.purge); renderAdminPaymentDashboard(); }
       catch (err) { alert(err.message); btn.disabled = false; }
     });
+  });
+
+  document.getElementById("btn-merge").addEventListener("click", async () => {
+    const oldId = document.getElementById("merge-old").value;
+    const newId = document.getElementById("merge-new").value;
+    const status = document.getElementById("merge-status");
+    if (oldId === newId) { status.textContent = "Pick two different accounts."; return; }
+    const ok = confirm("Move this player's prediction and chat history to the new account?");
+    if (!ok) return;
+    status.textContent = "Merging…";
+    try {
+      const result = await mergePlayerAccounts(oldId, newId);
+      status.textContent = `Moved ${result.moved} prediction(s) and ${result.messagesMoved} message(s).` +
+        (result.skipped.length ? ` ${result.skipped.length} fixture(s) had a clash and were left on the old account — check those manually.` : " No clashes.");
+      renderAdminPaymentDashboard();
+    } catch (err) {
+      status.textContent = err.message;
+    }
   });
 }
 
