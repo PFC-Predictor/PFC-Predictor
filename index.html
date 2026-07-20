@@ -301,6 +301,70 @@
   .btn-verify{background:#1c8a45; color:var(--white);}
   .btn-verify:disabled{background:var(--grey-light); color:var(--grey);}
   .btn-purge{background:var(--red); color:var(--white);}
+
+  /* ---------- leaderboard ---------- */
+  .mover-grid{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:12px;}
+  .mover-card{border-radius:14px; padding:12px; text-align:center;}
+  .mover-card.up{background:#e7f6ec;}
+  .mover-card.down{background:#fdecec;}
+  .mover-card .arrow{font-size:20px;}
+  .mover-card .name{font-weight:700; font-size:13px; margin:2px 0;}
+  .mover-card .delta{font-size:11px; color:var(--grey);}
+  .lb-summary{text-align:right; font-size:11px; color:var(--grey); margin-bottom:6px;}
+  table.lb-table{width:100%; border-collapse:collapse; font-size:12.5px;}
+  table.lb-table th{
+    text-align:center; font-size:10px; color:var(--grey); text-transform:uppercase;
+    padding:6px 2px; border-bottom:2px solid var(--grey-light);
+  }
+  table.lb-table th:nth-child(2){text-align:left;}
+  table.lb-table td{padding:8px 2px; text-align:center; border-bottom:1px solid var(--grey-light);}
+  table.lb-table td:nth-child(2){text-align:left; font-weight:700;}
+  table.lb-table td.points{font-weight:700; color:var(--navy);}
+  .lb-move{font-size:11px;}
+  .lb-move.up{color:#1c8a45;}
+  .lb-move.down{color:var(--red);}
+  .collapsible-header{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:12px 14px; font-weight:700; font-size:14px; cursor:pointer;
+  }
+  .collapsible.collapsed .collapsible-body{display:none;}
+  .collapsible.collapsed .chev{transform:rotate(-90deg);}
+  .rate-row{display:flex; justify-content:space-between; padding:8px 14px; font-size:12.5px; border-top:1px solid var(--grey-light);}
+  .rate-row .rname{font-weight:600;}
+  .rate-row .rval{color:var(--navy); font-weight:700;}
+  .record-row{padding:10px 14px; border-top:1px solid var(--grey-light); font-size:12.5px;}
+  .record-row .rlabel{color:var(--grey); font-size:11px; text-transform:uppercase;}
+  .record-row .rdetail{font-weight:600;}
+  .share-btn{
+    background:var(--navy); color:var(--white); border:none; border-radius:8px;
+    font-size:11px; font-weight:700; padding:6px 10px; margin:10px 14px;
+  }
+
+  /* ---------- admin: results entry ---------- */
+  .result-row{padding:12px 0; border-top:1px solid var(--grey-light);}
+  .result-row .rr-top{display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; font-size:13px;}
+  .result-row .rr-teams{font-weight:700;}
+  .result-row .rr-badge{font-size:10px; font-weight:700; padding:3px 8px; border-radius:999px; background:var(--grey-light); color:var(--grey);}
+  .result-row .rr-badge.done{background:#e7f6ec; color:#1c8a45;}
+  .result-row .rr-inputs{display:flex; align-items:center; gap:10px; margin-bottom:8px;}
+  .result-row .rr-inputs input{
+    width:48px; height:44px; text-align:center; font-size:18px; font-weight:700;
+    border-radius:10px; border:2px solid var(--grey-light);
+  }
+  .result-row .rr-inputs select{
+    flex:1; height:44px; border-radius:10px; border:1px solid var(--grey-light); padding:0 10px; font-size:13px;
+  }
+  .result-row .rr-save{
+    width:100%; height:40px; border-radius:8px; border:none; background:var(--navy); color:var(--white);
+    font-weight:700; font-size:13px;
+  }
+  .rr-status{font-size:11px; text-align:center; margin-top:4px; color:var(--grey);}
+  .rr-filter{display:flex; gap:8px; padding:12px 14px 0;}
+  .rr-filter button{
+    flex:1; height:34px; border-radius:8px; border:1px solid var(--grey-light); background:var(--white);
+    font-size:12px; font-weight:700; color:var(--grey);
+  }
+  .rr-filter button.active{background:var(--navy); color:var(--white); border-color:var(--navy);}
 </style>
 </head>
 <body>
@@ -390,9 +454,24 @@
     </section>
 
     <section id="view-leaderboard" class="view">
-      <div class="placeholder-note">
-        Leaderboard tab — six columns (position, player, exact, correct, scorer, points), movement
-        arrows, Performance Rate and Season Records go here next.
+      <div id="mover-slot"></div>
+      <div class="lb-summary" id="lb-player-count"></div>
+      <div class="card" style="padding:0; overflow-x:auto;">
+        <table class="lb-table" id="lb-table"></table>
+      </div>
+      <div class="card collapsible collapsed" id="rate-panel" style="padding:0; margin-top:12px;">
+        <div class="collapsible-header" id="rate-toggle">
+          <span>📈 Performance Rate</span>
+          <span class="chev">▾</span>
+        </div>
+        <div class="collapsible-body" id="rate-body"></div>
+      </div>
+      <div class="card collapsible collapsed" id="records-panel" style="padding:0; margin-top:12px;">
+        <div class="collapsible-header" id="records-toggle">
+          <span>🏅 Season Records</span>
+          <span class="chev">▾</span>
+        </div>
+        <div class="collapsible-body" id="records-body"></div>
       </div>
     </section>
 
@@ -415,6 +494,7 @@
         <p style="font-size:13px; color:var(--grey); margin-bottom:14px;">Pay into the shared PayPal pool to confirm your place in the league.</p>
         <a href="https://www.paypal.com/pool/9q61PGoEEs?sr=ancr" target="_blank" rel="noopener" class="btn-primary" style="display:block; text-decoration:none; line-height:44px; background:var(--red);">Pay via PayPal Pool</a>
       </div>
+      <div id="admin-results-slot"></div>
       <div id="admin-slot"></div>
       <div class="placeholder-note">
         Rules &amp; Points System, remaining admin panels (squad, missing predictions, exports) and
@@ -810,7 +890,8 @@ document.querySelectorAll("nav.floating-nav .tab").forEach(tab => {
     tab.classList.add("active");
     document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
     document.getElementById(`view-${tab.dataset.view}`).classList.add("active");
-    if (tab.dataset.view === "profile" && currentPlayer && currentPlayer.is_admin) renderAdminPaymentDashboard();
+    if (tab.dataset.view === "profile" && currentPlayer && currentPlayer.is_admin) { renderAdminPaymentDashboard(); renderAdminResultsPanel(); }
+    if (tab.dataset.view === "leaderboard") renderLeaderboard();
   }, { passive: true });
 });
 
@@ -1469,6 +1550,351 @@ async function renderAdminPaymentDashboard() {
     } catch (err) {
       status.textContent = err.message;
     }
+  });
+}
+
+/* ============================================================
+   LEADERBOARD
+   ============================================================ */
+function computeStandingsFor(players, predictions, resultsByFixture) {
+  const byPlayer = new Map(players.map(p => [p.id, { player: p, exact: 0, correct: 0, scorer: 0, total: 0, scoredCount: 0 }]));
+  predictions.forEach(pred => {
+    const result = resultsByFixture.get(pred.fixture_id);
+    if (!result) return;
+    const row = byPlayer.get(pred.player_id);
+    if (!row) return;
+    const bd = calcPoints(pred, result);
+    if (bd.exact) row.exact++;
+    if (bd.correct) row.correct++;
+    if (bd.scorer) row.scorer++;
+    row.total += bd.total;
+    row.scoredCount++;
+  });
+  return [...byPlayer.values()];
+}
+
+function denseRank(standings) {
+  const sorted = [...standings].sort((a, b) => b.total - a.total);
+  let rank = 0, lastTotal = null;
+  return sorted.map(row => {
+    if (row.total !== lastTotal) { rank++; lastTotal = row.total; }
+    return { ...row, rank };
+  });
+}
+
+async function renderLeaderboard() {
+  const tableEl = document.getElementById("lb-table");
+  tableEl.innerHTML = `<tr><td style="padding:20px; text-align:center; color:var(--grey);">Loading…</td></tr>`;
+
+  const [players, allPredictions, allResults, allFixtures] = await Promise.all([
+    sbFetchAll("players?is_active=eq.true&select=*"),
+    sbFetchAll("predictions?select=*"),
+    sbFetchAll("results?select=*&order=created_at.asc"),
+    sbFetchAll("fixtures?select=*")
+  ]);
+
+  const fixtureById = new Map(allFixtures.map(f => [f.id, f]));
+  const resultsByFixture = new Map(allResults.map(r => [r.fixture_id, r]));
+
+  const current = denseRank(computeStandingsFor(players, allPredictions, resultsByFixture));
+
+  document.getElementById("lb-player-count").textContent = `${players.length} players`;
+
+  // ---------- movement, based on the most recently entered result ----------
+  let moverHtml = "";
+  if (allResults.length > 0) {
+    const latestResult = allResults[allResults.length - 1];
+    const resultsBefore = new Map(allResults.slice(0, -1).map(r => [r.fixture_id, r]));
+    const previous = denseRank(computeStandingsFor(players, allPredictions, resultsBefore));
+    const prevRankById = new Map(previous.map(r => [r.player.id, r.rank]));
+
+    const withMovement = current.map(row => {
+      const prevRank = prevRankById.get(row.player.id);
+      const movement = prevRank != null ? prevRank - row.rank : 0; // positive = moved up
+      return { ...row, movement };
+    });
+
+    const biggestUp = withMovement.filter(r => r.movement > 0).sort((a, b) => b.movement - a.movement)[0];
+    const biggestDown = withMovement.filter(r => r.movement < 0).sort((a, b) => a.movement - b.movement)[0];
+
+    if (biggestUp || biggestDown) {
+      moverHtml = `<div class="mover-grid">
+        ${biggestUp ? `<div class="mover-card up"><div class="arrow">📈</div><div class="name">${biggestUp.player.display_name}</div><div class="delta">Biggest mover, up ${biggestUp.movement}</div></div>` : "<div></div>"}
+        ${biggestDown ? `<div class="mover-card down"><div class="arrow">📉</div><div class="name">${biggestDown.player.display_name}</div><div class="delta">Biggest faller, down ${Math.abs(biggestDown.movement)}</div></div>` : "<div></div>"}
+      </div>`;
+    }
+    renderLbTable(withMovement);
+  } else {
+    renderLbTable(current.map(r => ({ ...r, movement: 0 })));
+  }
+  document.getElementById("mover-slot").innerHTML = moverHtml;
+
+  renderPerformanceRate(current, allPredictions, resultsByFixture, allFixtures);
+  renderSeasonRecords(players, allPredictions, allResults, resultsByFixture, fixtureById);
+}
+
+function renderLbTable(rows) {
+  const tableEl = document.getElementById("lb-table");
+  tableEl.innerHTML = `
+    <tr>
+      <th>Pos</th><th>Player</th><th>Exact</th><th>Correct</th><th>Scorer</th><th>Pts</th>
+    </tr>
+    ${rows.sort((a, b) => a.rank - b.rank).map(r => `
+      <tr>
+        <td>${r.rank}${r.movement > 0 ? `<div class="lb-move up">▲${r.movement}</div>` : r.movement < 0 ? `<div class="lb-move down">▼${Math.abs(r.movement)}</div>` : ""}</td>
+        <td>${r.player.display_name}</td>
+        <td>${r.exact}</td>
+        <td>${r.correct}</td>
+        <td>${r.scorer}</td>
+        <td class="points">${r.total}</td>
+      </tr>`).join("")}
+  `;
+}
+
+function renderPerformanceRate(standings, predictions, resultsByFixture, fixtures) {
+  const body = document.getElementById("rate-body");
+  // overall rate — bonus (scorer) points excluded per spec
+  const eligible = standings
+    .filter(r => r.scoredCount >= 10)
+    .map(r => ({ name: r.player.display_name, rate: (r.exact * POINTS.EXACT + r.correct * POINTS.CORRECT) / r.scoredCount }))
+    .sort((a, b) => b.rate - a.rate);
+
+  // gameweek (recent form) rate — last 5 fixtures with a result, by kickoff
+  const scoredFixtureIds = [...resultsByFixture.keys()];
+  const recentFixtureIds = new Set(
+    fixtures.filter(f => scoredFixtureIds.includes(f.id))
+      .sort((a, b) => new Date(b.kickoff) - new Date(a.kickoff))
+      .slice(0, 5)
+      .map(f => f.id)
+  );
+  const recentByPlayer = new Map();
+  predictions.forEach(pred => {
+    if (!recentFixtureIds.has(pred.fixture_id)) return;
+    const result = resultsByFixture.get(pred.fixture_id);
+    if (!result) return;
+    const bd = calcPoints(pred, result);
+    const row = recentByPlayer.get(pred.player_id) || { points: 0, count: 0 };
+    row.points += (bd.exact ? POINTS.EXACT : 0) + (bd.correct ? POINTS.CORRECT : 0);
+    row.count++;
+    recentByPlayer.set(pred.player_id, row);
+  });
+  const recentRows = standings
+    .filter(r => recentByPlayer.has(r.player.id))
+    .map(r => ({ name: r.player.display_name, rate: recentByPlayer.get(r.player.id).points / recentByPlayer.get(r.player.id).count }))
+    .sort((a, b) => b.rate - a.rate);
+
+  body.innerHTML = `
+    <div class="rate-row" style="border-top:none; font-weight:700; color:var(--grey); font-size:11px;">SEASON RATE (min 10 scored)</div>
+    ${eligible.length ? eligible.map(r => `<div class="rate-row"><span class="rname">${r.name}</span><span class="rval">${r.rate.toFixed(2)}</span></div>`).join("")
+      : `<div class="rate-row" style="color:var(--grey);">Not enough scored predictions yet.</div>`}
+    <div class="rate-row" style="font-weight:700; color:var(--grey); font-size:11px;">RECENT FORM (last 5 gameweeks scored)</div>
+    ${recentRows.length ? recentRows.map(r => `<div class="rate-row"><span class="rname">${r.name}</span><span class="rval">${r.rate.toFixed(2)}</span></div>`).join("")
+      : `<div class="rate-row" style="color:var(--grey);">No recent results yet.</div>`}
+  `;
+}
+
+function renderSeasonRecords(players, predictions, allResults, resultsByFixture, fixtureById) {
+  const body = document.getElementById("records-body");
+  if (allResults.length === 0) {
+    body.innerHTML = `<div class="record-row" style="color:var(--grey);">No results yet — records appear once the season gets going.</div>`;
+    return;
+  }
+  const playerById = new Map(players.map(p => [p.id, p]));
+
+  // highest single match score
+  let highest = null;
+  predictions.forEach(pred => {
+    const result = resultsByFixture.get(pred.fixture_id);
+    if (!result) return;
+    const bd = calcPoints(pred, result);
+    if (!highest || bd.total > highest.total) {
+      highest = { total: bd.total, player: playerById.get(pred.player_id), fixture: fixtureById.get(pred.fixture_id) };
+    }
+  });
+
+  // cumulative exact / scorer counts, and chronological streaks
+  const orderedFixtureIds = [...resultsByFixture.entries()]
+    .map(([fid]) => fixtureById.get(fid))
+    .filter(Boolean)
+    .sort((a, b) => new Date(a.kickoff) - new Date(b.kickoff))
+    .map(f => f.id);
+
+  const exactCounts = new Map(), scorerCounts = new Map();
+  const correctStreaks = new Map(), exactStreaks = new Map();
+  const bestCorrectStreak = new Map(), bestExactStreak = new Map();
+
+  players.forEach(p => { correctStreaks.set(p.id, 0); exactStreaks.set(p.id, 0); bestCorrectStreak.set(p.id, 0); bestExactStreak.set(p.id, 0); });
+
+  const predByPlayerFixture = new Map();
+  predictions.forEach(p => predByPlayerFixture.set(`${p.player_id}:${p.fixture_id}`, p));
+
+  orderedFixtureIds.forEach(fid => {
+    const result = resultsByFixture.get(fid);
+    players.forEach(pl => {
+      const pred = predByPlayerFixture.get(`${pl.id}:${fid}`);
+      const bd = calcPoints(pred, result);
+      if (bd.exact) exactCounts.set(pl.id, (exactCounts.get(pl.id) || 0) + 1);
+      if (bd.scorer) scorerCounts.set(pl.id, (scorerCounts.get(pl.id) || 0) + 1);
+
+      if (bd.exact || bd.correct) correctStreaks.set(pl.id, correctStreaks.get(pl.id) + 1);
+      else correctStreaks.set(pl.id, 0);
+      bestCorrectStreak.set(pl.id, Math.max(bestCorrectStreak.get(pl.id), correctStreaks.get(pl.id)));
+
+      if (bd.exact) exactStreaks.set(pl.id, exactStreaks.get(pl.id) + 1);
+      else exactStreaks.set(pl.id, 0);
+      bestExactStreak.set(pl.id, Math.max(bestExactStreak.get(pl.id), exactStreaks.get(pl.id)));
+    });
+  });
+
+  const topOf = (map, min = 1) => {
+    let best = null;
+    map.forEach((v, k) => { if (v >= min && (!best || v > best.v)) best = { id: k, v }; });
+    return best ? { player: playerById.get(best.id), value: best.v } : null;
+  };
+
+  const mostExact = topOf(exactCounts, 1);
+  const mostScorer = topOf(scorerCounts, 1);
+  const longestCorrectStreak = topOf(bestCorrectStreak, 2);
+  const longestExactStreak = topOf(bestExactStreak, 2);
+
+  const standings = denseRank(computeStandingsFor(players, predictions, resultsByFixture));
+  const bestRate = standings
+    .filter(r => r.scoredCount >= 10)
+    .map(r => ({ player: r.player, rate: (r.exact * POINTS.EXACT + r.correct * POINTS.CORRECT) / r.scoredCount }))
+    .sort((a, b) => b.rate - a.rate)[0];
+
+  const rows = [
+    highest && `<div class="record-row"><div class="rlabel">Highest single match score</div><div class="rdetail">${highest.player?.display_name || "—"} — ${highest.total} pts (${highest.fixture ? `${highest.fixture.home_team} v ${highest.fixture.away_team}` : "unknown fixture"})</div></div>`,
+    mostExact && `<div class="record-row"><div class="rlabel">Most exact scores</div><div class="rdetail">${mostExact.player.display_name} — ${mostExact.value}</div></div>`,
+    mostScorer && `<div class="record-row"><div class="rlabel">Most first goalscorer picks correct</div><div class="rdetail">${mostScorer.player.display_name} — ${mostScorer.value}</div></div>`,
+    longestCorrectStreak && `<div class="record-row"><div class="rlabel">Longest correct-result streak</div><div class="rdetail">${longestCorrectStreak.player.display_name} — ${longestCorrectStreak.value}</div></div>`,
+    longestExactStreak && `<div class="record-row"><div class="rlabel">Longest exact-score streak</div><div class="rdetail">${longestExactStreak.player.display_name} — ${longestExactStreak.value}</div></div>`,
+    bestRate && `<div class="record-row"><div class="rlabel">Best performance rate</div><div class="rdetail">${bestRate.player.display_name} — ${bestRate.rate.toFixed(2)} pts/prediction</div></div>`
+  ].filter(Boolean);
+
+  body.innerHTML = rows.join("") + `<button class="share-btn" id="btn-share-records">Share to WhatsApp</button>`;
+
+  document.getElementById("btn-share-records")?.addEventListener("click", () => {
+    const lines = ["🏅 Pompey Predictor — Season Records"];
+    if (highest) lines.push(`Highest match score: ${highest.player?.display_name} — ${highest.total} pts`);
+    if (mostExact) lines.push(`Most exact scores: ${mostExact.player.display_name} — ${mostExact.value}`);
+    if (mostScorer) lines.push(`Most scorer picks: ${mostScorer.player.display_name} — ${mostScorer.value}`);
+    if (longestCorrectStreak) lines.push(`Longest correct streak: ${longestCorrectStreak.player.display_name} — ${longestCorrectStreak.value}`);
+    if (longestExactStreak) lines.push(`Longest exact streak: ${longestExactStreak.player.display_name} — ${longestExactStreak.value}`);
+    if (bestRate) lines.push(`Best rate: ${bestRate.player.display_name} — ${bestRate.rate.toFixed(2)} pts/prediction`);
+    const text = lines.join("\n");
+    if (navigator.share) navigator.share({ text }).catch(() => {});
+    else navigator.clipboard?.writeText(text).then(() => alert("Copied to clipboard."));
+  });
+}
+
+document.getElementById("rate-toggle").addEventListener("click", () => {
+  document.getElementById("rate-panel").classList.toggle("collapsed");
+});
+document.getElementById("records-toggle").addEventListener("click", () => {
+  document.getElementById("records-panel").classList.toggle("collapsed");
+});
+
+/* ============================================================
+   ADMIN: RESULTS ENTRY
+   The functional bottleneck for the whole scoring system — every
+   leaderboard, streak, and rate calculation reads from `results`,
+   and this is the only place a row gets written to it from the app.
+   ============================================================ */
+async function saveResult({ fixture_id, home_score, away_score, first_scorer }) {
+  const res = await fetch(`${REST_URL}/results?on_conflict=fixture_id`, {
+    method: "POST",
+    headers: {
+      apikey: SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${getAccessToken()}`,
+      "Content-Type": "application/json",
+      Prefer: "resolution=merge-duplicates,return=representation"
+    },
+    body: JSON.stringify([{ fixture_id, home_score, away_score, first_scorer: first_scorer || null }])
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message || "Could not save this result.");
+  }
+  return res.json();
+}
+
+let resultsFilter = "needs"; // "needs" | "all"
+
+async function renderAdminResultsPanel() {
+  const slot = document.getElementById("admin-results-slot");
+  slot.innerHTML = `<div class="placeholder-note">Loading fixtures…</div>`;
+
+  const [fixtures, results, squad] = await Promise.all([
+    sbFetchAll("fixtures?select=*"),
+    sbFetchAll("results?select=*"),
+    sbFetchAll("squad?select=*&order=player_name.asc") // full squad, not active-only — a since-departed player may still be the correct historical scorer
+  ]);
+  const resultByFixture = new Map(results.map(r => [r.fixture_id, r]));
+  const now = Date.now();
+
+  const kickedOff = fixtures.filter(f => new Date(f.kickoff).getTime() <= now)
+    .sort((a, b) => new Date(b.kickoff) - new Date(a.kickoff));
+  const visible = resultsFilter === "needs" ? kickedOff.filter(f => !resultByFixture.has(f.id)) : kickedOff;
+
+  slot.innerHTML = `
+    <div class="card" style="padding:0;">
+      <div class="admin-header" style="padding:0 14px;">⚽ Enter Results</div>
+      <div class="rr-filter">
+        <button data-filter="needs" class="${resultsFilter === 'needs' ? 'active' : ''}">Needs a result</button>
+        <button data-filter="all" class="${resultsFilter === 'all' ? 'active' : ''}">All played</button>
+      </div>
+      <div style="padding:0 14px 12px;">
+        ${visible.length === 0 ? `<div class="placeholder-note">Nothing to show here.</div>` : visible.map(f => {
+          const existing = resultByFixture.get(f.id);
+          return `
+          <div class="result-row">
+            <div class="rr-top">
+              <span class="rr-teams">${f.home_team} v ${f.away_team}</span>
+              <span class="rr-badge ${existing ? 'done' : ''}">${existing ? 'Entered' : 'GW ' + f.gameweek}</span>
+            </div>
+            <div class="rr-inputs">
+              <input type="tel" inputmode="numeric" maxlength="2" class="rr-home" value="${existing?.home_score ?? ''}" placeholder="0">
+              <span class="sep" style="font-family:'Bebas Neue', Impact, sans-serif; font-size:18px; color:var(--grey);">–</span>
+              <input type="tel" inputmode="numeric" maxlength="2" class="rr-away" value="${existing?.away_score ?? ''}" placeholder="0">
+              <select class="rr-scorer">
+                <option value="">No goalscorer</option>
+                ${squad.map(s => `<option value="${s.player_name}" ${existing?.first_scorer === s.player_name ? "selected" : ""}>${s.player_name}${!s.active ? " (inactive)" : ""}</option>`).join("")}
+              </select>
+            </div>
+            <button class="rr-save" data-fixture="${f.id}">${existing ? 'Update result' : 'Save result'}</button>
+            <div class="rr-status"></div>
+          </div>`;
+        }).join("")}
+      </div>
+    </div>`;
+
+  slot.querySelectorAll("[data-filter]").forEach(btn => {
+    btn.addEventListener("click", () => { resultsFilter = btn.dataset.filter; renderAdminResultsPanel(); });
+  });
+
+  slot.querySelectorAll(".rr-save").forEach(btn => {
+    const row = btn.closest(".result-row");
+    btn.addEventListener("click", async () => {
+      const h = row.querySelector(".rr-home").value;
+      const a = row.querySelector(".rr-away").value;
+      const status = row.querySelector(".rr-status");
+      if (h === "" || a === "") { status.textContent = "Enter both scores."; return; }
+      btn.disabled = true; status.textContent = "Saving…";
+      try {
+        await saveResult({
+          fixture_id: parseInt(btn.dataset.fixture, 10),
+          home_score: parseInt(h, 10),
+          away_score: parseInt(a, 10),
+          first_scorer: row.querySelector(".rr-scorer").value
+        });
+        status.textContent = "Saved ✓";
+        setTimeout(() => renderAdminResultsPanel(), 600);
+      } catch (err) {
+        status.textContent = err.message;
+        btn.disabled = false;
+      }
+    });
   });
 }
 
