@@ -410,6 +410,11 @@
         <p id="profile-mobile" style="color:var(--grey); font-size:13px;"></p>
         <button class="btn-primary" id="btn-sign-out" style="background:var(--navy); margin-top:10px; width:100%;">Sign out of this device</button>
       </div>
+      <div class="card" style="text-align:center;">
+        <h3 style="margin-top:0;">£10 entry</h3>
+        <p style="font-size:13px; color:var(--grey); margin-bottom:14px;">Pay into the shared PayPal pool to confirm your place in the league.</p>
+        <a href="https://www.paypal.com/pool/9q61PGoEEs?sr=ancr" target="_blank" rel="noopener" class="btn-primary" style="display:block; text-decoration:none; line-height:44px; background:var(--red);">Pay via PayPal Pool</a>
+      </div>
       <div id="admin-slot"></div>
       <div class="placeholder-note">
         Rules &amp; Points System, remaining admin panels (squad, missing predictions, exports) and
@@ -448,7 +453,7 @@ const AUTH_URL = `${SUPABASE_URL}/auth/v1`;
 const SCHEMA = {
   players: {
     table: "players",
-    columns: ["id","created_at","display_name","is_admin","phone_number","is_active","payment_verified"]
+    columns: ["id","created_at","display_name","is_admin","phone_number","is_active","payment_verified","pool_exempt"]
   },
   fixtures: {
     table: "fixtures",
@@ -1249,6 +1254,21 @@ async function verifyPlayerPayment(playerId) {
   return res.json();
 }
 
+async function togglePoolExempt(playerId, exempt) {
+  const res = await fetch(`${REST_URL}/players?id=eq.${playerId}`, {
+    method: "PATCH",
+    headers: {
+      apikey: SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${getAccessToken()}`,
+      "Content-Type": "application/json",
+      Prefer: "return=representation"
+    },
+    body: JSON.stringify({ pool_exempt: exempt })
+  });
+  if (!res.ok) throw new Error("Could not update exempt status.");
+  return res.json();
+}
+
 /* The only hard delete permitted anywhere in this app, and only
    for a player who has never paid — everyone else is soft-deleted
    via is_active per the spec. */
@@ -1265,7 +1285,8 @@ async function purgeUnverifiedPlayer(playerId) {
 }
 
 function computePrizePool(players) {
-  const verifiedCount = players.filter(p => p.payment_verified).length;
+  const countingPlayers = players.filter(p => !p.pool_exempt);
+  const verifiedCount = countingPlayers.filter(p => p.payment_verified).length;
   const totalCollected = verifiedCount * ENTRY_FEE;
   const adminFee = totalCollected * ADMIN_FEE_PCT;
   const pool = totalCollected - adminFee;
@@ -1317,15 +1338,16 @@ async function renderAdminPaymentDashboard() {
       </div>
       <div id="deadline-status" style="font-size:12px; color:var(--grey); margin-top:-8px; margin-bottom:10px;"></div>
       ${sortedPlayers.map(p => {
-        const overdue = deadlinePassed && !p.payment_verified;
+        const overdue = deadlinePassed && !p.payment_verified && !p.pool_exempt;
         return `
         <div class="player-row ${overdue ? 'overdue' : ''}">
           <div class="pinfo">
-            <div class="pname">${p.display_name}${overdue ? " ⚠️" : ""}</div>
+            <div class="pname">${p.display_name}${overdue ? " ⚠️" : ""}${p.pool_exempt ? " <span style=\"color:var(--grey); font-weight:400;\">(exempt)</span>" : ""}</div>
             <div class="pmeta">${p.phone_number || "no mobile on file"} · joined ${new Date(p.created_at).toLocaleDateString("en-GB")}</div>
           </div>
           <div class="pactions">
             <button class="btn-verify" data-verify="${p.id}" ${p.payment_verified ? "disabled" : ""}>${p.payment_verified ? "Paid ✓" : "Verify"}</button>
+            <button class="btn-verify" style="background:var(--grey-light); color:var(--text);" data-exempt="${p.id}" data-current="${p.pool_exempt}">${p.pool_exempt ? "Un-exempt" : "Exempt"}</button>
             ${!p.payment_verified ? `<button class="btn-purge" data-purge="${p.id}" data-name="${p.display_name}">Purge</button>` : ""}
           </div>
         </div>`;
@@ -1345,6 +1367,15 @@ async function renderAdminPaymentDashboard() {
     btn.addEventListener("click", async () => {
       btn.disabled = true; btn.textContent = "Verifying…";
       try { await verifyPlayerPayment(btn.dataset.verify); renderAdminPaymentDashboard(); }
+      catch (err) { alert(err.message); btn.disabled = false; }
+    });
+  });
+
+  slot.querySelectorAll("[data-exempt]").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const currentlyExempt = btn.dataset.current === "true";
+      btn.disabled = true;
+      try { await togglePoolExempt(btn.dataset.exempt, !currentlyExempt); renderAdminPaymentDashboard(); }
       catch (err) { alert(err.message); btn.disabled = false; }
     });
   });
