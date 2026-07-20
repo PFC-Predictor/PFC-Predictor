@@ -1143,7 +1143,7 @@ document.getElementById("btn-instructions").addEventListener("click", () => {
   fetchAllPlayersAdmin().then(players => {
     const prize = computePrizePool(players);
     const gbp = n => `£${n.toFixed(2)}`;
-    document.getElementById("instructions-prize").innerHTML += `<br><strong>Current figures:</strong> ${prize.verifiedCount} paid · pool ${gbp(prize.totalCollected - prize.adminFee)} · 1st ${gbp(prize.first)} · 2nd ${gbp(prize.second)} · 3rd ${gbp(prize.third)}`;
+    document.getElementById("instructions-prize").innerHTML += `<br><strong>Current figures:</strong> 1st ${gbp(prize.first)} · 2nd ${gbp(prize.second)} · 3rd ${gbp(prize.third)}`;
   }).catch(() => {});
   openModal("modal-instructions");
 });
@@ -1320,15 +1320,16 @@ function badgeFor(pred, result) {
 
 function renderPicksGrid(players, predictions, resultByFixture, fixtures) {
   const content = document.getElementById("picks-content");
+  const groupLabel = f => f.gameweek != null ? `Gameweek ${f.gameweek}` : (f.competition || "Cup Games");
   const byGw = new Map();
-  fixtures.forEach(f => { if (!byGw.has(f.gameweek)) byGw.set(f.gameweek, []); byGw.get(f.gameweek).push(f); });
+  fixtures.forEach(f => { const key = groupLabel(f); if (!byGw.has(key)) byGw.set(key, []); byGw.get(key).push(f); });
 
   const now = Date.now();
-  content.innerHTML = [...byGw.entries()].map(([gw, fxs]) => {
+  content.innerHTML = [...byGw.entries()].map(([label, fxs]) => {
     const allDone = fxs.every(f => resultByFixture.has(f.id));
     return `
-    <div class="gw-group ${allDone ? 'collapsed' : ''}" data-gw="${gw}">
-      <div class="gw-group-header"><span>Gameweek ${gw}</span><span class="chev">▾</span></div>
+    <div class="gw-group ${allDone ? 'collapsed' : ''}">
+      <div class="gw-group-header"><span>${label}</span><span class="chev">▾</span></div>
       <div class="gw-group-body">
         ${fxs.map(f => {
           const result = resultByFixture.get(f.id);
