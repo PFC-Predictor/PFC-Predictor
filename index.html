@@ -437,6 +437,7 @@
     <button type="submit" id="btn-create-account">Get started</button>
     <div class="auth-status" id="newplayer-status"></div>
   </form>
+  <div class="auth-note" style="color:#ffd479; font-weight:600;">📲 If you're on iPhone, add this page to your Home Screen first (Share button → Add to Home Screen), then open it from the icon before entering your name. Signing up here and adding the icon afterwards creates a second account.</div>
   <div class="auth-note">Your mobile is only ever visible to the league admin, never to other players. Used to reach you if there's a payment or prediction query.</div>
 </div>
 
@@ -576,7 +577,7 @@
     </section>
   </main>
 
-  <div class="footer-credit">Developed by Ant James</div>
+  <div class="footer-credit">Developed by Ant & Louis James</div>
 
   <nav class="floating-nav">
     <button class="tab active" data-view="fixtures"><span class="emoji">⚽</span>Fixtures</button>
@@ -1833,6 +1834,18 @@ async function renderGameweek(gw) {
   });
 }
 
+const POSITION_ORDER = ["Goalkeeper", "Defender", "Midfielder", "Forward"];
+function sortSquadByPosition(squad) {
+  return [...squad].sort((a, b) => {
+    const ai = POSITION_ORDER.indexOf(a.position);
+    const bi = POSITION_ORDER.indexOf(b.position);
+    const aRank = ai === -1 ? POSITION_ORDER.length : ai; // no position set — sort to the end
+    const bRank = bi === -1 ? POSITION_ORDER.length : bi;
+    if (aRank !== bRank) return aRank - bRank;
+    return a.player_name.localeCompare(b.player_name);
+  });
+}
+
 function buildMatchCard(fixture, squad, existingPred, result) {
   const wrap = document.createElement("div");
   wrap.className = "card match-card";
@@ -1858,7 +1871,7 @@ function buildMatchCard(fixture, squad, existingPred, result) {
       <label>First Pompey goalscorer</label>
       <select class="mc-scorer-select" ${locked ? "disabled" : ""}>
         <option value="">No goalscorer</option>
-        ${squad.map(s => `<option value="${s.player_name}" ${existingPred?.first_scorer === s.player_name ? "selected" : ""}>${s.player_name}${s.position ? ` (${s.position})` : ""}</option>`).join("")}
+        ${sortSquadByPosition(squad).filter(s => s.position !== "Goalkeeper").map(s => `<option value="${s.player_name}" ${existingPred?.first_scorer === s.player_name ? "selected" : ""}>${s.player_name}${s.position ? ` (${s.position})` : ""}</option>`).join("")}
       </select>
     </div>
     ${locked
@@ -2492,7 +2505,7 @@ async function renderAdminResultsPanel() {
               <input type="tel" inputmode="numeric" maxlength="2" class="rr-away" value="${existing?.away_score ?? ''}" placeholder="0">
               <select class="rr-scorer">
                 <option value="">No goalscorer</option>
-                ${squad.map(s => `<option value="${s.player_name}" ${existing?.first_scorer === s.player_name ? "selected" : ""}>${s.player_name}${s.position ? ` (${s.position})` : ""}${!s.active ? " — inactive" : ""}</option>`).join("")}
+                ${sortSquadByPosition(squad).map(s => `<option value="${s.player_name}" ${existing?.first_scorer === s.player_name ? "selected" : ""}>${s.player_name}${s.position ? ` (${s.position})` : ""}${!s.active ? " — inactive" : ""}</option>`).join("")}
               </select>
             </div>
             <button class="rr-save" data-fixture="${f.id}">${existing ? 'Update result' : 'Save result'}</button>
