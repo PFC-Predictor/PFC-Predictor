@@ -419,6 +419,20 @@
   .badge-grey{background:var(--grey-light); color:var(--grey);}
   .history-row{padding:10px 14px; border-top:1px solid var(--grey-light); font-size:12.5px;}
   .history-row .hr-top{display:flex; justify-content:space-between;}
+
+  /* ---------- pull to refresh ---------- */
+  #pull-indicator{
+    position:fixed; top:calc(var(--safe-top) + 4px); left:0; right:0; z-index:60;
+    display:flex; justify-content:center; align-items:center; gap:8px;
+    font-size:12px; font-weight:700; color:var(--navy);
+    opacity:0; transform:translateY(-30px); transition:opacity 0.15s;
+    pointer-events:none;
+  }
+  #pull-indicator .spinner{
+    width:16px; height:16px; border-radius:50%; border:2px solid var(--grey-light); border-top-color:var(--navy);
+  }
+  #pull-indicator.spinning .spinner{animation:pull-spin 0.7s linear infinite;}
+  @keyframes pull-spin{to{transform:rotate(360deg);}}
 </style>
 </head>
 <body>
@@ -475,6 +489,7 @@
 
 <!-- ============ MAIN APP ============ -->
 <div id="app" class="hidden">
+  <div id="pull-indicator"><div class="spinner"></div><span id="pull-label">Pull to refresh</span></div>
   <header class="top-header">
     <div class="brand">
       <h1>POMPEY PREDICTOR</h1>
@@ -497,7 +512,6 @@
       <div id="hero-card-slot"></div>
       <div id="shoutout-slot"></div>
       <div id="reminder-slot"></div>
-      <div id="verdict-slot"></div>
 
       <div class="gw-nav">
         <button id="gw-prev">‹</button>
@@ -506,6 +520,8 @@
       </div>
 
       <div id="match-list"></div>
+
+      <div id="verdict-slot"></div>
 
       <button id="btn-everyones-picks" style="width:100%; height:44px; border-radius:10px; border:none; background:var(--navy); color:var(--white); font-weight:700; font-size:13px; margin-top:4px;">👀 Everyone's Picks</button>
     </section>
@@ -2614,6 +2630,67 @@ async function renderAdminResultsPanel() {
     });
   });
 }
+
+/* ============================================================
+   PULL TO REFRESH — passive listeners throughout, no
+   preventDefault, so it never fights native scroll or adds
+   tap lag. Purely visual tracking of how far past the top the
+   finger has moved; the browser's own overscroll handles the
+   physical bounce.
+   ============================================================ */
+(function setupPullToRefresh() {
+  const indicator = document.getElementById("pull-indicator");
+  const label = document.getElementById("pull-label");
+  const THRESHOLD = 70;
+  let startY = null;
+  let refreshing = false;
+
+  function currentRefreshFn() {
+    const activeTab = document.querySelector("nav.floating-nav .tab.active");
+    const view = activeTab ? activeTab.dataset.view : "fixtures";
+    if (view === "fixtures") return initFixturesView;
+    if (view === "leaderboard") return renderLeaderboard;
+    if (view === "chat") return renderChat;
+    if (view === "profile" && currentPlayer?.is_admin) return () => { renderAdminPaymentDashboard(); renderAdminResultsPanel(); renderAdminMissingPanel(); renderAdminSquadPanel(); renderAdminExportPanel(); };
+    return null;
+  }
+
+  document.addEventListener("touchstart", (e) => {
+    if (document.getElementById("app").classList.contains("hidden")) return;
+    if (window.scrollY > 0 || refreshing) { startY = null; return; }
+    startY = e.touches[0].clientY;
+  }, { passive: true });
+
+  document.addEventListener("touchmove", (e) => {
+    if (startY == null || refreshing) return;
+    const delta = e.touches[0].clientY - startY;
+    if (delta <= 0) { indicator.style.opacity = 0; return; }
+    const pull = Math.min(delta, THRESHOLD * 1.5);
+    indicator.style.transform = `translateY(${Math.min(pull - 30, 20)}px)`;
+    indicator.style.opacity = Math.min(pull / THRESHOLD, 1);
+    label.textContent = delta > THRESHOLD ? "Release to refresh" : "Pull to refresh";
+  }, { passive: true });
+
+  document.addEventListener("touchend", (e) => {
+    if (startY == null || refreshing) { startY = null; return; }
+    const delta = (e.changedTouches[0]?.clientY || 0) - startY;
+    startY = null;
+    if (delta > THRESHOLD) {
+      const fn = currentRefreshFn();
+      if (!fn) { indicator.style.opacity = 0; return; }
+      refreshing = true;
+      indicator.classList.add("spinning");
+      label.textContent = "Refreshing…";
+      Promise.resolve(fn()).finally(() => {
+        refreshing = false;
+        indicator.classList.remove("spinning");
+        indicator.style.opacity = 0;
+      });
+    } else {
+      indicator.style.opacity = 0;
+    }
+  }, { passive: true });
+})();
 
 boot();
 </script>
