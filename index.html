@@ -564,8 +564,10 @@
     <section id="view-leaderboard" class="view">
       <div id="prize-slot"></div>
       <div id="mover-slot"></div>
-      <div class="lb-summary" id="lb-player-count"></div>
-      <div style="text-align:right; font-size:11px; color:var(--grey); margin-bottom:6px;"><span class="lb-paid-tick">✓</span> = paid</div>
+      <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--grey); margin-bottom:6px;">
+        <span><span class="lb-paid-tick">✓</span> = paid</span>
+        <span id="lb-player-count"></span>
+      </div>
       <div class="card" style="padding:0; overflow-x:auto;">
         <table class="lb-table" id="lb-table"></table>
       </div>
@@ -598,10 +600,21 @@
 
     <section id="view-profile" class="view">
       <div class="card">
-        <h3 style="margin-top:0;">Signed in as</h3>
-        <p id="profile-name" style="font-weight:700;"></p>
-        <p id="profile-mobile" style="color:var(--grey); font-size:13px;"></p>
-        <button class="btn-primary" id="btn-sign-out" style="background:var(--navy); margin-top:10px; width:100%;">Sign out of this device</button>
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px;">
+          <div style="min-width:0;">
+            <div id="profile-name" style="font-weight:700; font-size:15px;"></div>
+            <div style="font-size:12px; color:var(--grey); margin-top:2px;">
+              <span id="profile-mobile"></span>
+              <span id="profile-edit-link" style="color:var(--navy); text-decoration:underline; cursor:pointer; margin-left:6px;">Edit</span>
+            </div>
+            <div id="profile-mobile-edit" class="hidden" style="display:flex; gap:6px; margin-top:6px;">
+              <input type="tel" id="profile-mobile-input" style="flex:1; height:36px; border-radius:8px; border:1px solid var(--grey-light); padding:0 8px; font-size:13px;">
+              <button id="btn-save-mobile" style="height:36px; border-radius:8px; border:none; background:var(--navy); color:var(--white); font-size:12px; font-weight:700; padding:0 10px;">Save</button>
+            </div>
+            <div id="profile-mobile-status" style="font-size:11px; color:var(--grey); margin-top:4px;"></div>
+          </div>
+          <button class="btn-primary" id="btn-sign-out" style="background:var(--navy); font-size:12px; padding:0 12px; height:36px; width:auto; white-space:nowrap;">Sign out</button>
+        </div>
       </div>
       <div class="card" style="text-align:center;">
         <h3 style="margin-top:0;">£10 entry</h3>
@@ -1086,6 +1099,41 @@ function renderPinDots(containerId, count) {
   const dots = document.querySelectorAll(`#${containerId} span`);
   dots.forEach((d, i) => d.classList.toggle("filled", i < count));
 }
+
+document.getElementById("profile-edit-link").addEventListener("click", () => {
+  const editBox = document.getElementById("profile-mobile-edit");
+  const input = document.getElementById("profile-mobile-input");
+  input.value = currentPlayer.phone_number || "";
+  editBox.classList.remove("hidden");
+  input.focus();
+});
+
+document.getElementById("btn-save-mobile").addEventListener("click", async () => {
+  const input = document.getElementById("profile-mobile-input");
+  const status = document.getElementById("profile-mobile-status");
+  const newNumber = input.value.trim();
+  if (!newNumber) { status.textContent = "Enter a mobile number."; return; }
+  status.textContent = "Saving…";
+  try {
+    const res = await fetch(`${REST_URL}/players?id=eq.${currentPlayer.id}`, {
+      method: "PATCH",
+      headers: {
+        apikey: SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${getAccessToken()}`,
+        "Content-Type": "application/json",
+        Prefer: "return=representation"
+      },
+      body: JSON.stringify({ phone_number: newNumber })
+    });
+    if (!res.ok) throw new Error("Could not save — try again.");
+    currentPlayer.phone_number = newNumber;
+    document.getElementById("profile-mobile").textContent = newNumber;
+    document.getElementById("profile-mobile-edit").classList.add("hidden");
+    status.textContent = "Saved ✓";
+  } catch (err) {
+    status.textContent = err.message;
+  }
+});
 
 document.getElementById("btn-sign-out").addEventListener("click", () => {
   clearSession();
