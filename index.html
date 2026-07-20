@@ -268,6 +268,39 @@
   .mc-save:disabled{opacity:0.5;}
   .mc-save-status{font-size:12px; text-align:center; margin-top:6px; min-height:16px;}
   .mc-locked-note{font-size:12px; color:var(--grey); text-align:center; padding:6px 0;}
+
+  /* ---------- admin: payment dashboard ---------- */
+  .admin-header{
+    font-family:'Bebas Neue', Impact, sans-serif; font-size:18px; letter-spacing:0.5px;
+    margin:18px 0 8px;
+  }
+  .prize-grid{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:12px;}
+  .prize-tile{background:var(--grey-light); border-radius:12px; padding:10px 12px;}
+  .prize-tile .label{font-size:11px; color:var(--grey); text-transform:uppercase; letter-spacing:0.3px;}
+  .prize-tile .value{font-family:'Bebas Neue', Impact, sans-serif; font-size:20px; color:var(--navy);}
+  .deadline-row{display:flex; align-items:center; gap:8px; margin-bottom:14px; font-size:13px;}
+  .deadline-row input{
+    height:36px; border-radius:8px; border:1px solid var(--grey-light); padding:0 8px; font-size:13px;
+  }
+  .deadline-row button{
+    height:36px; border-radius:8px; border:none; background:var(--navy); color:var(--white);
+    font-size:12px; font-weight:700; padding:0 12px;
+  }
+  .player-row{
+    display:flex; align-items:center; justify-content:space-between; gap:8px;
+    padding:10px 0; border-top:1px solid var(--grey-light); font-size:13px;
+  }
+  .player-row.overdue{background:#fdecec; margin:0 -16px; padding:10px 16px; border-top-color:#f5b8b8;}
+  .player-row .pinfo{flex:1; min-width:0;}
+  .player-row .pname{font-weight:700;}
+  .player-row .pmeta{color:var(--grey); font-size:11px;}
+  .player-row .pactions{display:flex; gap:6px; flex-shrink:0;}
+  .player-row button{
+    border:none; border-radius:8px; font-size:11px; font-weight:700; padding:8px 10px; min-height:36px;
+  }
+  .btn-verify{background:#1c8a45; color:var(--white);}
+  .btn-verify:disabled{background:var(--grey-light); color:var(--grey);}
+  .btn-purge{background:var(--red); color:var(--white);}
 </style>
 </head>
 <body>
@@ -378,9 +411,10 @@
         <p id="profile-mobile" style="color:var(--grey); font-size:13px;"></p>
         <button class="btn-primary" id="btn-sign-out" style="background:var(--navy); margin-top:10px; width:100%;">Sign out of this device</button>
       </div>
+      <div id="admin-slot"></div>
       <div class="placeholder-note">
-        Rules &amp; Points System, admin panels (squad, missing predictions, payments, exports) and
-        the Everyone's Picks view all land in the next pass, once this shell and schema are confirmed.
+        Rules &amp; Points System, remaining admin panels (squad, missing predictions, exports) and
+        the Everyone's Picks view all land in the next pass.
       </div>
     </section>
   </main>
@@ -441,6 +475,10 @@ const SCHEMA = {
   app_updates: {
     table: "app_updates",
     columns: ["id","created_at","version","notes"]
+  },
+  league_settings: {
+    table: "league_settings",
+    columns: ["id","payment_deadline"]
   }
 };
 
@@ -768,6 +806,7 @@ document.querySelectorAll("nav.floating-nav .tab").forEach(tab => {
     tab.classList.add("active");
     document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
     document.getElementById(`view-${tab.dataset.view}`).classList.add("active");
+    if (tab.dataset.view === "profile" && currentPlayer && currentPlayer.is_admin) renderAdminPaymentDashboard();
   }, { passive: true });
 });
 
@@ -1159,6 +1198,168 @@ setInterval(() => {
     if (new Date(iso).getTime() > Date.now()) el.textContent = countdownText(iso);
   });
 }, 30000);
+
+/* ============================================================
+   ADMIN: PAYMENT DASHBOARD + PRIZE POOL CALCULATOR
+   Uses sbFetchAll for the player list — this is one of the
+   three places the row cap must be bypassed.
+   ============================================================ */
+const ENTRY_FEE = 10;
+const ADMIN_FEE_PCT = 0.10;
+
+async function fetchAllPlayersAdmin() {
+  return sbFetchAll("players?select=*&order=display_name.asc");
+}
+
+async function fetchLeagueSettings() {
+  const res = await fetch(`${REST_URL}/league_settings?id=eq.1&select=*`, {
+    headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${getAccessToken()}` }
+  });
+  if (!res.ok) return null;
+  const rows = await res.json();
+  return rows[0] || null;
+}
+
+async function saveLeagueSettings(deadline) {
+  const res = await fetch(`${REST_URL}/league_settings?on_conflict=id`, {
+    method: "POST",
+    headers: {
+      apikey: SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${getAccessToken()}`,
+      "Content-Type": "application/json",
+      Prefer: "resolution=merge-duplicates,return=representation"
+    },
+    body: JSON.stringify([{ id: 1, payment_deadline: deadline }])
+  });
+  if (!res.ok) throw new Error("Could not save the deadline.");
+  return res.json();
+}
+
+async function verifyPlayerPayment(playerId) {
+  const res = await fetch(`${REST_URL}/players?id=eq.${playerId}`, {
+    method: "PATCH",
+    headers: {
+      apikey: SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${getAccessToken()}`,
+      "Content-Type": "application/json",
+      Prefer: "return=representation"
+    },
+    body: JSON.stringify({ payment_verified: true })
+  });
+  if (!res.ok) throw new Error("Could not verify payment.");
+  return res.json();
+}
+
+/* The only hard delete permitted anywhere in this app, and only
+   for a player who has never paid — everyone else is soft-deleted
+   via is_active per the spec. */
+async function purgeUnverifiedPlayer(playerId) {
+  const headers = {
+    apikey: SUPABASE_ANON_KEY,
+    Authorization: `Bearer ${getAccessToken()}`,
+    "Content-Type": "application/json"
+  };
+  await fetch(`${REST_URL}/predictions?player_id=eq.${playerId}`, { method: "DELETE", headers });
+  await fetch(`${REST_URL}/messages?player_id=eq.${playerId}`, { method: "DELETE", headers });
+  const res = await fetch(`${REST_URL}/players?id=eq.${playerId}`, { method: "DELETE", headers });
+  if (!res.ok) throw new Error("Could not purge this player.");
+}
+
+function computePrizePool(players) {
+  const verifiedCount = players.filter(p => p.payment_verified).length;
+  const totalCollected = verifiedCount * ENTRY_FEE;
+  const adminFee = totalCollected * ADMIN_FEE_PCT;
+  const pool = totalCollected - adminFee;
+  return {
+    registered: players.length,
+    verifiedCount,
+    totalCollected,
+    adminFee,
+    first: pool * 0.6,
+    second: pool * 0.3,
+    third: pool * 0.1
+  };
+}
+
+async function renderAdminPaymentDashboard() {
+  const slot = document.getElementById("admin-slot");
+  slot.innerHTML = `<div class="placeholder-note">Loading payment dashboard…</div>`;
+
+  const [players, settings] = await Promise.all([fetchAllPlayersAdmin(), fetchLeagueSettings()]);
+  const prize = computePrizePool(players);
+  const deadline = settings?.payment_deadline || "";
+  const deadlinePassed = deadline && new Date(deadline).getTime() < Date.now();
+
+  const gbp = n => `£${n.toFixed(2)}`;
+
+  const sortedPlayers = [...players].sort((a, b) => {
+    const aOverdue = deadlinePassed && !a.payment_verified;
+    const bOverdue = deadlinePassed && !b.payment_verified;
+    if (aOverdue !== bOverdue) return aOverdue ? -1 : 1;
+    return a.display_name.localeCompare(b.display_name);
+  });
+
+  slot.innerHTML = `
+    <div class="card">
+      <div class="admin-header">💰 Payment Dashboard</div>
+      <div class="prize-grid">
+        <div class="prize-tile"><div class="label">Registered</div><div class="value">${prize.registered}</div></div>
+        <div class="prize-tile"><div class="label">Verified paid</div><div class="value">${prize.verifiedCount}</div></div>
+        <div class="prize-tile"><div class="label">Collected</div><div class="value">${gbp(prize.totalCollected)}</div></div>
+        <div class="prize-tile"><div class="label">Admin fee (10%)</div><div class="value">${gbp(prize.adminFee)}</div></div>
+        <div class="prize-tile"><div class="label">1st place (60%)</div><div class="value">${gbp(prize.first)}</div></div>
+        <div class="prize-tile"><div class="label">2nd place (30%)</div><div class="value">${gbp(prize.second)}</div></div>
+        <div class="prize-tile"><div class="label">3rd place (10%)</div><div class="value">${gbp(prize.third)}</div></div>
+      </div>
+      <div class="deadline-row">
+        <span>Deadline:</span>
+        <input type="date" id="deadline-input" value="${deadline}">
+        <button id="btn-save-deadline">Save</button>
+      </div>
+      <div id="deadline-status" style="font-size:12px; color:var(--grey); margin-top:-8px; margin-bottom:10px;"></div>
+      ${sortedPlayers.map(p => {
+        const overdue = deadlinePassed && !p.payment_verified;
+        return `
+        <div class="player-row ${overdue ? 'overdue' : ''}">
+          <div class="pinfo">
+            <div class="pname">${p.display_name}${overdue ? " ⚠️" : ""}</div>
+            <div class="pmeta">${p.phone_number || "no mobile on file"} · joined ${new Date(p.created_at).toLocaleDateString("en-GB")}</div>
+          </div>
+          <div class="pactions">
+            <button class="btn-verify" data-verify="${p.id}" ${p.payment_verified ? "disabled" : ""}>${p.payment_verified ? "Paid ✓" : "Verify"}</button>
+            ${!p.payment_verified ? `<button class="btn-purge" data-purge="${p.id}" data-name="${p.display_name}">Purge</button>` : ""}
+          </div>
+        </div>`;
+      }).join("")}
+    </div>`;
+
+  document.getElementById("btn-save-deadline").addEventListener("click", async () => {
+    const val = document.getElementById("deadline-input").value;
+    const status = document.getElementById("deadline-status");
+    if (!val) { status.textContent = "Pick a date first."; return; }
+    status.textContent = "Saving…";
+    try { await saveLeagueSettings(val); renderAdminPaymentDashboard(); }
+    catch (err) { status.textContent = err.message; }
+  });
+
+  slot.querySelectorAll("[data-verify]").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      btn.disabled = true; btn.textContent = "Verifying…";
+      try { await verifyPlayerPayment(btn.dataset.verify); renderAdminPaymentDashboard(); }
+      catch (err) { alert(err.message); btn.disabled = false; }
+    });
+  });
+
+  slot.querySelectorAll("[data-purge]").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const ok = confirm(`Permanently delete all data for ${btn.dataset.name}? This cannot be undone.`);
+      if (!ok) return;
+      btn.disabled = true; btn.textContent = "Purging…";
+      try { await purgeUnverifiedPlayer(btn.dataset.purge); renderAdminPaymentDashboard(); }
+      catch (err) { alert(err.message); btn.disabled = false; }
+    });
+  });
+}
 
 boot();
 </script>
