@@ -600,6 +600,7 @@
         <p style="font-size:13px; color:var(--grey); margin-bottom:14px;">Pay into the shared PayPal pool to confirm your place in the league.</p>
         <a href="https://www.paypal.com/pool/9q61PGoEEs?sr=ancr" target="_blank" rel="noopener" class="btn-primary" style="display:block; text-decoration:none; line-height:44px; background:var(--navy);">Pay via PayPal Pool</a>
         <p style="font-size:11px; color:var(--grey); margin-top:10px; margin-bottom:0;">This button opens the pool — you'll still need to tap Contribute inside PayPal itself to actually send your £10.</p>
+        <p style="font-size:11px; color:var(--grey); margin-top:6px; margin-bottom:0;">No PayPal account? Tap "Contribute as a Guest" once you're on the page — you don't need to sign up.</p>
       </div>
       <div class="card">
         <h3 style="margin-top:0;">Rules &amp; points system</h3>
@@ -611,8 +612,9 @@
         <p style="font-size:12px; color:var(--grey); line-height:1.6; margin-top:10px;">
           <strong>Disaster Insurance Guarantee:</strong> in the highly unlikely event of a catastrophic
           system failure or total application breakdown halfway through the season, the league will be
-          officially cancelled and 100% of joining fees will be instantly refunded to everyone via the
-          PayPal Pool.
+          officially cancelled and 100% of joining fees will be refunded by the admin as quickly as
+          possible via the PayPal Pool. Refunds aren't automatic or instant, PayPal requires the admin to
+          process each one individually.
         </p>
       </div>
       <div id="admin-fixtures-slot"></div>
@@ -1720,7 +1722,7 @@ function maybeShowOnboarding() {
     </div>
     <div class="modal-section">
       <h4>Disaster Insurance Guarantee</h4>
-      <p>In the highly unlikely event of a catastrophic system failure or total application breakdown halfway through the season, the league will be officially cancelled and 100% of joining fees will be instantly refunded via the PayPal Pool.</p>
+      <p>In the highly unlikely event of a catastrophic system failure or total application breakdown halfway through the season, the league will be officially cancelled and 100% of joining fees will be refunded by the admin as quickly as possible via the PayPal Pool. Refunds aren't automatic or instant, PayPal requires the admin to process each one individually.</p>
     </div>`;
   openModal("modal-onboarding");
   localStorage.setItem("pfc_onboarded", "1");
