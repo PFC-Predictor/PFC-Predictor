@@ -565,6 +565,7 @@
       <div id="prize-slot"></div>
       <div id="mover-slot"></div>
       <div class="lb-summary" id="lb-player-count"></div>
+      <div style="text-align:right; font-size:11px; color:var(--grey); margin-bottom:6px;"><span class="lb-paid-tick">✓</span> = paid</div>
       <div class="card" style="padding:0; overflow-x:auto;">
         <table class="lb-table" id="lb-table"></table>
       </div>
@@ -1331,12 +1332,18 @@ function badgeFor(pred, result) {
 
 function renderPicksGrid(players, predictions, resultByFixture, fixtures) {
   const content = document.getElementById("picks-content");
-  const groupLabel = f => f.gameweek != null ? `Gameweek ${f.gameweek}` : (f.competition || "Cup Games");
+  const groupKey = f => f.gameweek != null ? `GW${f.gameweek}` : (f.competition || "Cup Games");
   const byGw = new Map();
-  fixtures.forEach(f => { const key = groupLabel(f); if (!byGw.has(key)) byGw.set(key, []); byGw.get(key).push(f); });
+  fixtures.forEach(f => { const key = groupKey(f); if (!byGw.has(key)) byGw.set(key, []); byGw.get(key).push(f); });
+
+  const labelFor = (key, fxs) => {
+    const names = fxs.map(f => `${f.home_team} v ${f.away_team}`).join(", ");
+    return key.startsWith("GW") ? `${key.replace("GW", "GW ")} · ${names}` : `${key}: ${names}`;
+  };
 
   const now = Date.now();
-  content.innerHTML = [...byGw.entries()].map(([label, fxs]) => {
+  content.innerHTML = [...byGw.entries()].map(([key, fxs]) => {
+    const label = labelFor(key, fxs);
     const allDone = fxs.every(f => resultByFixture.has(f.id));
     return `
     <div class="gw-group ${allDone ? 'collapsed' : ''}">
