@@ -1,0 +1,1165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<title>Pompey Predictor</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Pompey Predictor">
+<meta name="theme-color" content="#002D62">
+<link rel="apple-touch-icon" href="data:image/png;base64,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">
+<link rel="icon" type="image/png" href="data:image/png;base64,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">
+<style>
+  :root{
+    --navy:#002D62;
+    --navy-deep:#001d42;
+    --white:#ffffff;
+    --red:#E10613;
+    --gold:#D4AF37;
+    --grey:#8a94a3;
+    --grey-light:#eef1f5;
+    --card-bg:#ffffff;
+    --text:#0b1b33;
+    --safe-bottom:env(safe-area-inset-bottom, 0px);
+    --safe-top:env(safe-area-inset-top, 0px);
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;background:var(--grey-light);color:var(--text);
+    font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;
+    -webkit-user-select:none;user-select:none;
+    overscroll-behavior-y:contain;}
+  input,textarea,select{-webkit-user-select:text;user-select:text;}
+  @font-face{
+    font-family:'Bebas Neue';
+    src:local('Bebas Neue');
+    font-display:swap;
+  }
+  .display{font-family:'Bebas Neue', Impact, sans-serif; letter-spacing:0.5px;}
+
+  #app{min-height:100vh; display:flex; flex-direction:column;}
+
+  /* ---------- header ---------- */
+  header.top-header{
+    position:sticky; top:0; z-index:40;
+    background:var(--navy);
+    color:var(--white);
+    padding:calc(12px + var(--safe-top)) 16px 12px;
+    display:flex; align-items:center; justify-content:space-between;
+    box-shadow:0 2px 10px rgba(0,0,0,0.15);
+  }
+  .brand{display:flex; align-items:center; gap:10px;}
+  .brand .crest{
+    width:34px; height:34px; border-radius:8px; background:var(--white);
+    display:flex; align-items:center; justify-content:center;
+    font-size:18px;
+  }
+  .brand h1{font-family:'Bebas Neue', Impact, sans-serif; font-size:22px; margin:0; letter-spacing:1px;}
+  .header-actions{display:flex; align-items:center; gap:6px;}
+  .icon-btn{
+    background:rgba(255,255,255,0.12); border:none; color:var(--white);
+    width:40px; height:40px; border-radius:10px; font-size:18px;
+    display:flex; align-items:center; justify-content:center;
+    touch-action:manipulation;
+  }
+  .whats-new-badge{
+    position:relative;
+  }
+  .whats-new-badge .dot{
+    position:absolute; top:4px; right:4px; width:9px; height:9px; border-radius:50%;
+    background:var(--red); border:2px solid var(--navy);
+  }
+  .player-pill{
+    display:flex; align-items:center; gap:8px;
+    background:rgba(255,255,255,0.12);
+    border-radius:999px; padding:6px 12px 6px 6px;
+    font-size:14px; font-weight:600;
+  }
+  .player-pill .avatar{
+    width:26px; height:26px; border-radius:50%; background:var(--red);
+    display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700;
+  }
+
+  /* ---------- main / views ---------- */
+  main{flex:1; padding:16px 16px calc(96px + var(--safe-bottom)); max-width:640px; width:100%; margin:0 auto;}
+  .view{display:none;}
+  .view.active{display:block;}
+  .card{
+    background:var(--card-bg); border-radius:16px; padding:16px;
+    box-shadow:0 1px 3px rgba(11,27,51,0.08);
+    margin-bottom:14px;
+  }
+  .placeholder-note{
+    color:var(--grey); font-size:14px; line-height:1.5; text-align:center; padding:30px 10px;
+  }
+
+  /* ---------- floating bottom nav ---------- */
+  nav.floating-nav{
+    position:fixed;
+    left:12px; right:12px;
+    bottom:calc(12px + var(--safe-bottom));
+    z-index:50;
+    background:rgba(0,45,98,0.82);
+    -webkit-backdrop-filter:blur(10px);
+    backdrop-filter:blur(10px);
+    border-radius:16px;
+    box-shadow:0 8px 24px rgba(0,0,0,0.25);
+    display:flex;
+    padding:6px;
+    max-width:640px; margin:0 auto;
+  }
+  nav.floating-nav .tab{
+    flex:1; min-height:52px;
+    background:none; border:none; color:rgba(255,255,255,0.65);
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px;
+    border-radius:12px;
+    font-size:10px; font-weight:600; letter-spacing:0.3px;
+    touch-action:manipulation;
+  }
+  nav.floating-nav .tab .emoji{font-size:19px;}
+  nav.floating-nav .tab.active{
+    background:rgba(255,255,255,0.14);
+    color:var(--white);
+  }
+
+  /* ---------- footer credit ---------- */
+  .footer-credit{
+    text-align:center; font-size:11px; color:var(--grey);
+    padding:6px 0 4px;
+  }
+
+  /* ---------- auth screens ---------- */
+  .auth-wrap{
+    min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    padding:24px; background:linear-gradient(160deg, var(--navy) 0%, var(--navy-deep) 100%);
+    color:var(--white); text-align:center;
+  }
+  .auth-wrap .crest-big{
+    width:76px; height:76px; border-radius:18px; background:var(--white);
+    display:flex; align-items:center; justify-content:center; font-size:36px;
+    margin-bottom:18px;
+  }
+  .auth-wrap h1{font-family:'Bebas Neue', Impact, sans-serif; font-size:34px; margin:0 0 6px; letter-spacing:1px;}
+  .auth-wrap p{color:rgba(255,255,255,0.75); font-size:14px; max-width:340px; margin:0 0 22px; line-height:1.5;}
+  .auth-form{width:100%; max-width:320px; display:flex; flex-direction:column; gap:12px;}
+  .auth-form input{
+    -webkit-user-select:text; user-select:text;
+    height:48px; border-radius:12px; border:none; padding:0 16px;
+    font-size:16px; background:rgba(255,255,255,0.95); color:var(--text);
+  }
+  .auth-form button, .btn-primary{
+    height:48px; min-height:44px; border-radius:12px; border:none;
+    background:var(--red); color:var(--white); font-weight:700; font-size:15px;
+    touch-action:manipulation;
+  }
+  .auth-form button:disabled{opacity:0.6;}
+  .auth-note{font-size:12px; color:rgba(255,255,255,0.55); margin-top:14px;}
+  .auth-status{font-size:13px; min-height:18px; margin-top:4px;}
+
+  .pin-dots{display:flex; gap:14px; justify-content:center; margin:18px 0;}
+  .pin-dots span{
+    width:16px; height:16px; border-radius:50%; border:2px solid rgba(255,255,255,0.5);
+  }
+  .pin-dots span.filled{background:var(--gold); border-color:var(--gold);}
+  .pin-pad{display:grid; grid-template-columns:repeat(3,1fr); gap:10px; width:100%; max-width:280px;}
+  .pin-pad button{
+    height:60px; min-height:44px; border-radius:14px; border:none;
+    background:rgba(255,255,255,0.1); color:var(--white); font-size:20px; font-weight:600;
+    touch-action:manipulation;
+  }
+
+  #screen-loading{
+    min-height:100vh; display:flex; align-items:center; justify-content:center;
+    background:var(--navy); color:var(--white); font-family:'Bebas Neue', Impact, sans-serif;
+    font-size:22px; letter-spacing:1px;
+  }
+
+  .hidden{display:none !important;}
+
+  /* ---------- fixtures: hero card ---------- */
+  .hero-card{
+    background:linear-gradient(155deg, var(--navy) 0%, var(--navy-deep) 100%);
+    color:var(--white); border-radius:18px; padding:20px;
+    margin-bottom:12px; text-align:center;
+  }
+  .hero-card .eyebrow{font-size:11px; letter-spacing:1.5px; color:rgba(255,255,255,0.6); text-transform:uppercase;}
+  .hero-card .match{font-family:'Bebas Neue', Impact, sans-serif; font-size:26px; margin:6px 0 2px; letter-spacing:0.5px;}
+  .hero-card .kickoff{font-size:13px; color:rgba(255,255,255,0.75); margin-bottom:12px;}
+  .hero-card .countdown{
+    font-family:'Bebas Neue', Impact, sans-serif; font-size:22px; color:var(--gold); letter-spacing:1px;
+  }
+
+  /* ---------- shout-out ---------- */
+  .shoutout-card{
+    background:#fff7dc; border:1px solid #f0dd9c; border-radius:14px; padding:14px 16px;
+    margin-bottom:12px; font-size:14px; line-height:1.5;
+  }
+  .shoutout-card .label{font-weight:700; color:#8a6d00; font-size:11px; letter-spacing:0.5px; text-transform:uppercase; margin-bottom:4px;}
+
+  /* ---------- reminder banner ---------- */
+  .reminder-banner{
+    background:#fdecec; border:1px solid #f5b8b8; border-radius:14px; padding:12px 14px;
+    margin-bottom:12px; font-size:13px;
+  }
+  .reminder-banner .label{font-weight:700; color:var(--red); font-size:12px; margin-bottom:6px;}
+  .reminder-banner .item{display:flex; justify-content:space-between; padding:3px 0; color:var(--text);}
+  .reminder-banner .item .t{color:var(--red); font-weight:600; font-variant-numeric:tabular-nums;}
+
+  /* ---------- crowd's verdict ---------- */
+  .verdict-panel{margin-bottom:12px;}
+  .verdict-header{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:12px 14px; font-weight:700; font-size:14px;
+  }
+  .verdict-header .chev{transition:transform 0.2s;}
+  .verdict-panel.collapsed .verdict-body{display:none;}
+  .verdict-panel.collapsed .chev{transform:rotate(-90deg);}
+  .verdict-match{padding:10px 14px; border-top:1px solid var(--grey-light);}
+  .verdict-match .vs{font-size:13px; font-weight:600; margin-bottom:8px;}
+  .verdict-tiles{display:flex; gap:6px;}
+  .verdict-tile{
+    flex:1; text-align:center; padding:8px 4px; border-radius:10px;
+    background:var(--grey-light); font-size:12px;
+  }
+  .verdict-tile.leading{background:var(--navy); color:var(--white); font-weight:700;}
+  .verdict-tile .pct{font-family:'Bebas Neue', Impact, sans-serif; font-size:18px; display:block;}
+  .verdict-sub{font-size:11px; color:var(--grey); margin-top:6px;}
+
+  /* ---------- gameweek nav ---------- */
+  .gw-nav{
+    display:flex; align-items:center; justify-content:space-between;
+    margin-bottom:12px;
+  }
+  .gw-nav button{
+    width:44px; height:44px; border-radius:12px; border:none; background:var(--white);
+    box-shadow:0 1px 3px rgba(11,27,51,0.08); font-size:18px; color:var(--navy);
+    touch-action:manipulation;
+  }
+  .gw-nav button:disabled{opacity:0.35;}
+  .gw-nav .gw-label{font-family:'Bebas Neue', Impact, sans-serif; font-size:20px; letter-spacing:0.5px;}
+
+  /* ---------- match card ---------- */
+  .match-card{margin-bottom:12px;}
+  .match-card .mc-top{display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;}
+  .mc-teams{font-weight:700; font-size:14px;}
+  .mc-badge{
+    font-size:11px; font-weight:700; padding:4px 9px; border-radius:999px;
+    background:var(--grey-light); color:var(--grey);
+  }
+  .mc-badge.active{background:#e7f6ec; color:#1c8a45;}
+  .mc-badge.locked{background:#f1f1f3; color:#7a7a7a;}
+  .mc-scores{display:flex; align-items:center; justify-content:center; gap:14px; margin-bottom:12px;}
+  .mc-scores input{
+    width:56px; height:56px; text-align:center; font-size:24px; font-weight:700;
+    border-radius:12px; border:2px solid var(--grey-light); background:var(--grey-light);
+  }
+  .mc-scores input:focus{border-color:var(--navy); outline:none; background:var(--white);}
+  .mc-scores .sep{font-family:'Bebas Neue', Impact, sans-serif; font-size:22px; color:var(--grey);}
+  .mc-scorer{margin-bottom:10px;}
+  .mc-scorer label{font-size:11px; color:var(--grey); display:block; margin-bottom:4px;}
+  .mc-scorer select{
+    width:100%; height:44px; border-radius:10px; border:1px solid var(--grey-light);
+    background:var(--grey-light); padding:0 12px; font-size:14px; -webkit-user-select:text; user-select:text;
+  }
+  .mc-save{
+    width:100%; height:44px; border-radius:10px; border:none; background:var(--navy);
+    color:var(--white); font-weight:700; font-size:14px; touch-action:manipulation;
+  }
+  .mc-save:disabled{opacity:0.5;}
+  .mc-save-status{font-size:12px; text-align:center; margin-top:6px; min-height:16px;}
+  .mc-locked-note{font-size:12px; color:var(--grey); text-align:center; padding:6px 0;}
+</style>
+</head>
+<body>
+
+<div id="screen-loading"><div class="display">LOADING POMPEY PREDICTOR&hellip;</div></div>
+
+<!-- ============ AUTH: NEW USER / MAGIC LINK REQUEST ============ -->
+<div id="screen-signin" class="auth-wrap hidden">
+  <div class="crest-big">⚽</div>
+  <h1 class="display">POMPEY PREDICTOR</h1>
+  <p id="signin-copy">Enter your email and we'll send you a magic link to sign in. No password needed.</p>
+  <form class="auth-form" id="form-signin">
+    <input type="email" id="input-email" placeholder="you@email.com" autocomplete="email" required>
+    <button type="submit" id="btn-send-link">Send magic link</button>
+    <div class="auth-status" id="signin-status"></div>
+  </form>
+  <div class="auth-note">By continuing you agree to fair play — one account per person.</div>
+</div>
+
+<!-- ============ AUTH: LINK SENT / CHECK EMAIL ============ -->
+<div id="screen-link-sent" class="auth-wrap hidden">
+  <div class="crest-big">📧</div>
+  <h1 class="display">CHECK YOUR EMAIL</h1>
+  <p>We've sent a magic link to <strong id="sent-to-email"></strong>. Tap it on this device to sign in.</p>
+  <button class="btn-primary" style="max-width:280px;" id="btn-resend-link">Resend link</button>
+  <div class="auth-status" id="resend-status"></div>
+</div>
+
+<!-- ============ AUTH: SESSION EXPIRED (returning device, no valid session) ============ -->
+<div id="screen-expired" class="auth-wrap hidden">
+  <div class="crest-big">⏳</div>
+  <h1 class="display">LOGIN EXPIRED</h1>
+  <p>Your session on this device has expired. Request a fresh magic link to carry on.</p>
+  <form class="auth-form" id="form-expired">
+    <input type="email" id="input-email-expired" placeholder="you@email.com" autocomplete="email" required>
+    <button type="submit">Send new magic link</button>
+    <div class="auth-status" id="expired-status"></div>
+  </form>
+</div>
+
+<!-- ============ AUTH: SET UP LOCAL PIN (first time on this device, post magic-link) ============ -->
+<div id="screen-set-pin" class="auth-wrap hidden">
+  <div class="crest-big">🔒</div>
+  <h1 class="display">SET A DEVICE PIN</h1>
+  <p>Choose a 4-digit PIN to quickly unlock the app on this device. This never leaves your phone.</p>
+  <div class="pin-dots" id="setpin-dots">
+    <span></span><span></span><span></span><span></span>
+  </div>
+  <div class="pin-pad" id="setpin-pad"></div>
+</div>
+
+<!-- ============ AUTH: UNLOCK WITH PIN (already have a session on this device) ============ -->
+<div id="screen-unlock" class="auth-wrap hidden">
+  <div class="crest-big">⚽</div>
+  <h1 class="display" id="unlock-name">WELCOME BACK</h1>
+  <p>Enter your PIN to unlock Pompey Predictor.</p>
+  <div class="pin-dots" id="unlock-dots">
+    <span></span><span></span><span></span><span></span>
+  </div>
+  <div class="auth-status" id="unlock-status"></div>
+  <div class="pin-pad" id="unlock-pad"></div>
+</div>
+
+<!-- ============ MAIN APP ============ -->
+<div id="app" class="hidden">
+  <header class="top-header">
+    <div class="brand">
+      <div class="crest">⚽</div>
+      <h1>POMPEY PREDICTOR</h1>
+    </div>
+    <div class="header-actions">
+      <div class="player-pill hidden" id="player-pill">
+        <div class="avatar" id="player-pill-avatar">?</div>
+        <span id="player-pill-name"></span>
+      </div>
+      <button class="icon-btn" id="btn-instructions" title="Instructions">ℹ️</button>
+      <button class="icon-btn whats-new-badge" id="btn-whats-new" title="What's New">
+        📢<span class="dot hidden" id="whats-new-dot"></span>
+      </button>
+      <button class="icon-btn" id="btn-share" title="Share app">📤</button>
+    </div>
+  </header>
+
+  <main>
+    <section id="view-fixtures" class="view active">
+      <div id="hero-card-slot"></div>
+      <div id="shoutout-slot"></div>
+      <div id="reminder-slot"></div>
+      <div id="verdict-slot"></div>
+
+      <div class="gw-nav">
+        <button id="gw-prev">‹</button>
+        <span class="gw-label" id="gw-label">GAMEWEEK 1</span>
+        <button id="gw-next">›</button>
+      </div>
+
+      <div id="match-list"></div>
+    </section>
+
+    <section id="view-leaderboard" class="view">
+      <div class="placeholder-note">
+        Leaderboard tab — six columns (position, player, exact, correct, scorer, points), movement
+        arrows, Performance Rate and Season Records go here next.
+      </div>
+    </section>
+
+    <section id="view-chat" class="view">
+      <div class="placeholder-note">
+        Chat tab — the Social Banter Wall reads from <code>messages</code> joined to
+        <code>players.display_name</code> at render time.
+      </div>
+    </section>
+
+    <section id="view-profile" class="view">
+      <div class="card">
+        <h3 style="margin-top:0;">Signed in as</h3>
+        <p id="profile-name" style="font-weight:700;"></p>
+        <p id="profile-email" style="color:var(--grey); font-size:13px;"></p>
+        <button class="btn-primary" id="btn-sign-out" style="background:var(--navy); margin-top:10px; width:100%;">Sign out of this device</button>
+      </div>
+      <div class="placeholder-note">
+        Rules &amp; Points System, admin panels (squad, missing predictions, payments, exports) and
+        the Everyone's Picks view all land in the next pass, once this shell and schema are confirmed.
+      </div>
+    </section>
+  </main>
+
+  <div class="footer-credit">Developed by Ant James</div>
+
+  <nav class="floating-nav">
+    <button class="tab active" data-view="fixtures"><span class="emoji">⚽</span>Fixtures</button>
+    <button class="tab" data-view="leaderboard"><span class="emoji">🏆</span>Leaderboard</button>
+    <button class="tab" data-view="chat"><span class="emoji">💬</span>Chat</button>
+    <button class="tab" data-view="profile"><span class="emoji">⚙️</span>Profile</button>
+  </nav>
+</div>
+
+<script>
+/* ============================================================
+   SUPABASE CONFIG
+   ============================================================ */
+const SUPABASE_URL = "https://sddnbznhkecbgihlkxjt.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNkZG5iem5oa2VjYmdpaGxreGp0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ1MDg4ODAsImV4cCI6MjEwMDA4NDg4MH0.pAPLnHysxiW4u3y6832uOWpjSJBPDaG6r9iQd37M8wI";
+const GITHUB_PAGES_URL = "https://pfc-predictor.github.io/PFC-Predictor";
+
+const REST_URL = `${SUPABASE_URL}/rest/v1`;
+const AUTH_URL = `${SUPABASE_URL}/auth/v1`;
+
+/* ============================================================
+   SCHEMA REFLECTION — table + column names must match the SQL
+   exactly. Everything else in the app should read these
+   constants rather than hardcoding column strings, so a future
+   schema tweak only needs changing in one place.
+   ============================================================ */
+const SCHEMA = {
+  players: {
+    table: "players",
+    columns: ["id","created_at","display_name","is_admin","phone_number","is_active","payment_verified"]
+  },
+  fixtures: {
+    table: "fixtures",
+    columns: ["id","created_at","gameweek","home_team","away_team","kickoff","venue"]
+  },
+  squad: {
+    table: "squad",
+    columns: ["id","player_name","position","active"]
+  },
+  predictions: {
+    table: "predictions",
+    columns: ["id","created_at","player_id","fixture_id","home_score","away_score","first_scorer"],
+    conflictTarget: "player_id,fixture_id"
+  },
+  results: {
+    table: "results",
+    columns: ["id","fixture_id","home_score","away_score","first_scorer"]
+  },
+  messages: {
+    table: "messages",
+    columns: ["id","created_at","player_id","message_text"]
+  },
+  app_updates: {
+    table: "app_updates",
+    columns: ["id","created_at","version","notes"]
+  }
+};
+
+const POINTS = { EXACT: 3, CORRECT: 1, SCORER: 2 }; // breakdown-based, not summed into a single ambiguous total
+
+/* ============================================================
+   LOCAL STORAGE — only ever used for seen-version tracking and
+   the device PIN hash + session pointer. Never for squad,
+   fixtures, predictions or results, which are always fetched
+   live so admin edits (e.g. removing an inactive player) show
+   up on next load without a stale cache.
+   ============================================================ */
+const LS_KEYS = {
+  lastSeenUpdateId: "pfc_last_seen_update_id",
+  pinHash: "pfc_pin_hash",
+  session: "pfc_session" // { access_token, refresh_token, expires_at }
+};
+
+/* ============================================================
+   sbFetchAll — recursive pagination in batches of 1000 to
+   bypass Supabase/PostgREST's default row cap. Mandatory for
+   leaderboard calculations, Everyone's Picks and the admin
+   player dashboard.
+   ============================================================ */
+async function sbFetchAll(path, extraHeaders = {}) {
+  const BATCH = 1000;
+  let offset = 0;
+  let all = [];
+  while (true) {
+    const sep = path.includes("?") ? "&" : "?";
+    const url = `${REST_URL}/${path}${sep}limit=${BATCH}&offset=${offset}`;
+    const res = await fetch(url, {
+      headers: {
+        apikey: SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${getAccessToken() || SUPABASE_ANON_KEY}`,
+        ...extraHeaders
+      }
+    });
+    if (!res.ok) throw new Error(`sbFetchAll failed (${res.status}) on ${path}`);
+    const batch = await res.json();
+    all = all.concat(batch);
+    if (batch.length < BATCH) break;
+    offset += BATCH;
+  }
+  return all;
+}
+
+function getAccessToken() {
+  const raw = localStorage.getItem(LS_KEYS.session);
+  if (!raw) return null;
+  try { return JSON.parse(raw).access_token; } catch { return null; }
+}
+function getSession() {
+  const raw = localStorage.getItem(LS_KEYS.session);
+  if (!raw) return null;
+  try { return JSON.parse(raw); } catch { return null; }
+}
+function saveSession(session) {
+  localStorage.setItem(LS_KEYS.session, JSON.stringify(session));
+}
+function clearSession() {
+  localStorage.removeItem(LS_KEYS.session);
+  localStorage.removeItem(LS_KEYS.pinHash);
+}
+function sessionIsValid(session) {
+  if (!session || !session.access_token || !session.expires_at) return false;
+  return Date.now() / 1000 < session.expires_at;
+}
+
+/* ============================================================
+   AUTH: magic link request
+   ============================================================ */
+async function sendMagicLink(email) {
+  const res = await fetch(`${AUTH_URL}/otp`, {
+    method: "POST",
+    headers: { apikey: SUPABASE_ANON_KEY, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      email,
+      create_user: true,
+      options: { email_redirect_to: GITHUB_PAGES_URL }
+    })
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.msg || body.error_description || "Could not send magic link.");
+  }
+  return true;
+}
+
+/* Handle the magic-link redirect: Supabase returns tokens in the URL hash
+   (#access_token=...&refresh_token=...&expires_in=...&token_type=...) */
+function consumeAuthHashIfPresent() {
+  if (!location.hash || !location.hash.includes("access_token")) return false;
+  const params = new URLSearchParams(location.hash.slice(1));
+  const access_token = params.get("access_token");
+  const refresh_token = params.get("refresh_token");
+  const expires_in = parseInt(params.get("expires_in") || "3600", 10);
+  if (!access_token) return false;
+  saveSession({
+    access_token,
+    refresh_token,
+    expires_at: Math.floor(Date.now() / 1000) + expires_in
+  });
+  history.replaceState(null, "", location.pathname + location.search);
+  return true;
+}
+
+async function fetchOrCreatePlayerRow() {
+  const session = getSession();
+  if (!sessionIsValid(session)) return null;
+
+  // who am I
+  const userRes = await fetch(`${AUTH_URL}/user`, {
+    headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${session.access_token}` }
+  });
+  if (!userRes.ok) return null;
+  const user = await userRes.json();
+
+  // does a players row already exist for this uid?
+  let playerRes = await fetch(`${REST_URL}/players?id=eq.${user.id}&select=*`, {
+    headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${session.access_token}` }
+  });
+  let rows = await playerRes.json();
+
+  if (rows.length === 0) {
+    // first ever sign-in on any device for this account — create the row.
+    // display_name defaults from email local-part; player can rename later in Profile.
+    const displayName = (user.email || "player").split("@")[0];
+    const insertRes = await fetch(`${REST_URL}/players`, {
+      method: "POST",
+      headers: {
+        apikey: SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${session.access_token}`,
+        "Content-Type": "application/json",
+        Prefer: "return=representation"
+      },
+      body: JSON.stringify({ id: user.id, display_name: displayName })
+    });
+    rows = await insertRes.json();
+  }
+
+  const player = rows[0];
+  return { user, player };
+}
+
+/* ============================================================
+   PIN (local device unlock only — never sent to the server as
+   a credential). Stored as a simple hash purely to avoid a
+   raw plaintext string sitting in localStorage.
+   ============================================================ */
+async function hashPin(pin) {
+  const enc = new TextEncoder().encode(pin);
+  const buf = await crypto.subtle.digest("SHA-256", enc);
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, "0")).join("");
+}
+
+/* ============================================================
+   APP BOOTSTRAP
+   ============================================================ */
+let currentUser = null;
+let currentPlayer = null;
+
+async function boot() {
+  consumeAuthHashIfPresent();
+  const session = getSession();
+
+  if (!sessionIsValid(session)) {
+    if (session) { clearSession(); showScreen("expired"); }
+    else { showScreen("signin"); }
+    return;
+  }
+
+  try {
+    const result = await fetchOrCreatePlayerRow();
+    if (!result) { showScreen("expired"); return; }
+    currentUser = result.user;
+    currentPlayer = result.player;
+
+    const storedPinHash = localStorage.getItem(LS_KEYS.pinHash);
+    if (!storedPinHash) {
+      showScreen("set-pin");
+    } else {
+      document.getElementById("unlock-name").textContent = `HI ${currentPlayer.display_name.toUpperCase()}`;
+      showScreen("unlock");
+    }
+  } catch (err) {
+    console.error(err);
+    showScreen("expired");
+  }
+}
+
+function enterApp() {
+  document.getElementById("player-pill-name").textContent = currentPlayer.display_name;
+  document.getElementById("player-pill-avatar").textContent = currentPlayer.display_name.slice(0,1).toUpperCase();
+  document.getElementById("player-pill").classList.remove("hidden");
+  document.getElementById("profile-name").textContent = currentPlayer.display_name;
+  document.getElementById("profile-email").textContent = currentUser.email || "";
+  showScreen("app");
+  initFixturesView();
+}
+
+const SCREENS = ["loading","signin","link-sent","expired","set-pin","unlock","app"];
+function showScreen(name) {
+  SCREENS.forEach(s => {
+    const el = document.getElementById(`screen-${s}`) || (s === "app" ? document.getElementById("app") : null);
+    if (el) el.classList.toggle("hidden", s !== name);
+  });
+}
+
+/* ---------- sign-in form ---------- */
+document.getElementById("form-signin").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const email = document.getElementById("input-email").value.trim();
+  const btn = document.getElementById("btn-send-link");
+  const status = document.getElementById("signin-status");
+  btn.disabled = true; status.textContent = "Sending…";
+  try {
+    await sendMagicLink(email);
+    document.getElementById("sent-to-email").textContent = email;
+    showScreen("link-sent");
+  } catch (err) {
+    status.textContent = err.message;
+    btn.disabled = false;
+  }
+});
+
+document.getElementById("btn-resend-link").addEventListener("click", async () => {
+  const email = document.getElementById("sent-to-email").textContent;
+  const status = document.getElementById("resend-status");
+  status.textContent = "Sending…";
+  try { await sendMagicLink(email); status.textContent = "Link resent."; }
+  catch (err) { status.textContent = err.message; }
+});
+
+document.getElementById("form-expired").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const email = document.getElementById("input-email-expired").value.trim();
+  const status = document.getElementById("expired-status");
+  status.textContent = "Sending…";
+  try {
+    await sendMagicLink(email);
+    document.getElementById("sent-to-email").textContent = email;
+    showScreen("link-sent");
+  } catch (err) { status.textContent = err.message; }
+});
+
+/* ---------- PIN pads ---------- */
+function buildPinPad(container, onDigit, onBackspace) {
+  container.innerHTML = "";
+  const keys = ["1","2","3","4","5","6","7","8","9","","0","⌫"];
+  keys.forEach(k => {
+    const b = document.createElement("button");
+    b.textContent = k;
+    if (k === "") { b.style.visibility = "hidden"; }
+    else {
+      b.addEventListener("click", () => {
+        if (k === "⌫") onBackspace(); else onDigit(k);
+      }, { passive: true });
+    }
+    container.appendChild(b);
+  });
+}
+
+let setPinBuffer = "";
+buildPinPad(document.getElementById("setpin-pad"),
+  async (d) => {
+    if (setPinBuffer.length >= 4) return;
+    setPinBuffer += d;
+    renderPinDots("setpin-dots", setPinBuffer.length);
+    if (setPinBuffer.length === 4) {
+      localStorage.setItem(LS_KEYS.pinHash, await hashPin(setPinBuffer));
+      setPinBuffer = "";
+      enterApp();
+    }
+  },
+  () => { setPinBuffer = setPinBuffer.slice(0, -1); renderPinDots("setpin-dots", setPinBuffer.length); }
+);
+
+let unlockBuffer = "";
+buildPinPad(document.getElementById("unlock-pad"),
+  async (d) => {
+    if (unlockBuffer.length >= 4) return;
+    unlockBuffer += d;
+    renderPinDots("unlock-dots", unlockBuffer.length);
+    if (unlockBuffer.length === 4) {
+      const hash = await hashPin(unlockBuffer);
+      const stored = localStorage.getItem(LS_KEYS.pinHash);
+      const status = document.getElementById("unlock-status");
+      if (hash === stored) { unlockBuffer = ""; enterApp(); }
+      else {
+        status.textContent = "Wrong PIN, try again.";
+        unlockBuffer = "";
+        renderPinDots("unlock-dots", 0);
+      }
+    }
+  },
+  () => { unlockBuffer = unlockBuffer.slice(0, -1); renderPinDots("unlock-dots", unlockBuffer.length); }
+);
+
+function renderPinDots(containerId, count) {
+  const dots = document.querySelectorAll(`#${containerId} span`);
+  dots.forEach((d, i) => d.classList.toggle("filled", i < count));
+}
+
+document.getElementById("btn-sign-out").addEventListener("click", () => {
+  clearSession();
+  location.reload();
+});
+
+/* ---------- bottom nav ---------- */
+document.querySelectorAll("nav.floating-nav .tab").forEach(tab => {
+  tab.addEventListener("click", () => {
+    document.querySelectorAll("nav.floating-nav .tab").forEach(t => t.classList.remove("active"));
+    tab.classList.add("active");
+    document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
+    document.getElementById(`view-${tab.dataset.view}`).classList.add("active");
+  }, { passive: true });
+});
+
+/* Placeholders for header buttons — wired up properly in the next pass
+   once Fixtures/Leaderboard/Chat logic exists (share sheet + QR modal,
+   What's New modal reading app_updates, Instructions modal). */
+document.getElementById("btn-instructions").addEventListener("click", () => {
+  alert("Instructions modal lands in the next build pass.");
+});
+document.getElementById("btn-whats-new").addEventListener("click", () => {
+  alert("What's New modal (reads app_updates table) lands in the next build pass.");
+});
+document.getElementById("btn-share").addEventListener("click", () => {
+  alert("Share sheet + QR modal lands in the next build pass.");
+});
+
+/* ============================================================
+   SCORING ENGINE
+   Returns a breakdown, never a bare summed number, because a
+   correct-result-plus-scorer total (1+2=3) is indistinguishable
+   from a bare exact score (3) if flattened into one field.
+   ============================================================ */
+function calcPoints(prediction, result) {
+  const breakdown = { exact: false, correct: false, scorer: false, total: 0 };
+  if (!prediction || !result) return breakdown;
+  if (prediction.home_score == null || prediction.away_score == null) return breakdown;
+
+  const predOutcome = outcomeOf(prediction.home_score, prediction.away_score);
+  const resOutcome = outcomeOf(result.home_score, result.away_score);
+
+  const isExact = prediction.home_score === result.home_score && prediction.away_score === result.away_score;
+  const isCorrectOutcome = predOutcome === resOutcome;
+
+  if (isExact) { breakdown.exact = true; breakdown.total += POINTS.EXACT; }
+  else if (isCorrectOutcome) { breakdown.correct = true; breakdown.total += POINTS.CORRECT; }
+
+  // scorer bonus only counts if Portsmouth actually scored first per the result,
+  // and the prediction named that same player — admin enters result.first_scorer.
+  if (prediction.first_scorer && result.first_scorer && prediction.first_scorer === result.first_scorer) {
+    breakdown.scorer = true;
+    breakdown.total += POINTS.SCORER;
+  }
+  return breakdown;
+}
+function outcomeOf(homeScore, awayScore) {
+  if (homeScore > awayScore) return "H";
+  if (homeScore < awayScore) return "A";
+  return "D";
+}
+
+/* ============================================================
+   FETCH HELPERS
+   ============================================================ */
+async function fetchFixturesByGameweek(gw) {
+  const res = await fetch(`${REST_URL}/fixtures?gameweek=eq.${gw}&select=*&order=kickoff.asc`, {
+    headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${getAccessToken() || SUPABASE_ANON_KEY}` }
+  });
+  if (!res.ok) throw new Error("Could not load fixtures.");
+  return res.json();
+}
+async function fetchNextFixture() {
+  const nowIso = new Date().toISOString();
+  const res = await fetch(`${REST_URL}/fixtures?kickoff=gte.${encodeURIComponent(nowIso)}&select=*&order=kickoff.asc&limit=1`, {
+    headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${getAccessToken() || SUPABASE_ANON_KEY}` }
+  });
+  if (!res.ok) return null;
+  const rows = await res.json();
+  return rows[0] || null;
+}
+async function fetchLatestResults(n = 2) {
+  const res = await fetch(`${REST_URL}/results?select=*,fixtures(*)&order=id.desc&limit=${n}`, {
+    headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${getAccessToken() || SUPABASE_ANON_KEY}` }
+  });
+  if (!res.ok) return [];
+  return res.json();
+}
+async function fetchActiveSquad() {
+  const res = await fetch(`${REST_URL}/squad?active=eq.true&select=*&order=player_name.asc`, {
+    headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${getAccessToken() || SUPABASE_ANON_KEY}` }
+  });
+  if (!res.ok) return [];
+  return res.json();
+}
+async function fetchMyPredictionsForFixtures(fixtureIds) {
+  if (fixtureIds.length === 0) return [];
+  const idList = fixtureIds.join(",");
+  const res = await fetch(`${REST_URL}/predictions?player_id=eq.${currentPlayer.id}&fixture_id=in.(${idList})&select=*`, {
+    headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${getAccessToken() || SUPABASE_ANON_KEY}` }
+  });
+  if (!res.ok) return [];
+  return res.json();
+}
+async function fetchAllPredictionsForFixtures(fixtureIds) {
+  // uses sbFetchAll: this is one of the three places the row cap must be bypassed
+  if (fixtureIds.length === 0) return [];
+  const idList = fixtureIds.join(",");
+  return sbFetchAll(`predictions?fixture_id=in.(${idList})&select=*`);
+}
+async function fetchResultsForFixtures(fixtureIds) {
+  if (fixtureIds.length === 0) return [];
+  const idList = fixtureIds.join(",");
+  const res = await fetch(`${REST_URL}/results?fixture_id=in.(${idList})&select=*`, {
+    headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${getAccessToken() || SUPABASE_ANON_KEY}` }
+  });
+  if (!res.ok) return [];
+  return res.json();
+}
+
+/* ============================================================
+   SAVE PREDICTION — POST with explicit on_conflict + merge-duplicates.
+   Never DELETE-then-POST, per the data integrity requirement.
+   ============================================================ */
+async function savePrediction({ fixture_id, home_score, away_score, first_scorer }) {
+  const url = `${REST_URL}/predictions?on_conflict=${SCHEMA.predictions.conflictTarget}`;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      apikey: SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${getAccessToken()}`,
+      "Content-Type": "application/json",
+      Prefer: "resolution=merge-duplicates,return=representation"
+    },
+    body: JSON.stringify([{ player_id: currentPlayer.id, fixture_id, home_score, away_score, first_scorer: first_scorer || null }])
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message || "Could not save prediction.");
+  }
+  return res.json();
+}
+
+/* Zero-score backfill for kicked-off, unpredicted matches — same upsert
+   pattern. Shape is ready now; automatic invocation is wired up in the
+   admin pass so it runs on a deliberate schedule rather than client-side
+   on every load. */
+async function backfillZeroPrediction(fixture_id) {
+  const url = `${REST_URL}/predictions?on_conflict=${SCHEMA.predictions.conflictTarget}`;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      apikey: SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${getAccessToken()}`,
+      "Content-Type": "application/json",
+      Prefer: "resolution=merge-duplicates,return=representation"
+    },
+    body: JSON.stringify([{ player_id: currentPlayer.id, fixture_id, home_score: 0, away_score: 0, first_scorer: null }])
+  });
+  return res.ok;
+}
+
+/* ============================================================
+   FIXTURES VIEW STATE + RENDER
+   ============================================================ */
+let currentGW = 1;
+let countdownTimers = [];
+
+function clearCountdownTimers() {
+  countdownTimers.forEach(t => clearInterval(t));
+  countdownTimers = [];
+}
+
+async function initFixturesView() {
+  clearCountdownTimers();
+  const next = await fetchNextFixture();
+  currentGW = next ? next.gameweek : 1;
+  await Promise.all([
+    renderHeroCard(next),
+    renderShoutout(),
+    renderGameweek(currentGW)
+  ]);
+}
+
+function fmtKickoff(iso) {
+  const d = new Date(iso);
+  const date = d.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
+  const time = d.toLocaleTimeString("en-GB", { hour: "numeric", minute: "2-digit", hour12: true });
+  return `${date}, ${time}`;
+}
+
+function countdownText(iso) {
+  const diffMs = new Date(iso).getTime() - Date.now();
+  if (diffMs <= 0) return "KICKED OFF";
+  const totalMins = Math.floor(diffMs / 60000);
+  const days = Math.floor(totalMins / 1440);
+  const hours = Math.floor((totalMins % 1440) / 60);
+  const mins = totalMins % 60;
+  if (days > 0) return `KICKS OFF IN ${days}D ${hours}H`;
+  if (hours > 0) return `KICKS OFF IN ${hours}H ${mins}M`;
+  return `KICKS OFF IN ${mins}M`;
+}
+
+async function renderHeroCard(next) {
+  const slot = document.getElementById("hero-card-slot");
+  if (!next) { slot.innerHTML = ""; return; }
+  slot.innerHTML = `
+    <div class="hero-card">
+      <div class="eyebrow">Next Up — Gameweek ${next.gameweek}</div>
+      <div class="match display">${next.home_team.toUpperCase()} v ${next.away_team.toUpperCase()}</div>
+      <div class="kickoff">${fmtKickoff(next.kickoff)}</div>
+      <div class="countdown" id="hero-countdown">${countdownText(next.kickoff)}</div>
+    </div>`;
+  const el = document.getElementById("hero-countdown");
+  const timer = setInterval(() => { if (el) el.textContent = countdownText(next.kickoff); }, 30000);
+  countdownTimers.push(timer);
+}
+
+async function renderShoutout() {
+  const slot = document.getElementById("shoutout-slot");
+  const latest = await fetchLatestResults(2);
+  const finished = latest.filter(r => r.fixtures);
+  if (finished.length === 0) { slot.innerHTML = ""; return; }
+
+  const blocks = [];
+  for (const r of finished) {
+    const preds = await fetchAllPredictionsForFixtures([r.fixture_id]);
+    const exactPlayers = preds.filter(p => p.home_score === r.home_score && p.away_score === r.away_score);
+    if (exactPlayers.length === 0) continue;
+    const players = await sbFetchAll(`players?id=in.(${exactPlayers.map(p => p.player_id).join(",")})&select=id,display_name`);
+    const names = players.map(p => p.display_name);
+    const nameStr = names.length === 1 ? names[0] : `${names.slice(0, -1).join(", ")} & ${names[names.length - 1]}`;
+    blocks.push(`
+      <div class="shoutout-card">
+        <div class="label">🎯 Nailed it</div>
+        ${nameStr} nailed the scoreline after 90 mins — ${r.fixtures.home_team} ${r.home_score}-${r.away_score} ${r.fixtures.away_team}.
+      </div>`);
+  }
+  slot.innerHTML = blocks.join("");
+}
+
+async function renderReminderBanner(fixtures, myPredictions) {
+  const slot = document.getElementById("reminder-slot");
+  const predictedIds = new Set(myPredictions.map(p => p.fixture_id));
+  const now = Date.now();
+  const soon = fixtures.filter(f => {
+    const kickoff = new Date(f.kickoff).getTime();
+    return !predictedIds.has(f.id) && kickoff > now && kickoff - now <= 48 * 3600 * 1000;
+  });
+  if (soon.length === 0) { slot.innerHTML = ""; return; }
+  slot.innerHTML = `
+    <div class="reminder-banner">
+      <div class="label">⏰ Missing predictions</div>
+      ${soon.map(f => `<div class="item"><span>${f.home_team} v ${f.away_team}</span><span class="t" data-countdown="${f.kickoff}">${countdownText(f.kickoff)}</span></div>`).join("")}
+    </div>`;
+  const timer = setInterval(() => {
+    slot.querySelectorAll("[data-countdown]").forEach(el => { el.textContent = countdownText(el.dataset.countdown); });
+  }, 30000);
+  countdownTimers.push(timer);
+}
+
+async function renderVerdictPanel(fixtures) {
+  const slot = document.getElementById("verdict-slot");
+  const now = Date.now();
+  const unlocked = fixtures.filter(f => new Date(f.kickoff).getTime() > now);
+  if (unlocked.length === 0) { slot.innerHTML = ""; return; }
+
+  const allPreds = await fetchAllPredictionsForFixtures(unlocked.map(f => f.id));
+  const rows = unlocked.map(f => {
+    const preds = allPreds.filter(p => p.fixture_id === f.id && p.home_score != null && p.away_score != null);
+    const total = preds.length;
+    let h = 0, a = 0, d = 0;
+    preds.forEach(p => {
+      const o = outcomeOf(p.home_score, p.away_score);
+      if (o === "H") h++; else if (o === "A") a++; else d++;
+    });
+    const pct = n => total ? Math.round((n / total) * 100) : 0;
+    const leading = total ? (h >= a && h >= d ? "H" : a >= d ? "A" : "D") : null;
+    return { f, total, h: pct(h), a: pct(a), d: pct(d), leading };
+  }).filter(r => r.total > 0);
+
+  if (rows.length === 0) { slot.innerHTML = ""; return; }
+
+  slot.innerHTML = `
+    <div class="card verdict-panel" id="verdict-panel">
+      <div class="verdict-header" id="verdict-toggle">
+        <span>📊 The Crowd's Verdict</span>
+        <span class="chev">▾</span>
+      </div>
+      <div class="verdict-body">
+        ${rows.map(r => `
+          <div class="verdict-match">
+            <div class="vs">${r.f.home_team} v ${r.f.away_team}</div>
+            <div class="verdict-tiles">
+              <div class="verdict-tile ${r.leading === 'H' ? 'leading' : ''}"><span class="pct">${r.h}%</span>${r.f.home_team} win</div>
+              <div class="verdict-tile ${r.leading === 'D' ? 'leading' : ''}"><span class="pct">${r.d}%</span>Draw</div>
+              <div class="verdict-tile ${r.leading === 'A' ? 'leading' : ''}"><span class="pct">${r.a}%</span>${r.f.away_team} win</div>
+            </div>
+          </div>`).join("")}
+      </div>
+    </div>`;
+  document.getElementById("verdict-toggle").addEventListener("click", () => {
+    document.getElementById("verdict-panel").classList.toggle("collapsed");
+  });
+}
+
+async function renderGameweek(gw) {
+  document.getElementById("gw-label").textContent = `GAMEWEEK ${gw}`;
+  document.getElementById("gw-prev").disabled = gw <= 1;
+  document.getElementById("gw-next").disabled = gw >= 46;
+
+  const [fixtures, squad] = await Promise.all([fetchFixturesByGameweek(gw), fetchActiveSquad()]);
+  const fixtureIds = fixtures.map(f => f.id);
+  const [myPreds, results] = await Promise.all([
+    fetchMyPredictionsForFixtures(fixtureIds),
+    fetchResultsForFixtures(fixtureIds)
+  ]);
+
+  renderReminderBanner(fixtures, myPreds);
+  renderVerdictPanel(fixtures);
+
+  const predByFixture = new Map(myPreds.map(p => [p.fixture_id, p]));
+  const resultByFixture = new Map(results.map(r => [r.fixture_id, r]));
+
+  const list = document.getElementById("match-list");
+  list.innerHTML = "";
+  fixtures.forEach(f => {
+    list.appendChild(buildMatchCard(f, squad, predByFixture.get(f.id), resultByFixture.get(f.id)));
+  });
+}
+
+function buildMatchCard(fixture, squad, existingPred, result) {
+  const wrap = document.createElement("div");
+  wrap.className = "card match-card";
+  const locked = new Date(fixture.kickoff).getTime() <= Date.now();
+
+  const badge = locked
+    ? `<span class="mc-badge locked" data-countdown-badge="${fixture.kickoff}">Locked</span>`
+    : `<span class="mc-badge active" data-countdown-badge="${fixture.kickoff}">${countdownText(fixture.kickoff)}</span>`;
+
+  wrap.innerHTML = `
+    <div class="mc-top">
+      <div class="mc-teams">${fixture.home_team} v ${fixture.away_team}</div>
+      ${badge}
+    </div>
+    <div class="mc-scores">
+      <input type="tel" inputmode="numeric" maxlength="1" class="mc-home" ${locked ? "disabled" : ""}
+        value="${existingPred?.home_score ?? ""}">
+      <span class="sep">–</span>
+      <input type="tel" inputmode="numeric" maxlength="1" class="mc-away" ${locked ? "disabled" : ""}
+        value="${existingPred?.away_score ?? ""}">
+    </div>
+    <div class="mc-scorer">
+      <label>First Pompey goalscorer</label>
+      <select class="mc-scorer-select" ${locked ? "disabled" : ""}>
+        <option value="">No goalscorer</option>
+        ${squad.map(s => `<option value="${s.player_name}" ${existingPred?.first_scorer === s.player_name ? "selected" : ""}>${s.player_name}</option>`).join("")}
+      </select>
+    </div>
+    ${locked
+      ? `<div class="mc-locked-note">${result ? `Final score: ${result.home_score}-${result.away_score}` : "Kicked off — predictions closed"}</div>`
+      : `<button class="mc-save">Save prediction</button><div class="mc-save-status"></div>`}
+  `;
+
+  if (!locked) {
+    const homeInput = wrap.querySelector(".mc-home");
+    const awayInput = wrap.querySelector(".mc-away");
+    homeInput.addEventListener("input", () => { if (homeInput.value.length >= 1) awayInput.focus(); }, { passive: true });
+
+    const saveBtn = wrap.querySelector(".mc-save");
+    const statusEl = wrap.querySelector(".mc-save-status");
+    saveBtn.addEventListener("click", async () => {
+      const h = homeInput.value === "" ? null : parseInt(homeInput.value, 10);
+      const a = awayInput.value === "" ? null : parseInt(awayInput.value, 10);
+      if (h == null || a == null) { statusEl.textContent = "Enter both scores first."; return; }
+      saveBtn.disabled = true; statusEl.textContent = "Saving…";
+      try {
+        await savePrediction({
+          fixture_id: fixture.id, home_score: h, away_score: a,
+          first_scorer: wrap.querySelector(".mc-scorer-select").value
+        });
+        statusEl.textContent = "Saved ✓";
+      } catch (err) {
+        statusEl.textContent = err.message;
+      } finally {
+        saveBtn.disabled = false;
+      }
+    }, { passive: true });
+  }
+
+  return wrap;
+}
+
+document.getElementById("gw-prev").addEventListener("click", () => { if (currentGW > 1) renderGameweek(--currentGW); }, { passive: true });
+document.getElementById("gw-next").addEventListener("click", () => { if (currentGW < 46) renderGameweek(++currentGW); }, { passive: true });
+
+/* live-tick the small badges on each match card once a minute */
+setInterval(() => {
+  document.querySelectorAll("[data-countdown-badge]").forEach(el => {
+    const iso = el.dataset.countdownBadge;
+    if (new Date(iso).getTime() > Date.now()) el.textContent = countdownText(iso);
+  });
+}, 30000);
+
+boot();
+</script>
+</body>
+</html>
