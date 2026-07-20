@@ -1381,6 +1381,8 @@ document.getElementById("chat-form").addEventListener("submit", async (e) => {
 });
 
 /* ---------- Admin: Squad management ---------- */
+let squadPanelCollapsed = true;
+
 async function renderAdminSquadPanel() {
   const slot = document.getElementById("admin-squad-slot");
   slot.innerHTML = `<div class="placeholder-note">Loading squad…</div>`;
@@ -1394,8 +1396,12 @@ async function renderAdminSquadPanel() {
   const posOptions = (selected) => `<option value="">No position set</option>` + POSITIONS.map(p => `<option value="${p.code}" ${selected === p.code ? "selected" : ""}>${p.label}</option>`).join("");
 
   slot.innerHTML = `
-    <div class="card">
-      <div class="admin-header" style="margin-top:0;">👕 Squad Management</div>
+    <div class="card collapsible ${squadPanelCollapsed ? 'collapsed' : ''}" style="padding:0;">
+      <div class="collapsible-header" id="squad-toggle">
+        <span>👕 Squad Management</span>
+        <span class="chev">▾</span>
+      </div>
+      <div class="collapsible-body" style="padding:0 14px 14px;">
       <div class="deadline-row" style="flex-wrap:wrap;">
         <input type="text" id="new-player-name" placeholder="Player name" style="flex:1; min-width:120px;">
         <select id="new-player-position" style="height:36px; border-radius:8px; border:1px solid var(--grey-light);">${posOptions(null)}</select>
@@ -1411,7 +1417,13 @@ async function renderAdminSquadPanel() {
             <button class="btn-verify" style="background:${s.active ? '#fdecec' : '#e7f6ec'}; color:${s.active ? 'var(--red)' : '#1c8a45'};" data-toggle-squad="${s.id}" data-current="${s.active}">${s.active ? "Set inactive" : "Set active"}</button>
           </div>
         </div>`).join("")}
+      </div>
     </div>`;
+
+  document.getElementById("squad-toggle").addEventListener("click", () => {
+    squadPanelCollapsed = !squadPanelCollapsed;
+    document.querySelector("#admin-squad-slot .collapsible").classList.toggle("collapsed", squadPanelCollapsed);
+  });
 
   document.getElementById("btn-add-squad").addEventListener("click", async () => {
     const name = document.getElementById("new-player-name").value.trim();
@@ -1422,6 +1434,7 @@ async function renderAdminSquadPanel() {
       headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${getAccessToken()}`, "Content-Type": "application/json" },
       body: JSON.stringify({ player_name: name, position: position || null, active: true })
     });
+    squadPanelCollapsed = false;
     renderAdminSquadPanel();
   });
 
@@ -1433,6 +1446,7 @@ async function renderAdminSquadPanel() {
         headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${getAccessToken()}`, "Content-Type": "application/json" },
         body: JSON.stringify({ active: newVal })
       });
+      squadPanelCollapsed = false;
       renderAdminSquadPanel();
     });
   });
@@ -1741,9 +1755,9 @@ function countdownText(iso) {
   const days = Math.floor(totalMins / 1440);
   const hours = Math.floor((totalMins % 1440) / 60);
   const mins = totalMins % 60;
-  if (days > 0) return `KICKS OFF IN ${days}D ${hours}H`;
-  if (hours > 0) return `KICKS OFF IN ${hours}H ${mins}M`;
-  return `KICKS OFF IN ${mins}M`;
+  if (days > 0) return `KICKS OFF IN ${days} DAY${days === 1 ? "" : "S"} ${hours} HOUR${hours === 1 ? "" : "S"}`;
+  if (hours > 0) return `KICKS OFF IN ${hours} HOUR${hours === 1 ? "" : "S"} ${mins} MIN${mins === 1 ? "" : "S"}`;
+  return `KICKS OFF IN ${mins} MIN${mins === 1 ? "" : "S"}`;
 }
 
 async function renderHeroCard(next) {
@@ -1751,7 +1765,7 @@ async function renderHeroCard(next) {
   if (!next) { slot.innerHTML = ""; return; }
   slot.innerHTML = `
     <div class="hero-card">
-      <div class="eyebrow">Next Up — Gameweek ${next.gameweek}</div>
+      <div class="eyebrow">Next Up</div>
       <div class="match display">${next.home_team.toUpperCase()} v ${next.away_team.toUpperCase()}</div>
       <div class="kickoff">${fmtKickoff(next.kickoff)}</div>
       <div class="countdown" id="hero-countdown">${countdownText(next.kickoff)}</div>
@@ -1887,8 +1901,8 @@ function buildMatchCard(fixture, squad, existingPred, result) {
   const locked = new Date(fixture.kickoff).getTime() <= Date.now();
 
   const badge = locked
-    ? `<span class="mc-badge locked" data-countdown-badge="${fixture.kickoff}">Locked</span>`
-    : `<span class="mc-badge active" data-countdown-badge="${fixture.kickoff}">${countdownText(fixture.kickoff)}</span>`;
+    ? `<span class="mc-badge locked">Locked</span>`
+    : `<span class="mc-badge active">${fmtKickoff(fixture.kickoff)}</span>`;
 
   wrap.innerHTML = `
     <div class="mc-top">
@@ -1945,14 +1959,6 @@ function buildMatchCard(fixture, squad, existingPred, result) {
 
 document.getElementById("gw-prev").addEventListener("click", () => { if (currentGW > 1) renderGameweek(--currentGW); }, { passive: true });
 document.getElementById("gw-next").addEventListener("click", () => { if (currentGW < 46) renderGameweek(++currentGW); }, { passive: true });
-
-/* live-tick the small badges on each match card once a minute */
-setInterval(() => {
-  document.querySelectorAll("[data-countdown-badge]").forEach(el => {
-    const iso = el.dataset.countdownBadge;
-    if (new Date(iso).getTime() > Date.now()) el.textContent = countdownText(iso);
-  });
-}, 30000);
 
 /* ============================================================
    ADMIN: RE-LINK / MERGE (for a player whose device lost its
