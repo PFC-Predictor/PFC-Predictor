@@ -1186,7 +1186,7 @@ async function renderPicksOverlay() {
   body.innerHTML = `<div class="placeholder-note">Loading…</div>`;
 
   const [players, predictions, results, fixtures] = await Promise.all([
-    sbFetchAll("players?is_active=eq.true&select=*"),
+    sbFetchAll("players?is_active=eq.true&is_participant=eq.true&select=*"),
     sbFetchAll("predictions?select=*"),
     sbFetchAll("results?select=*"),
     sbFetchAll("fixtures?select=*&order=kickoff.asc")
@@ -1440,7 +1440,7 @@ async function renderAdminMissingPanel() {
   const weekAhead = now + 7 * 24 * 3600 * 1000;
   const [fixtures, players] = await Promise.all([
     sbFetchAll("fixtures?select=*"),
-    sbFetchAll("players?is_active=eq.true&select=*")
+    sbFetchAll("players?is_active=eq.true&is_participant=eq.true&select=*")
   ]);
   const upcoming = fixtures.filter(f => {
     const k = new Date(f.kickoff).getTime();
@@ -2252,7 +2252,7 @@ async function renderLeaderboard() {
   tableEl.innerHTML = `<tr><td style="padding:20px; text-align:center; color:var(--grey);">Loading…</td></tr>`;
 
   const [players, allPredictions, allResults, allFixtures] = await Promise.all([
-    sbFetchAll("players?is_active=eq.true&select=*"),
+    sbFetchAll("players?is_active=eq.true&is_participant=eq.true&select=*"),
     sbFetchAll("predictions?select=*"),
     sbFetchAll("results?select=*&order=created_at.asc"),
     sbFetchAll("fixtures?select=*")
