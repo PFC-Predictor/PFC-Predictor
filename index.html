@@ -616,7 +616,7 @@
           <button class="btn-primary" id="btn-sign-out" style="background:var(--navy); font-size:12px; padding:0 12px; height:36px; width:auto; white-space:nowrap;">Sign out</button>
         </div>
       </div>
-      <div class="card" style="text-align:center;">
+      <div class="card" id="pay-entry-card" style="text-align:center;">
         <h3 style="margin-top:0;">£10 entry</h3>
         <p style="font-size:13px; color:var(--grey); margin-bottom:14px;">Pay into the shared PayPal pool to confirm your place in the league.</p>
         <a href="https://www.paypal.com/pool/9q61PGoEEs?sr=ancr" target="_blank" rel="noopener" class="btn-primary" style="display:block; text-decoration:none; line-height:44px; background:var(--navy);">Pay via PayPal Pool</a>
@@ -1152,19 +1152,34 @@ document.getElementById("btn-forgot-pin").addEventListener("click", () => {
 });
 
 /* ---------- bottom nav ---------- */
+async function refreshPayEntryCard() {
+  const card = document.getElementById("pay-entry-card");
+  try {
+    const res = await fetch(`${REST_URL}/players?id=eq.${currentPlayer.id}&select=payment_verified`, {
+      headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${getAccessToken()}` }
+    });
+    const rows = await res.json();
+    if (rows[0]) currentPlayer.payment_verified = rows[0].payment_verified;
+  } catch (e) { /* fall back to whatever's already cached rather than blocking the tab */ }
+  card.classList.toggle("hidden", !!currentPlayer.payment_verified);
+}
+
 document.querySelectorAll("nav.floating-nav .tab").forEach(tab => {
   tab.addEventListener("click", () => {
     document.querySelectorAll("nav.floating-nav .tab").forEach(t => t.classList.remove("active"));
     tab.classList.add("active");
     document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
     document.getElementById(`view-${tab.dataset.view}`).classList.add("active");
-    if (tab.dataset.view === "profile" && currentPlayer && currentPlayer.is_admin) {
-      renderAdminAddFixturePanel();
-      renderAdminPaymentDashboard();
-      renderAdminResultsPanel();
-      renderAdminMissingPanel();
-      renderAdminSquadPanel();
-      renderAdminExportPanel();
+    if (tab.dataset.view === "profile" && currentPlayer) {
+      refreshPayEntryCard();
+      if (currentPlayer.is_admin) {
+        renderAdminAddFixturePanel();
+        renderAdminPaymentDashboard();
+        renderAdminResultsPanel();
+        renderAdminMissingPanel();
+        renderAdminSquadPanel();
+        renderAdminExportPanel();
+      }
     }
     if (tab.dataset.view === "leaderboard") renderLeaderboard();
   }, { passive: true });
@@ -1196,7 +1211,7 @@ document.getElementById("btn-instructions").addEventListener("click", () => {
     </div>
     <div class="modal-section">
       <h4>4. Prize structure</h4>
-      <p id="instructions-prize">Entry is £10 per player. 10% goes to league administration. The remaining pool's split depends on how many people have paid: under 15 paid entries, the winner takes the entire pool; 15 to 29, it's 70% to first and 30% to second; 30 or more, it's 60/30/10 across first, second and third.</p>
+      <p id="instructions-prize">Entry is £10 per player. 10% goes to league administration. The remaining pool's split depends on how many people have paid: under 20 paid entries, the winner takes the entire pool; 20 to 39, it's 70% to first and 30% to second; 40 or more, it's 60/30/10 across first, second and third.</p>
     </div>`;
   fetchAllPlayersAdmin().then(players => {
     const prize = computePrizePool(players);
@@ -2369,8 +2384,8 @@ async function purgeUnverifiedPlayer(playerId) {
 // Winner count scales with how many people have actually paid, so a small
 // pool isn't split into a token third-place amount nobody's excited about.
 function prizeTierSplits(verifiedCount) {
-  if (verifiedCount < 15) return [1.0];          // winner takes all
-  if (verifiedCount < 30) return [0.7, 0.3];      // two winners
+  if (verifiedCount < 20) return [1.0];          // winner takes all
+  if (verifiedCount < 40) return [0.7, 0.3];      // two winners
   return [0.6, 0.3, 0.1];                          // three winners
 }
 
@@ -2651,7 +2666,7 @@ async function renderPrizePoolCard() {
     <div class="prize-card">
       <div class="pc-title">💰 PRIZE POOL — ${prize.verifiedCount} PAID IN OUT OF ${prize.entries} ENTRIES</div>
       ${buildPodiumHtml(prize.amounts, gbp)}
-      <div class="pc-note">${prize.winners === 1 ? "Under 15 paid entries — one winner takes it all. " : ""}Based on verified entries so far — get more mates to pay in and this grows.</div>
+      <div class="pc-note">${prize.winners === 1 ? "Under 20 paid entries — one winner takes it all. " : ""}Based on verified entries so far — get more mates to pay in and this grows.</div>
       ${potentialLine}
     </div>`;
 }
