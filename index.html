@@ -333,6 +333,11 @@
   .prize-place .pp-amount{font-family:'Bebas Neue', Impact, sans-serif; font-size:22px; color:var(--gold);}
   .prize-place.second .pp-amount, .prize-place.third .pp-amount{color:rgba(255,255,255,0.85); font-size:18px;}
   .prize-card .pc-note{text-align:center; font-size:11px; color:rgba(255,255,255,0.6); margin-top:12px;}
+  .prize-card .pc-potential{
+    text-align:center; font-size:11px; color:rgba(255,255,255,0.55);
+    margin-top:10px; padding-top:10px; border-top:1px dashed rgba(255,255,255,0.2);
+  }
+  .prize-card .pc-potential strong{color:rgba(255,255,255,0.8);}
   .mover-card{border-radius:14px; padding:12px; text-align:center;}
   .mover-card.up{background:#e7f6ec;}
   .mover-card.down{background:#fdecec;}
@@ -352,6 +357,7 @@
   .lb-move{font-size:11px;}
   .lb-move.up{color:#1c8a45;}
   .lb-move.down{color:var(--red);}
+  .lb-paid-tick{color:#1c8a45; font-weight:700; font-size:11px;}
   .collapsible-header{
     display:flex; justify-content:space-between; align-items:center;
     padding:12px 14px; font-weight:700; font-size:14px; cursor:pointer;
@@ -2494,11 +2500,18 @@ async function renderPrizePoolCard() {
   const prize = computePrizePool(players);
   const gbp = n => `£${n.toFixed(0)}`;
 
+  const potentialCollected = prize.entries * ENTRY_FEE;
+  const potentialPool = potentialCollected - (potentialCollected * ADMIN_FEE_PCT);
+  const potentialLine = prize.entries > prize.verifiedCount
+    ? `<div class="pc-potential">If everyone who's joined pays — <strong>not confirmed yet</strong>: 1st ${gbp(potentialPool * 0.6)} · 2nd ${gbp(potentialPool * 0.3)} · 3rd ${gbp(potentialPool * 0.1)}</div>`
+    : "";
+
   if (prize.verifiedCount === 0) {
     slot.innerHTML = `
       <div class="prize-card">
         <div class="pc-title">💰 PRIZE POOL</div>
         <div class="pc-note" style="margin-top:0;">Prize amounts appear here once the first entry is verified. Pay your £10 to get the pool started.</div>
+        ${potentialLine}
       </div>`;
     return;
   }
@@ -2512,6 +2525,7 @@ async function renderPrizePoolCard() {
         <div class="prize-place third"><div class="pp-medal">🥉</div><div class="pp-amount">${gbp(prize.third)}</div></div>
       </div>
       <div class="pc-note">Based on verified entries so far — get more mates to pay in and this grows.</div>
+      ${potentialLine}
     </div>`;
 }
 
@@ -2577,7 +2591,7 @@ function renderLbTable(rows) {
     ${rows.sort((a, b) => a.rank - b.rank).map(r => `
       <tr data-player-row="${r.player.id}" data-player-name="${r.player.display_name}" style="cursor:pointer;">
         <td>${r.rank}${r.movement > 0 ? `<div class="lb-move up">▲${r.movement}</div>` : r.movement < 0 ? `<div class="lb-move down">▼${Math.abs(r.movement)}</div>` : ""}</td>
-        <td>${r.player.display_name}</td>
+        <td>${r.player.display_name}${r.player.payment_verified ? ` <span class="lb-paid-tick" title="Paid">✓</span>` : ""}</td>
         <td>${r.exact}</td>
         <td>${r.correct}</td>
         <td>${r.scorer}</td>
