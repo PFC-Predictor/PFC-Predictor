@@ -70,15 +70,23 @@
     background:var(--red); border:2px solid var(--navy);
   }
   .player-pill{
-    display:flex; align-items:center; gap:8px;
+    display:flex; align-items:center; gap:0;
     background:rgba(255,255,255,0.12);
-    border-radius:999px; padding:6px 12px 6px 6px;
+    border-radius:999px; padding:4px;
     font-size:14px; font-weight:600;
+    cursor:pointer; overflow:hidden;
+    max-width:36px; transition:max-width 0.25s ease, padding 0.25s ease;
+    white-space:nowrap;
   }
+  .player-pill.expanded{max-width:200px; padding:4px 14px 4px 4px;}
   .player-pill .avatar{
-    width:26px; height:26px; border-radius:50%; background:var(--red);
+    width:28px; height:28px; min-width:28px; border-radius:50%; background:var(--red);
     display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700;
   }
+  .player-pill .pill-name{
+    margin-left:8px; opacity:0; transition:opacity 0.15s ease 0.1s;
+  }
+  .player-pill.expanded .pill-name{opacity:1;}
 
   /* ---------- main / views ---------- */
   main{flex:1; padding:16px 16px calc(96px + var(--safe-bottom)); max-width:640px; width:100%; margin:0 auto;}
@@ -497,13 +505,13 @@
     <div class="header-actions">
       <div class="player-pill hidden" id="player-pill">
         <div class="avatar" id="player-pill-avatar">?</div>
-        <span id="player-pill-name"></span>
+        <span class="pill-name" id="player-pill-name"></span>
       </div>
       <button class="icon-btn" id="btn-instructions" title="Instructions">ℹ️</button>
       <button class="icon-btn whats-new-badge" id="btn-whats-new" title="What's New">
         📢<span class="dot hidden" id="whats-new-dot"></span>
       </button>
-      <button class="icon-btn" id="btn-share" title="Share app">📤</button>
+      <button class="icon-btn" id="btn-share" title="Share app">🔗</button>
     </div>
   </header>
 
@@ -523,7 +531,7 @@
 
       <div id="verdict-slot"></div>
 
-      <button id="btn-everyones-picks" style="width:100%; height:44px; border-radius:10px; border:none; background:var(--navy); color:var(--white); font-weight:700; font-size:13px; margin-top:4px;">👀 Everyone's Picks</button>
+      <button id="btn-everyones-picks" style="width:100%; height:44px; border-radius:10px; border:2px solid var(--navy); background:transparent; color:var(--navy); font-weight:700; font-size:13px; margin-top:4px;">👀 Everyone's Picks</button>
     </section>
 
     <section id="view-leaderboard" class="view">
@@ -940,6 +948,20 @@ function enterApp() {
 }
 
 const SCREENS = ["loading","newplayer","set-pin","unlock","lost","app"];
+
+let pillCollapseTimer = null;
+document.getElementById("player-pill").addEventListener("click", (e) => {
+  e.stopPropagation();
+  const pill = document.getElementById("player-pill");
+  pill.classList.toggle("expanded");
+  clearTimeout(pillCollapseTimer);
+  if (pill.classList.contains("expanded")) {
+    pillCollapseTimer = setTimeout(() => pill.classList.remove("expanded"), 3000);
+  }
+});
+document.addEventListener("click", () => {
+  document.getElementById("player-pill").classList.remove("expanded");
+});
 function showScreen(name) {
   SCREENS.forEach(s => {
     const el = document.getElementById(`screen-${s}`) || (s === "app" ? document.getElementById("app") : null);
@@ -1348,6 +1370,10 @@ function renderPicksHistoryFor(playerId, playerById, predictions, resultByFixtur
 async function renderChat() {
   const feed = document.getElementById("chat-feed");
   const messages = await sbFetchAll("messages?select=*,players(display_name)&order=created_at.asc");
+  if (messages.length === 0) {
+    feed.innerHTML = `<div style="text-align:center; color:var(--grey); font-size:13px; margin-top:40px;">No messages yet — be the first to say something.</div>`;
+    return;
+  }
   feed.innerHTML = messages.map(m => `
     <div style="margin-bottom:10px;">
       <div style="font-weight:700; font-size:12px; color:var(--navy);">${m.players?.display_name || "Unknown"}</div>
@@ -2285,7 +2311,7 @@ async function renderLeaderboard() {
 
   const current = denseRank(computeStandingsFor(players, allPredictions, resultsByFixture));
 
-  document.getElementById("lb-player-count").textContent = `${players.length} players`;
+  document.getElementById("lb-player-count").textContent = `${players.length} player${players.length === 1 ? "" : "s"}`;
 
   // ---------- movement, based on the most recently entered result ----------
   let moverHtml = "";
@@ -2425,17 +2451,17 @@ function renderPerformanceRate(standings, predictions, resultsByFixture, fixture
   body.innerHTML = `
     <div class="rate-row" style="border-top:none; font-weight:700; color:var(--grey); font-size:11px;">SEASON RATE (min 10 scored)</div>
     ${eligible.length ? eligible.map(r => `<div class="rate-row"><span class="rname">${r.name}</span><span class="rval">${r.rate.toFixed(2)}</span></div>`).join("")
-      : `<div class="rate-row" style="color:var(--grey);">Not enough scored predictions yet.</div>`}
+      : `<div class="rate-row" style="color:var(--grey);">Rates unlock once you've had 10 scored predictions — keep going!</div>`}
     <div class="rate-row" style="font-weight:700; color:var(--grey); font-size:11px;">RECENT FORM (last 5 gameweeks scored)</div>
     ${recentRows.length ? recentRows.map(r => `<div class="rate-row"><span class="rname">${r.name}</span><span class="rval">${r.rate.toFixed(2)}</span></div>`).join("")
-      : `<div class="rate-row" style="color:var(--grey);">No recent results yet.</div>`}
+      : `<div class="rate-row" style="color:var(--grey);">Recent form appears here once results start coming in.</div>`}
   `;
 }
 
 function renderSeasonRecords(players, predictions, allResults, resultsByFixture, fixtureById) {
   const body = document.getElementById("records-body");
   if (allResults.length === 0) {
-    body.innerHTML = `<div class="record-row" style="color:var(--grey);">No results yet — records appear once the season gets going.</div>`;
+    body.innerHTML = `<div class="record-row" style="color:var(--grey);">Records unlock once results start coming in.</div>`;
     return;
   }
   const playerById = new Map(players.map(p => [p.id, p]));
