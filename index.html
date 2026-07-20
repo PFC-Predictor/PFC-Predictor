@@ -520,6 +520,7 @@
       <div id="hero-card-slot"></div>
       <div id="shoutout-slot"></div>
       <div id="reminder-slot"></div>
+      <div id="cup-fixtures-slot"></div>
 
       <div class="gw-nav">
         <button id="gw-prev">‹</button>
@@ -593,6 +594,7 @@
           PayPal Pool.
         </p>
       </div>
+      <div id="admin-fixtures-slot"></div>
       <div id="admin-results-slot"></div>
       <div id="admin-missing-slot"></div>
       <div id="admin-squad-slot"></div>
@@ -708,7 +710,7 @@ const SCHEMA = {
   },
   fixtures: {
     table: "fixtures",
-    columns: ["id","created_at","gameweek","home_team","away_team","kickoff","venue"]
+    columns: ["id","created_at","gameweek","home_team","away_team","kickoff","venue","competition"]
   },
   squad: {
     table: "squad",
@@ -1078,6 +1080,7 @@ document.querySelectorAll("nav.floating-nav .tab").forEach(tab => {
     document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
     document.getElementById(`view-${tab.dataset.view}`).classList.add("active");
     if (tab.dataset.view === "profile" && currentPlayer && currentPlayer.is_admin) {
+      renderAdminAddFixturePanel();
       renderAdminPaymentDashboard();
       renderAdminResultsPanel();
       renderAdminMissingPanel();
@@ -1407,6 +1410,87 @@ document.getElementById("chat-form").addEventListener("submit", async (e) => {
 });
 
 /* ---------- Admin: Squad management ---------- */
+let fixturePanelCollapsed = true;
+async function renderAdminAddFixturePanel() {
+  const slot = document.getElementById("admin-fixtures-slot");
+  slot.innerHTML = `
+    <div class="card collapsible ${fixturePanelCollapsed ? 'collapsed' : ''}" style="padding:0;">
+      <div class="collapsible-header" id="fixture-toggle">
+        <span>📅 Add Fixture</span>
+        <span class="chev">▾</span>
+      </div>
+      <div class="collapsible-body" style="padding:0 14px 14px; display:flex; flex-direction:column; gap:10px;">
+        <select id="new-fixture-competition" style="height:40px; border-radius:8px; border:1px solid var(--grey-light); padding:0 10px;">
+          <option value="Championship">Championship (league)</option>
+          <option value="Carabao Cup">Carabao Cup</option>
+          <option value="FA Cup">FA Cup</option>
+          <option value="Play-off">Play-off</option>
+          <option value="Friendly">Friendly</option>
+        </select>
+        <input type="number" id="new-fixture-gw" placeholder="Gameweek (league fixtures only)" style="height:40px; border-radius:8px; border:1px solid var(--grey-light); padding:0 10px;">
+        <input type="text" id="new-fixture-home" placeholder="Home team" style="height:40px; border-radius:8px; border:1px solid var(--grey-light); padding:0 10px;">
+        <input type="text" id="new-fixture-away" placeholder="Away team" style="height:40px; border-radius:8px; border:1px solid var(--grey-light); padding:0 10px;">
+        <input type="datetime-local" id="new-fixture-kickoff" style="height:40px; border-radius:8px; border:1px solid var(--grey-light); padding:0 10px;">
+        <input type="text" id="new-fixture-venue" placeholder="Venue (optional)" style="height:40px; border-radius:8px; border:1px solid var(--grey-light); padding:0 10px;">
+        <button id="btn-add-fixture" class="mc-save">Add fixture</button>
+        <div id="add-fixture-status" style="font-size:12px; color:var(--grey);"></div>
+      </div>
+    </div>`;
+
+  document.getElementById("fixture-toggle").addEventListener("click", () => {
+    fixturePanelCollapsed = !fixturePanelCollapsed;
+    document.querySelector("#admin-fixtures-slot .collapsible").classList.toggle("collapsed", fixturePanelCollapsed);
+  });
+
+  document.getElementById("btn-add-fixture").addEventListener("click", async () => {
+    const competition = document.getElementById("new-fixture-competition").value;
+    const gwVal = document.getElementById("new-fixture-gw").value;
+    const home = document.getElementById("new-fixture-home").value.trim();
+    const away = document.getElementById("new-fixture-away").value.trim();
+    const kickoffLocal = document.getElementById("new-fixture-kickoff").value;
+    const venue = document.getElementById("new-fixture-venue").value.trim();
+    const status = document.getElementById("add-fixture-status");
+
+    if (!home || !away || !kickoffLocal) { status.textContent = "Home team, away team and kickoff are required."; return; }
+    if (competition === "Championship" && !gwVal) { status.textContent = "League fixtures need a gameweek number."; return; }
+
+    // datetime-local has no timezone info — treat it as the browser's local time,
+    // which for a UK-based admin during BST or GMT is correct either way, since
+    // the browser itself already applies the right offset when building the Date.
+    const kickoffIso = new Date(kickoffLocal).toISOString();
+
+    status.textContent = "Adding…";
+    try {
+      const res = await fetch(`${REST_URL}/fixtures`, {
+        method: "POST",
+        headers: {
+          apikey: SUPABASE_ANON_KEY,
+          Authorization: `Bearer ${getAccessToken()}`,
+          "Content-Type": "application/json",
+          Prefer: "return=representation"
+        },
+        body: JSON.stringify({
+          competition,
+          gameweek: competition === "Championship" ? parseInt(gwVal, 10) : null,
+          home_team: home,
+          away_team: away,
+          kickoff: kickoffIso,
+          venue: venue || null
+        })
+      });
+      if (!res.ok) throw new Error("Could not add fixture.");
+      status.textContent = "Added ✓";
+      document.getElementById("new-fixture-home").value = "";
+      document.getElementById("new-fixture-away").value = "";
+      document.getElementById("new-fixture-venue").value = "";
+      fixturePanelCollapsed = false;
+      renderAdminAddFixturePanel();
+    } catch (err) {
+      status.textContent = err.message;
+    }
+  });
+}
+
 let squadPanelCollapsed = true;
 
 async function renderAdminSquadPanel() {
@@ -1663,6 +1747,17 @@ async function fetchNextFixture() {
   const rows = await res.json();
   return rows[0] || null;
 }
+async function fetchNextLeagueFixture() {
+  // deliberately excludes cup ties, since gameweek is null for them and the
+  // numbered browser needs a real gameweek to open on
+  const nowIso = new Date().toISOString();
+  const res = await fetch(`${REST_URL}/fixtures?kickoff=gte.${encodeURIComponent(nowIso)}&competition=eq.Championship&select=*&order=kickoff.asc&limit=1`, {
+    headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${getAccessToken() || SUPABASE_ANON_KEY}` }
+  });
+  if (!res.ok) return null;
+  const rows = await res.json();
+  return rows[0] || null;
+}
 async function fetchLatestResults(n = 2) {
   const res = await fetch(`${REST_URL}/results?select=*,fixtures(*)&order=id.desc&limit=${n}`, {
     headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${getAccessToken() || SUPABASE_ANON_KEY}` }
@@ -1755,15 +1850,43 @@ function clearCountdownTimers() {
   countdownTimers = [];
 }
 
+async function renderCupFixtures() {
+  const slot = document.getElementById("cup-fixtures-slot");
+  const cupFixtures = await sbFetchAll("fixtures?competition=neq.Championship&select=*&order=kickoff.asc");
+  if (cupFixtures.length === 0) { slot.innerHTML = ""; return; }
+
+  const squad = await fetchActiveSquad();
+  const fixtureIds = cupFixtures.map(f => f.id);
+  const [myPreds, results] = await Promise.all([
+    fetchMyPredictionsForFixtures(fixtureIds),
+    fetchResultsForFixtures(fixtureIds)
+  ]);
+  const predByFixture = new Map(myPreds.map(p => [p.fixture_id, p]));
+  const resultByFixture = new Map(results.map(r => [r.fixture_id, r]));
+
+  slot.innerHTML = `<div class="admin-header" style="margin:0 0 4px;">🏆 Cup Fixtures</div><div id="cup-fixtures-list"></div>`;
+  const list = document.getElementById("cup-fixtures-list");
+  cupFixtures.forEach(f => {
+    list.appendChild(buildMatchCard(f, squad, predByFixture.get(f.id), resultByFixture.get(f.id)));
+  });
+
+  // fold any cup tie within 48 hours into the same reminder banner as league fixtures —
+  // both this function and renderGameweek write their own slice then call the
+  // shared refresh, so whichever finishes last still produces the correct combined banner
+  lastCupSoon = cupFixtures.filter(f => !predByFixture.has(f.id) && new Date(f.kickoff).getTime() > Date.now() && new Date(f.kickoff).getTime() - Date.now() <= 48 * 3600 * 1000);
+  refreshReminderBanner();
+}
+
 async function initFixturesView() {
   clearCountdownTimers();
-  const next = await fetchNextFixture();
-  currentGW = next ? next.gameweek : 1;
+  const [next, nextLeague] = await Promise.all([fetchNextFixture(), fetchNextLeagueFixture()]);
+  currentGW = nextLeague ? nextLeague.gameweek : 1;
   await Promise.all([
     renderHeroCard(next),
     renderShoutout(),
     renderVerdictPanel(next),
-    renderGameweek(currentGW)
+    renderGameweek(currentGW),
+    renderCupFixtures()
   ]);
 }
 
@@ -1883,6 +2006,14 @@ async function renderVerdictPanel(fixture) {
   });
 }
 
+let lastLeagueFixtures = [];
+let lastLeagueMyPreds = [];
+let lastCupSoon = [];
+
+function refreshReminderBanner() {
+  renderReminderBanner([...lastLeagueFixtures, ...lastCupSoon], lastLeagueMyPreds);
+}
+
 async function renderGameweek(gw) {
   document.getElementById("gw-label").textContent = `GAMEWEEK ${gw}`;
   document.getElementById("gw-prev").disabled = gw <= 1;
@@ -1895,7 +2026,9 @@ async function renderGameweek(gw) {
     fetchResultsForFixtures(fixtureIds)
   ]);
 
-  renderReminderBanner(fixtures, myPreds);
+  lastLeagueFixtures = fixtures;
+  lastLeagueMyPreds = myPreds;
+  refreshReminderBanner();
 
   const predByFixture = new Map(myPreds.map(p => [p.fixture_id, p]));
   const resultByFixture = new Map(results.map(r => [r.fixture_id, r]));
@@ -1930,9 +2063,14 @@ function buildMatchCard(fixture, squad, existingPred, result) {
     ? `<span class="mc-badge locked">Locked</span>`
     : `<span class="mc-badge active">${fmtKickoff(fixture.kickoff)}</span>`;
 
+  const isCup = fixture.competition && fixture.competition !== "Championship";
+
   wrap.innerHTML = `
     <div class="mc-top">
-      <div class="mc-teams">${fixture.home_team} v ${fixture.away_team}</div>
+      <div>
+        ${isCup ? `<div style="font-size:10px; font-weight:700; color:var(--red); letter-spacing:0.5px; text-transform:uppercase; margin-bottom:2px;">🏆 ${fixture.competition}</div>` : ""}
+        <div class="mc-teams">${fixture.home_team} v ${fixture.away_team}</div>
+      </div>
       ${badge}
     </div>
     <div class="mc-scores">
@@ -2683,7 +2821,7 @@ async function renderAdminResultsPanel() {
     if (view === "fixtures") return initFixturesView;
     if (view === "leaderboard") return renderLeaderboard;
     if (view === "chat") return renderChat;
-    if (view === "profile" && currentPlayer?.is_admin) return () => { renderAdminPaymentDashboard(); renderAdminResultsPanel(); renderAdminMissingPanel(); renderAdminSquadPanel(); renderAdminExportPanel(); };
+    if (view === "profile" && currentPlayer?.is_admin) return () => { renderAdminAddFixturePanel(); renderAdminPaymentDashboard(); renderAdminResultsPanel(); renderAdminMissingPanel(); renderAdminSquadPanel(); renderAdminExportPanel(); };
     return null;
   }
 
