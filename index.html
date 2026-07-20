@@ -2308,6 +2308,7 @@ function computePrizePool(players) {
   const pool = totalCollected - adminFee;
   return {
     registered: players.length,
+    entries: countingPlayers.length,
     verifiedCount,
     totalCollected,
     adminFee,
@@ -2504,7 +2505,7 @@ async function renderPrizePoolCard() {
 
   slot.innerHTML = `
     <div class="prize-card">
-      <div class="pc-title">💰 PRIZE POOL — ${prize.verifiedCount} PAID IN</div>
+      <div class="pc-title">💰 PRIZE POOL — ${prize.verifiedCount} PAID IN OUT OF ${prize.entries} ENTRIES</div>
       <div class="prize-podium">
         <div class="prize-place second"><div class="pp-medal">🥈</div><div class="pp-amount">${gbp(prize.second)}</div></div>
         <div class="prize-place first"><div class="pp-medal">🥇</div><div class="pp-amount">${gbp(prize.first)}</div></div>
