@@ -583,7 +583,7 @@
     <button class="tab active" data-view="fixtures"><span class="emoji">⚽</span>Fixtures</button>
     <button class="tab" data-view="leaderboard"><span class="emoji">🏆</span>Leaderboard</button>
     <button class="tab" data-view="chat"><span class="emoji">💬</span>Chat</button>
-    <button class="tab" data-view="profile"><span class="emoji">⚙️</span>Profile</button>
+    <button class="tab" data-view="profile"><span class="emoji">👤</span>Profile</button>
   </nav>
 
   <!-- ============ EVERYONE'S PICKS (full-screen overlay, reached from Fixtures) ============ -->
@@ -636,6 +636,16 @@
         <button class="icon-btn modal-close" style="background:var(--grey-light); color:var(--navy);">✕</button>
       </div>
       <div class="modal-body" id="share-body"></div>
+    </div>
+  </div>
+
+  <div id="modal-player-card" class="modal-overlay hidden">
+    <div class="modal-sheet">
+      <div class="modal-header">
+        <h2 style="margin:0;" id="player-card-name">Player</h2>
+        <button class="icon-btn modal-close" style="background:var(--grey-light); color:var(--navy);">✕</button>
+      </div>
+      <div class="modal-body" id="player-card-body"></div>
     </div>
   </div>
 </div>
@@ -1186,6 +1196,7 @@ async function renderPicksOverlay() {
 
   body.innerHTML = `
     <div id="awards-slot"></div>
+    <p style="font-size:12px; color:var(--grey); text-align:center; margin:-6px 0 12px;">🔒 Picks only appear here once a match has kicked off — nobody can see your prediction before then.</p>
     <div class="picks-filter">
       <select id="picks-player-filter">
         <option value="">All players — grid view</option>
@@ -1289,9 +1300,10 @@ function renderPicksGrid(players, predictions, resultByFixture, fixtures) {
 function renderPicksHistoryFor(playerId, playerById, predictions, resultByFixture, fixtures) {
   const content = document.getElementById("picks-content");
   const fixtureById = new Map(fixtures.map(f => [f.id, f]));
+  const now = Date.now();
   const mine = predictions.filter(p => p.player_id === playerId && p.home_score != null)
     .map(p => ({ pred: p, fixture: fixtureById.get(p.fixture_id), result: resultByFixture.get(p.fixture_id) }))
-    .filter(r => r.fixture)
+    .filter(r => r.fixture && new Date(r.fixture.kickoff).getTime() <= now) // never reveal a pick before its match has kicked off
     .sort((a, b) => new Date(b.fixture.kickoff) - new Date(a.fixture.kickoff));
 
   const scored = mine.filter(r => r.result);
@@ -1357,8 +1369,13 @@ async function renderAdminSquadPanel() {
   const slot = document.getElementById("admin-squad-slot");
   slot.innerHTML = `<div class="placeholder-note">Loading squad…</div>`;
   const squad = await sbFetchAll("squad?select=*&order=player_name.asc");
-  const POSITIONS = ["Goalkeeper", "Defender", "Midfielder", "Forward"];
-  const posOptions = (selected) => `<option value="">No position set</option>` + POSITIONS.map(pos => `<option value="${pos}" ${selected === pos ? "selected" : ""}>${pos}</option>`).join("");
+  const POSITIONS = [
+    { code: "GK", label: "Goalkeeper" },
+    { code: "DEF", label: "Defender" },
+    { code: "MID", label: "Midfielder" },
+    { code: "FWD", label: "Forward" }
+  ];
+  const posOptions = (selected) => `<option value="">No position set</option>` + POSITIONS.map(p => `<option value="${p.code}" ${selected === p.code ? "selected" : ""}>${p.label}</option>`).join("");
 
   slot.innerHTML = `
     <div class="card">
@@ -1834,7 +1851,9 @@ async function renderGameweek(gw) {
   });
 }
 
-const POSITION_ORDER = ["Goalkeeper", "Defender", "Midfielder", "Forward"];
+const POSITION_ORDER = ["GK", "DEF", "MID", "FWD"];
+const POSITION_LABELS = { GK: "Goalkeeper", DEF: "Defender", MID: "Midfielder", FWD: "Forward" };
+function positionLabel(code) { return POSITION_LABELS[code] || code || ""; }
 function sortSquadByPosition(squad) {
   return [...squad].sort((a, b) => {
     const ai = POSITION_ORDER.indexOf(a.position);
@@ -1871,7 +1890,7 @@ function buildMatchCard(fixture, squad, existingPred, result) {
       <label>First Pompey goalscorer</label>
       <select class="mc-scorer-select" ${locked ? "disabled" : ""}>
         <option value="">No goalscorer</option>
-        ${sortSquadByPosition(squad).filter(s => s.position !== "Goalkeeper").map(s => `<option value="${s.player_name}" ${existingPred?.first_scorer === s.player_name ? "selected" : ""}>${s.player_name}${s.position ? ` (${s.position})` : ""}</option>`).join("")}
+        ${sortSquadByPosition(squad).filter(s => s.position !== "GK").map(s => `<option value="${s.player_name}" ${existingPred?.first_scorer === s.player_name ? "selected" : ""}>${s.player_name}${s.position ? ` (${positionLabel(s.position)})` : ""}</option>`).join("")}
       </select>
     </div>
     ${locked
@@ -2286,7 +2305,7 @@ function renderLbTable(rows) {
       <th>Pos</th><th>Player</th><th>Exact</th><th>Correct</th><th>Scorer</th><th>Pts</th>
     </tr>
     ${rows.sort((a, b) => a.rank - b.rank).map(r => `
-      <tr>
+      <tr data-player-row="${r.player.id}" data-player-name="${r.player.display_name}" style="cursor:pointer;">
         <td>${r.rank}${r.movement > 0 ? `<div class="lb-move up">▲${r.movement}</div>` : r.movement < 0 ? `<div class="lb-move down">▼${Math.abs(r.movement)}</div>` : ""}</td>
         <td>${r.player.display_name}</td>
         <td>${r.exact}</td>
@@ -2295,6 +2314,58 @@ function renderLbTable(rows) {
         <td class="points">${r.total}</td>
       </tr>`).join("")}
   `;
+  tableEl.querySelectorAll("[data-player-row]").forEach(row => {
+    row.addEventListener("click", () => openPlayerCard(row.dataset.playerRow, row.dataset.playerName));
+  });
+}
+
+async function openPlayerCard(playerId, playerName) {
+  document.getElementById("player-card-name").textContent = playerName;
+  const body = document.getElementById("player-card-body");
+  body.innerHTML = `<div class="placeholder-note">Loading…</div>`;
+  openModal("modal-player-card");
+
+  const [predictions, results, fixtures] = await Promise.all([
+    sbFetchAll(`predictions?player_id=eq.${playerId}&select=*`),
+    sbFetchAll("results?select=*"),
+    sbFetchAll("fixtures?select=*")
+  ]);
+  const resultByFixture = new Map(results.map(r => [r.fixture_id, r]));
+  const fixtureById = new Map(fixtures.map(f => [f.id, f]));
+  const now = Date.now();
+
+  const mine = predictions.filter(p => p.home_score != null)
+    .map(p => ({ pred: p, fixture: fixtureById.get(p.fixture_id), result: resultByFixture.get(p.fixture_id) }))
+    .filter(r => r.fixture && new Date(r.fixture.kickoff).getTime() <= now) // never reveal a pick before its match has kicked off
+    .sort((a, b) => new Date(b.fixture.kickoff) - new Date(a.fixture.kickoff));
+
+  const scored = mine.filter(r => r.result);
+  const totalPoints = scored.reduce((sum, r) => sum + calcPoints(r.pred, r.result).total, 0);
+  const exactCount = scored.filter(r => calcPoints(r.pred, r.result).exact).length;
+
+  if (mine.length === 0) {
+    body.innerHTML = `<div class="placeholder-note">No kicked-off predictions to show yet.</div>`;
+    return;
+  }
+
+  body.innerHTML = `
+    <div class="card" style="margin-bottom:10px; text-align:center;">
+      <div style="font-family:'Bebas Neue', Impact, sans-serif; font-size:26px; color:var(--navy);">${totalPoints} pts</div>
+      <div style="font-size:12px; color:var(--grey);">${scored.length} scored predictions · ${exactCount} exact</div>
+    </div>
+    ${mine.map(r => {
+      const badge = r.result ? badgeFor(r.pred, r.result) : `<span class="badge-pill badge-grey">Pending</span>`;
+      return `<div class="history-row">
+        <div class="hr-top">
+          <span>${r.fixture.home_team} v ${r.fixture.away_team}</span>
+          ${badge}
+        </div>
+        <div style="color:var(--grey); margin-top:2px;">
+          Predicted ${r.pred.home_score}-${r.pred.away_score}${r.result ? ` · Result ${r.result.home_score}-${r.result.away_score}` : ""}
+          ${r.pred.first_scorer ? `<span class="pl-sub">⚽ ${r.pred.first_scorer}</span>` : ""}
+        </div>
+      </div>`;
+    }).join("")}`;
 }
 
 function renderPerformanceRate(standings, predictions, resultsByFixture, fixtures) {
@@ -2505,7 +2576,7 @@ async function renderAdminResultsPanel() {
               <input type="tel" inputmode="numeric" maxlength="2" class="rr-away" value="${existing?.away_score ?? ''}" placeholder="0">
               <select class="rr-scorer">
                 <option value="">No goalscorer</option>
-                ${sortSquadByPosition(squad).map(s => `<option value="${s.player_name}" ${existing?.first_scorer === s.player_name ? "selected" : ""}>${s.player_name}${s.position ? ` (${s.position})` : ""}${!s.active ? " — inactive" : ""}</option>`).join("")}
+                ${sortSquadByPosition(squad).map(s => `<option value="${s.player_name}" ${existing?.first_scorer === s.player_name ? "selected" : ""}>${s.player_name}${s.position ? ` (${positionLabel(s.position)})` : ""}${!s.active ? " — inactive" : ""}</option>`).join("")}
               </select>
             </div>
             <button class="rr-save" data-fixture="${f.id}">${existing ? 'Update result' : 'Save result'}</button>
