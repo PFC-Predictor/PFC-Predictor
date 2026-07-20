@@ -365,6 +365,58 @@
     font-size:12px; font-weight:700; color:var(--grey);
   }
   .rr-filter button.active{background:var(--navy); color:var(--white); border-color:var(--navy);}
+
+  /* ---------- modals & overlay ---------- */
+  .modal-overlay{
+    position:fixed; inset:0; z-index:100; background:rgba(0,20,45,0.55);
+    display:flex; align-items:flex-end;
+  }
+  .modal-sheet{
+    background:var(--grey-light); width:100%; max-height:88vh; border-radius:20px 20px 0 0;
+    display:flex; flex-direction:column; overflow:hidden;
+  }
+  .modal-header{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:14px 16px; background:var(--white); border-bottom:1px solid var(--grey-light);
+    flex-shrink:0;
+  }
+  .modal-body{overflow-y:auto; padding:16px; flex:1;}
+  .modal-section{margin-bottom:18px;}
+  .modal-section h4{font-family:'Bebas Neue', Impact, sans-serif; font-size:16px; margin:0 0 6px; color:var(--navy);}
+  .modal-section p{font-size:13px; line-height:1.6; margin:0;}
+  .guide-link{color:var(--navy); text-decoration:underline; font-weight:600; cursor:pointer;}
+
+  /* ---------- everyone's picks ---------- */
+  .awards-panel{background:var(--navy); color:var(--white); border-radius:16px; padding:14px; margin-bottom:14px;}
+  .awards-panel .ap-title{font-family:'Bebas Neue', Impact, sans-serif; font-size:16px; margin-bottom:8px;}
+  .award-item{display:flex; justify-content:space-between; font-size:12px; padding:5px 0; border-top:1px solid rgba(255,255,255,0.15);}
+  .award-item .al{color:rgba(255,255,255,0.7);}
+  .award-item .av{font-weight:700; color:var(--gold);}
+  .picks-filter{margin-bottom:12px;}
+  .picks-filter select{
+    width:100%; height:42px; border-radius:10px; border:1px solid var(--grey-light); padding:0 12px; font-size:13px; background:var(--white);
+  }
+  .gw-group{margin-bottom:10px; background:var(--white); border-radius:14px; overflow:hidden;}
+  .gw-group-header{
+    display:flex; justify-content:space-between; padding:12px 14px; font-weight:700; font-size:13px; cursor:pointer;
+  }
+  .gw-group.collapsed .gw-group-body{display:none;}
+  .gw-group.collapsed .chev{transform:rotate(-90deg);}
+  .pick-card{padding:12px 14px; border-top:1px solid var(--grey-light);}
+  .pick-card .pc-teams{font-weight:700; font-size:13px; margin-bottom:8px;}
+  .pick-line{display:flex; justify-content:space-between; align-items:center; padding:4px 0; font-size:12.5px;}
+  .pick-line .pl-name{flex:1;}
+  .pick-line .pl-score{font-weight:700; margin-right:8px;}
+  .pick-line .pl-sub{font-size:10.5px; color:var(--grey); display:block;}
+  .badge-pill{
+    font-size:10px; font-weight:700; padding:2px 8px; border-radius:999px;
+  }
+  .badge-gold{background:#fbe9b0; color:#8a6d00;}
+  .badge-green{background:#d7f3e0; color:#1c8a45;}
+  .badge-blue{background:#dce8fb; color:#1a5db8;}
+  .badge-grey{background:var(--grey-light); color:var(--grey);}
+  .history-row{padding:10px 14px; border-top:1px solid var(--grey-light); font-size:12.5px;}
+  .history-row .hr-top{display:flex; justify-content:space-between;}
 </style>
 </head>
 <body>
@@ -450,6 +502,8 @@
         <button id="gw-next">›</button>
       </div>
 
+      <button id="btn-everyones-picks" style="width:100%; height:44px; border-radius:10px; border:none; background:var(--navy); color:var(--white); font-weight:700; font-size:13px; margin-bottom:12px;">👀 Everyone's Picks</button>
+
       <div id="match-list"></div>
     </section>
 
@@ -476,9 +530,13 @@
     </section>
 
     <section id="view-chat" class="view">
-      <div class="placeholder-note">
-        Chat tab — the Social Banter Wall reads from <code>messages</code> joined to
-        <code>players.display_name</code> at render time.
+      <div class="card" style="padding:0; display:flex; flex-direction:column; height:60vh;">
+        <div id="chat-feed" style="flex:1; overflow-y:auto; padding:14px;"></div>
+        <form id="chat-form" style="display:flex; gap:8px; padding:10px; border-top:1px solid var(--grey-light);">
+          <input type="text" id="chat-input" placeholder="Say something…" maxlength="500"
+            style="flex:1; height:44px; border-radius:10px; border:1px solid var(--grey-light); padding:0 12px; font-size:14px;">
+          <button type="submit" style="width:60px; height:44px; border-radius:10px; border:none; background:var(--navy); color:var(--white); font-weight:700;">Send</button>
+        </form>
       </div>
     </section>
 
@@ -494,12 +552,25 @@
         <p style="font-size:13px; color:var(--grey); margin-bottom:14px;">Pay into the shared PayPal pool to confirm your place in the league.</p>
         <a href="https://www.paypal.com/pool/9q61PGoEEs?sr=ancr" target="_blank" rel="noopener" class="btn-primary" style="display:block; text-decoration:none; line-height:44px; background:var(--red);">Pay via PayPal Pool</a>
       </div>
-      <div id="admin-results-slot"></div>
-      <div id="admin-slot"></div>
-      <div class="placeholder-note">
-        Rules &amp; Points System, remaining admin panels (squad, missing predictions, exports) and
-        the Everyone's Picks view all land in the next pass.
+      <div class="card">
+        <h3 style="margin-top:0;">Rules &amp; points system</h3>
+        <p style="font-size:13px; line-height:1.6;">
+          3 points for an exact score. 1 point for a correct result (win, draw or loss called correctly) —
+          this doesn't stack with the exact score point. 2 points for correctly naming the first Pompey
+          goalscorer. Maximum 5 points per match.
+        </p>
+        <p style="font-size:12px; color:var(--grey); line-height:1.6; margin-top:10px;">
+          <strong>Disaster Insurance Guarantee:</strong> in the highly unlikely event of a catastrophic
+          system failure or total application breakdown halfway through the season, the league will be
+          officially cancelled and 100% of joining fees will be instantly refunded to everyone via the
+          PayPal Pool.
+        </p>
       </div>
+      <div id="admin-results-slot"></div>
+      <div id="admin-missing-slot"></div>
+      <div id="admin-squad-slot"></div>
+      <div id="admin-export-slot"></div>
+      <div id="admin-slot"></div>
     </section>
   </main>
 
@@ -511,6 +582,59 @@
     <button class="tab" data-view="chat"><span class="emoji">💬</span>Chat</button>
     <button class="tab" data-view="profile"><span class="emoji">⚙️</span>Profile</button>
   </nav>
+
+  <!-- ============ EVERYONE'S PICKS (full-screen overlay, reached from Fixtures) ============ -->
+  <div id="picks-overlay" class="modal-overlay hidden">
+    <div class="modal-sheet" style="max-width:640px; margin:0 auto; height:100%; border-radius:0;">
+      <div class="modal-header">
+        <button id="btn-picks-back" class="icon-btn" style="background:var(--grey-light); color:var(--navy);">←</button>
+        <h2 style="margin:0; font-family:'Bebas Neue', Impact, sans-serif; font-size:20px;">EVERYONE'S PICKS</h2>
+        <span style="width:40px;"></span>
+      </div>
+      <div class="modal-body" id="picks-body"></div>
+    </div>
+  </div>
+
+  <!-- ============ MODALS: Instructions / What's New / Onboarding ============ -->
+  <div id="modal-instructions" class="modal-overlay hidden">
+    <div class="modal-sheet">
+      <div class="modal-header">
+        <h2 style="margin:0;">Instructions</h2>
+        <button class="icon-btn modal-close" style="background:var(--grey-light); color:var(--navy);">✕</button>
+      </div>
+      <div class="modal-body" id="instructions-body"></div>
+    </div>
+  </div>
+
+  <div id="modal-whats-new" class="modal-overlay hidden">
+    <div class="modal-sheet">
+      <div class="modal-header">
+        <h2 style="margin:0;">What's New</h2>
+        <button class="icon-btn modal-close" style="background:var(--grey-light); color:var(--navy);">✕</button>
+      </div>
+      <div class="modal-body" id="whats-new-body"></div>
+    </div>
+  </div>
+
+  <div id="modal-onboarding" class="modal-overlay hidden">
+    <div class="modal-sheet">
+      <div class="modal-header">
+        <h2 style="margin:0;">Welcome to Pompey Predictor</h2>
+        <button class="icon-btn modal-close" style="background:var(--grey-light); color:var(--navy);">✕</button>
+      </div>
+      <div class="modal-body" id="onboarding-body"></div>
+    </div>
+  </div>
+
+  <div id="modal-share" class="modal-overlay hidden">
+    <div class="modal-sheet">
+      <div class="modal-header">
+        <h2 style="margin:0;">Share the app</h2>
+        <button class="icon-btn modal-close" style="background:var(--grey-light); color:var(--navy);">✕</button>
+      </div>
+      <div class="modal-body" id="share-body"></div>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -772,6 +896,8 @@ function enterApp() {
   document.getElementById("profile-mobile").textContent = currentPlayer.phone_number || "";
   showScreen("app");
   initFixturesView();
+  maybeShowOnboarding();
+  checkForUnseenUpdate();
 }
 
 const SCREENS = ["loading","newplayer","set-pin","unlock","lost","app"];
@@ -890,23 +1016,479 @@ document.querySelectorAll("nav.floating-nav .tab").forEach(tab => {
     tab.classList.add("active");
     document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
     document.getElementById(`view-${tab.dataset.view}`).classList.add("active");
-    if (tab.dataset.view === "profile" && currentPlayer && currentPlayer.is_admin) { renderAdminPaymentDashboard(); renderAdminResultsPanel(); }
+    if (tab.dataset.view === "profile" && currentPlayer && currentPlayer.is_admin) {
+      renderAdminPaymentDashboard();
+      renderAdminResultsPanel();
+      renderAdminMissingPanel();
+      renderAdminSquadPanel();
+      renderAdminExportPanel();
+    }
     if (tab.dataset.view === "leaderboard") renderLeaderboard();
   }, { passive: true });
 });
 
-/* Placeholders for header buttons — wired up properly in the next pass
-   once Fixtures/Leaderboard/Chat logic exists (share sheet + QR modal,
-   What's New modal reading app_updates, Instructions modal). */
+function openModal(id) { document.getElementById(id).classList.remove("hidden"); }
+function closeModal(id) { document.getElementById(id).classList.add("hidden"); }
+document.querySelectorAll(".modal-close").forEach(btn => {
+  btn.addEventListener("click", (e) => e.target.closest(".modal-overlay").classList.add("hidden"));
+});
+document.querySelectorAll(".modal-overlay").forEach(overlay => {
+  overlay.addEventListener("click", (e) => { if (e.target === overlay) overlay.classList.add("hidden"); });
+});
+
 document.getElementById("btn-instructions").addEventListener("click", () => {
-  alert("Instructions modal lands in the next build pass.");
+  document.getElementById("instructions-body").innerHTML = `
+    <div class="modal-section">
+      <h4>1. Making a prediction</h4>
+      <p>Enter a home and away score for each fixture before kickoff and tap Save. Type one digit and the box jumps straight to the other team's score.</p>
+    </div>
+    <div class="modal-section">
+      <h4>2. First goalscorer</h4>
+      <p>Only Portsmouth players are eligible. Pick from the squad dropdown, or leave it as "No goalscorer" if you're not confident.</p>
+    </div>
+    <div class="modal-section">
+      <h4>3. How points work</h4>
+      <p><span class="badge-pill badge-gold">+3</span> exact score &nbsp; <span class="badge-pill badge-blue">+1</span> correct result &nbsp; <span class="badge-pill badge-green">+2</span> first Pompey goalscorer. Maximum 5 points per match — the exact score point replaces the correct-result point rather than stacking with it.</p>
+    </div>
+    <div class="modal-section">
+      <h4>4. Prize structure</h4>
+      <p id="instructions-prize">Entry is £10 per player. 10% goes to league administration. The remaining pool splits 60% to first, 30% to second, 10% to third.</p>
+    </div>`;
+  fetchAllPlayersAdmin().then(players => {
+    const prize = computePrizePool(players);
+    const gbp = n => `£${n.toFixed(2)}`;
+    document.getElementById("instructions-prize").innerHTML += `<br><strong>Current figures:</strong> ${prize.verifiedCount} paid · pool ${gbp(prize.totalCollected - prize.adminFee)} · 1st ${gbp(prize.first)} · 2nd ${gbp(prize.second)} · 3rd ${gbp(prize.third)}`;
+  }).catch(() => {});
+  openModal("modal-instructions");
 });
+
+async function renderWhatsNewModal() {
+  const body = document.getElementById("whats-new-body");
+  body.innerHTML = `<div class="placeholder-note">Loading…</div>`;
+  const updates = await sbFetchAll("app_updates?select=*&order=id.desc");
+  if (updates.length === 0) {
+    body.innerHTML = `<div class="placeholder-note">No updates posted yet.</div>`;
+    return;
+  }
+  body.innerHTML = updates.map(u => `
+    <div class="modal-section">
+      <h4>${u.version}</h4>
+      <p>${u.notes || ""}</p>
+      <p style="color:var(--grey); font-size:11px; margin-top:4px;">${new Date(u.created_at).toLocaleDateString("en-GB")}</p>
+    </div>`).join("");
+  if (updates[0]) localStorage.setItem(LS_KEYS.lastSeenUpdateId, String(updates[0].id));
+  document.getElementById("whats-new-dot").classList.add("hidden");
+}
 document.getElementById("btn-whats-new").addEventListener("click", () => {
-  alert("What's New modal (reads app_updates table) lands in the next build pass.");
+  renderWhatsNewModal();
+  openModal("modal-whats-new");
 });
-document.getElementById("btn-share").addEventListener("click", () => {
-  alert("Share sheet + QR modal lands in the next build pass.");
+
+async function checkForUnseenUpdate() {
+  try {
+    const updates = await sbFetchAll("app_updates?select=id&order=id.desc&limit=1");
+    if (updates.length === 0) return;
+    const latestId = updates[0].id;
+    const lastSeen = localStorage.getItem(LS_KEYS.lastSeenUpdateId);
+    if (String(latestId) !== lastSeen) {
+      document.getElementById("whats-new-dot").classList.remove("hidden");
+    }
+  } catch (e) { /* non-critical */ }
+}
+
+document.getElementById("btn-share").addEventListener("click", async () => {
+  const appUrl = GITHUB_PAGES_URL;
+  document.getElementById("share-body").innerHTML = `
+    <div style="text-align:center;">
+      <div id="qr-slot" style="margin:0 auto 16px; width:200px; height:200px;"></div>
+      <p style="font-size:13px; word-break:break-all; color:var(--grey); margin-bottom:12px;">${appUrl}</p>
+      <button class="btn-primary" id="btn-copy-link" style="background:var(--navy); margin-bottom:8px;">Copy link</button>
+      <button class="btn-primary" id="btn-native-share" style="background:var(--red);">Share…</button>
+    </div>`;
+  openModal("modal-share");
+  loadQrLibraryAndRender(appUrl);
+  document.getElementById("btn-copy-link").addEventListener("click", () => {
+    navigator.clipboard?.writeText(appUrl).then(() => { document.getElementById("btn-copy-link").textContent = "Copied ✓"; });
+  });
+  document.getElementById("btn-native-share").addEventListener("click", () => {
+    if (navigator.share) navigator.share({ title: "Pompey Predictor", url: appUrl }).catch(() => {});
+    else { navigator.clipboard?.writeText(appUrl); alert("Link copied — your browser doesn't support the native share sheet."); }
+  });
 });
+
+let qrLibLoaded = false;
+function loadQrLibraryAndRender(url) {
+  if (qrLibLoaded && window.QRCode) { renderQr(url); return; }
+  const script = document.createElement("script");
+  script.src = "https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js";
+  script.onload = () => { qrLibLoaded = true; renderQr(url); };
+  document.head.appendChild(script);
+}
+function renderQr(url) {
+  const slot = document.getElementById("qr-slot");
+  if (!slot || !window.QRCode) return;
+  slot.innerHTML = "";
+  new QRCode(slot, { text: url, width: 200, height: 200 });
+}
+
+/* ---------- Everyone's Picks ---------- */
+document.getElementById("btn-everyones-picks").addEventListener("click", () => {
+  openModal("picks-overlay");
+  document.getElementById("picks-overlay").classList.remove("hidden");
+  document.getElementById("picks-overlay").style.display = "flex";
+  renderPicksOverlay();
+});
+document.getElementById("btn-picks-back").addEventListener("click", () => {
+  document.getElementById("picks-overlay").classList.add("hidden");
+});
+
+async function renderPicksOverlay() {
+  const body = document.getElementById("picks-body");
+  body.innerHTML = `<div class="placeholder-note">Loading…</div>`;
+
+  const [players, predictions, results, fixtures] = await Promise.all([
+    sbFetchAll("players?is_active=eq.true&select=*"),
+    sbFetchAll("predictions?select=*"),
+    sbFetchAll("results?select=*"),
+    sbFetchAll("fixtures?select=*&order=kickoff.asc")
+  ]);
+  const resultByFixture = new Map(results.map(r => [r.fixture_id, r]));
+  const playerById = new Map(players.map(p => [p.id, p]));
+
+  body.innerHTML = `
+    <div id="awards-slot"></div>
+    <div class="picks-filter">
+      <select id="picks-player-filter">
+        <option value="">All players — grid view</option>
+        ${players.map(p => `<option value="${p.id}">${p.display_name}</option>`).join("")}
+      </select>
+    </div>
+    <div id="picks-content"></div>`;
+
+  renderAwardsPanel(players, predictions, resultByFixture, fixtures);
+
+  document.getElementById("picks-player-filter").addEventListener("change", (e) => {
+    if (e.target.value) renderPicksHistoryFor(e.target.value, playerById, predictions, resultByFixture, fixtures);
+    else renderPicksGrid(players, predictions, resultByFixture, fixtures);
+  });
+
+  renderPicksGrid(players, predictions, resultByFixture, fixtures);
+}
+
+function renderAwardsPanel(players, predictions, resultByFixture, fixtures) {
+  const slot = document.getElementById("awards-slot");
+  const standings = computeStandingsFor(players, predictions, resultByFixture);
+  if (resultByFixture.size === 0) {
+    slot.innerHTML = `<div class="awards-panel"><div class="ap-title">🏆 League Awards</div><div class="award-item"><span class="al">No results yet</span></div></div>`;
+    return;
+  }
+  const topSharp = [...standings].filter(s => s.exact > 0).sort((a, b) => b.exact - a.exact);
+  const topFinisher = [...standings].filter(s => s.correct + s.exact > 0).sort((a, b) => (b.correct + b.exact) - (a.correct + a.exact));
+  const sharpMax = topSharp[0]?.exact;
+  const finisherMax = topFinisher[0] ? (topFinisher[0].correct + topFinisher[0].exact) : 0;
+
+  // best called match — fixtures with 5+ predictions, most correct-result outcomes
+  let bestMatch = null;
+  fixtures.forEach(f => {
+    const result = resultByFixture.get(f.id);
+    if (!result) return;
+    const preds = predictions.filter(p => p.fixture_id === f.id && p.home_score != null);
+    if (preds.length < 5) return;
+    const correctCount = preds.filter(p => outcomeOf(p.home_score, p.away_score) === outcomeOf(result.home_score, result.away_score)).length;
+    if (!bestMatch || correctCount > bestMatch.correctCount) bestMatch = { fixture: f, correctCount, total: preds.length };
+  });
+
+  slot.innerHTML = `
+    <div class="awards-panel">
+      <div class="ap-title">🏆 League Awards</div>
+      ${sharpMax ? `<div class="award-item"><span class="al">🎯 Sharpshooter</span><span class="av">${topSharp.filter(s => s.exact === sharpMax).map(s => s.player.display_name).join(", ")}</span></div>` : ""}
+      ${finisherMax ? `<div class="award-item"><span class="al">⚡ Clinical Finisher</span><span class="av">${topFinisher.filter(s => (s.correct + s.exact) === finisherMax).map(s => s.player.display_name).join(", ")}</span></div>` : ""}
+      ${bestMatch ? `<div class="award-item"><span class="al">📣 Best Called Match</span><span class="av">${bestMatch.fixture.home_team} v ${bestMatch.fixture.away_team} (${bestMatch.correctCount}/${bestMatch.total})</span></div>` : ""}
+    </div>`;
+}
+
+function badgeFor(pred, result) {
+  if (!result) return null;
+  const bd = calcPoints(pred, result);
+  const label = bd.exact ? "Exact" : bd.correct ? "Correct" : "Missed";
+  const cls = bd.scorer ? "badge-green" : bd.exact ? "badge-gold" : bd.correct ? "badge-blue" : "badge-grey";
+  const scorerSuffix = bd.scorer ? " ⚽" : "";
+  return `<span class="badge-pill ${cls}">${label} +${bd.total}${scorerSuffix}</span>`;
+}
+
+function renderPicksGrid(players, predictions, resultByFixture, fixtures) {
+  const content = document.getElementById("picks-content");
+  const byGw = new Map();
+  fixtures.forEach(f => { if (!byGw.has(f.gameweek)) byGw.set(f.gameweek, []); byGw.get(f.gameweek).push(f); });
+
+  const now = Date.now();
+  content.innerHTML = [...byGw.entries()].map(([gw, fxs]) => {
+    const allDone = fxs.every(f => resultByFixture.has(f.id));
+    return `
+    <div class="gw-group ${allDone ? 'collapsed' : ''}" data-gw="${gw}">
+      <div class="gw-group-header"><span>Gameweek ${gw}</span><span class="chev">▾</span></div>
+      <div class="gw-group-body">
+        ${fxs.map(f => {
+          const result = resultByFixture.get(f.id);
+          const locked = new Date(f.kickoff).getTime() <= now;
+          const preds = predictions.filter(p => p.fixture_id === f.id);
+          if (!locked) return "";
+          return `
+          <div class="pick-card">
+            <div class="pc-teams">${f.home_team} v ${f.away_team} ${result ? `<span style="color:var(--grey); font-weight:400;">— ${result.home_score}-${result.away_score}</span>` : ""}</div>
+            ${players.map(pl => {
+              const pred = preds.find(p => p.player_id === pl.id);
+              if (!pred || pred.home_score == null) return "";
+              const badge = result ? badgeFor(pred, result) : null;
+              return `<div class="pick-line">
+                <span class="pl-name">${pl.display_name}${!result && pred.first_scorer ? `<span class="pl-sub">⚽ ${pred.first_scorer}</span>` : ""}</span>
+                <span class="pl-score">${pred.home_score}-${pred.away_score}</span>
+                ${badge || ""}
+              </div>`;
+            }).join("")}
+          </div>`;
+        }).join("")}
+      </div>
+    </div>`;
+  }).join("");
+
+  content.querySelectorAll(".gw-group-header").forEach(h => {
+    h.addEventListener("click", () => h.closest(".gw-group").classList.toggle("collapsed"));
+  });
+}
+
+function renderPicksHistoryFor(playerId, playerById, predictions, resultByFixture, fixtures) {
+  const content = document.getElementById("picks-content");
+  const fixtureById = new Map(fixtures.map(f => [f.id, f]));
+  const mine = predictions.filter(p => p.player_id === playerId && p.home_score != null)
+    .map(p => ({ pred: p, fixture: fixtureById.get(p.fixture_id), result: resultByFixture.get(p.fixture_id) }))
+    .filter(r => r.fixture)
+    .sort((a, b) => new Date(b.fixture.kickoff) - new Date(a.fixture.kickoff));
+
+  const scored = mine.filter(r => r.result);
+  const totalPoints = scored.reduce((sum, r) => sum + calcPoints(r.pred, r.result).total, 0);
+
+  content.innerHTML = `
+    <div class="card" style="margin-bottom:10px;">
+      <strong>${playerById.get(playerId)?.display_name}</strong> — ${totalPoints} pts across ${scored.length} scored predictions
+    </div>
+    ${mine.map(r => {
+      const badge = r.result ? badgeFor(r.pred, r.result) : `<span class="badge-pill badge-grey">Pending</span>`;
+      return `<div class="history-row">
+        <div class="hr-top">
+          <span>${r.fixture.home_team} v ${r.fixture.away_team}</span>
+          ${badge}
+        </div>
+        <div style="color:var(--grey); margin-top:2px;">
+          Predicted ${r.pred.home_score}-${r.pred.away_score}${r.result ? ` · Result ${r.result.home_score}-${r.result.away_score}` : ""}
+          ${r.pred.first_scorer ? `<span class="pl-sub">⚽ ${r.pred.first_scorer}</span>` : ""}
+        </div>
+      </div>`;
+    }).join("")}`;
+}
+
+/* ---------- Chat / Social Banter Wall ---------- */
+async function renderChat() {
+  const feed = document.getElementById("chat-feed");
+  const messages = await sbFetchAll("messages?select=*,players(display_name)&order=created_at.asc");
+  feed.innerHTML = messages.map(m => `
+    <div style="margin-bottom:10px;">
+      <div style="font-weight:700; font-size:12px; color:var(--navy);">${m.players?.display_name || "Unknown"}</div>
+      <div style="font-size:13px;">${escapeHtml(m.message_text)}</div>
+      <div style="font-size:10px; color:var(--grey);">${new Date(m.created_at).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}</div>
+    </div>`).join("");
+  feed.scrollTop = feed.scrollHeight;
+}
+function escapeHtml(str) {
+  const div = document.createElement("div");
+  div.textContent = str;
+  return div.innerHTML;
+}
+document.getElementById("chat-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const input = document.getElementById("chat-input");
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = "";
+  await fetch(`${REST_URL}/messages`, {
+    method: "POST",
+    headers: {
+      apikey: SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${getAccessToken()}`,
+      "Content-Type": "application/json",
+      Prefer: "return=minimal"
+    },
+    body: JSON.stringify({ player_id: currentPlayer.id, message_text: text })
+  });
+  renderChat();
+});
+
+/* ---------- Admin: Squad management ---------- */
+async function renderAdminSquadPanel() {
+  const slot = document.getElementById("admin-squad-slot");
+  slot.innerHTML = `<div class="placeholder-note">Loading squad…</div>`;
+  const squad = await sbFetchAll("squad?select=*&order=player_name.asc");
+  slot.innerHTML = `
+    <div class="card">
+      <div class="admin-header" style="margin-top:0;">👕 Squad Management</div>
+      <div class="deadline-row">
+        <input type="text" id="new-player-name" placeholder="Player name" style="flex:1;">
+        <button id="btn-add-squad">Add</button>
+      </div>
+      ${squad.map(s => `
+        <div class="player-row">
+          <div class="pinfo"><div class="pname">${s.player_name}</div><div class="pmeta">${s.position || ""}</div></div>
+          <div class="pactions">
+            <button class="btn-verify" style="background:${s.active ? '#fdecec' : '#e7f6ec'}; color:${s.active ? 'var(--red)' : '#1c8a45'};" data-toggle-squad="${s.id}" data-current="${s.active}">${s.active ? "Set inactive" : "Set active"}</button>
+          </div>
+        </div>`).join("")}
+    </div>`;
+
+  document.getElementById("btn-add-squad").addEventListener("click", async () => {
+    const name = document.getElementById("new-player-name").value.trim();
+    if (!name) return;
+    await fetch(`${REST_URL}/squad`, {
+      method: "POST",
+      headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${getAccessToken()}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ player_name: name, active: true })
+    });
+    renderAdminSquadPanel();
+  });
+
+  slot.querySelectorAll("[data-toggle-squad]").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const newVal = btn.dataset.current !== "true";
+      await fetch(`${REST_URL}/squad?id=eq.${btn.dataset.toggleSquad}`, {
+        method: "PATCH",
+        headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${getAccessToken()}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ active: newVal })
+      });
+      renderAdminSquadPanel();
+    });
+  });
+}
+
+/* ---------- Admin: Missing Predictions (next 7 days) ---------- */
+async function renderAdminMissingPanel() {
+  const slot = document.getElementById("admin-missing-slot");
+  slot.innerHTML = `<div class="placeholder-note">Loading…</div>`;
+  const now = Date.now();
+  const weekAhead = now + 7 * 24 * 3600 * 1000;
+  const [fixtures, players] = await Promise.all([
+    sbFetchAll("fixtures?select=*"),
+    sbFetchAll("players?is_active=eq.true&select=*")
+  ]);
+  const upcoming = fixtures.filter(f => {
+    const k = new Date(f.kickoff).getTime();
+    return k > now && k <= weekAhead;
+  }).sort((a, b) => new Date(a.kickoff) - new Date(b.kickoff));
+
+  if (upcoming.length === 0) {
+    slot.innerHTML = `<div class="card"><div class="admin-header" style="margin-top:0;">📋 Missing Predictions</div><div class="placeholder-note">No fixtures in the next 7 days.</div></div>`;
+    return;
+  }
+
+  const preds = await sbFetchAll(`predictions?fixture_id=in.(${upcoming.map(f => f.id).join(",")})&select=*`);
+
+  slot.innerHTML = `
+    <div class="card">
+      <div class="admin-header" style="margin-top:0;">📋 Missing Predictions (next 7 days)</div>
+      ${upcoming.map(f => {
+        const fixturePreds = preds.filter(p => p.fixture_id === f.id);
+        const predictedIds = new Set(fixturePreds.map(p => p.player_id));
+        const missing = players.filter(p => !predictedIds.has(p.id));
+        const scorerCount = fixturePreds.filter(p => p.first_scorer).length;
+        return `
+        <div class="result-row">
+          <div class="rr-top">
+            <span class="rr-teams">${f.home_team} v ${f.away_team}</span>
+            <span class="rr-badge ${missing.length === 0 ? 'done' : ''}">${fixturePreds.length}/${players.length} predicted</span>
+          </div>
+          <div style="font-size:11px; color:var(--grey); margin-bottom:6px;">${scorerCount}/${fixturePreds.length} also picked a first goalscorer</div>
+          ${missing.length > 0 ? `
+            <div style="font-size:12px; margin-bottom:8px;">Missing: ${missing.map(m => m.display_name).join(", ")}</div>
+            <button class="rr-save" style="background:var(--grey-light); color:var(--navy);" data-copy-missing="${f.id}" data-teams="${f.home_team} v ${f.away_team}" data-names="${missing.map(m => m.display_name).join(', ')}">Copy WhatsApp nudge</button>
+          ` : `<div style="font-size:12px; color:#1c8a45;">Everyone's in ✓</div>`}
+        </div>`;
+      }).join("")}
+    </div>`;
+
+  slot.querySelectorAll("[data-copy-missing]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const text = `⚽ Reminder for ${btn.dataset.teams} — still waiting on predictions from: ${btn.dataset.names}. Get them in before kickoff!`;
+      navigator.clipboard?.writeText(text).then(() => { btn.textContent = "Copied ✓"; setTimeout(() => btn.textContent = "Copy WhatsApp nudge", 1500); });
+    });
+  });
+}
+
+/* ---------- Admin: Full Archive Export ---------- */
+function toCsv(rows) {
+  if (rows.length === 0) return "";
+  const headers = Object.keys(rows[0]);
+  const escape = v => `"${String(v ?? "").replace(/"/g, '""')}"`;
+  return [headers.join(","), ...rows.map(r => headers.map(h => escape(r[h])).join(","))].join("\n");
+}
+function downloadCsv(filename, csv) {
+  const blob = new Blob([csv], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+async function renderAdminExportPanel() {
+  const slot = document.getElementById("admin-export-slot");
+  slot.innerHTML = `
+    <div class="card">
+      <div class="admin-header" style="margin-top:0;">📦 Data Backup</div>
+      <button class="mc-save" id="btn-export-all">Export Full Archive (3 files)</button>
+      <div id="export-status" style="font-size:12px; color:var(--grey); margin-top:8px;"></div>
+    </div>`;
+  document.getElementById("btn-export-all").addEventListener("click", async () => {
+    const status = document.getElementById("export-status");
+    status.textContent = "Exporting predictions…";
+    const predictions = await sbFetchAll("predictions?select=*");
+    downloadCsv("predictions.csv", toCsv(predictions));
+
+    status.textContent = "Exporting results…";
+    const results = await sbFetchAll("results?select=*");
+    downloadCsv("results.csv", toCsv(results));
+
+    status.textContent = "Building leaderboard snapshot…";
+    const [players, fixtures] = await Promise.all([sbFetchAll("players?select=*"), sbFetchAll("fixtures?select=*")]);
+    const resultByFixture = new Map(results.map(r => [r.fixture_id, r]));
+    const standings = denseRank(computeStandingsFor(players, predictions, resultByFixture));
+    downloadCsv("leaderboard_snapshot.csv", toCsv(standings.map(s => ({
+      position: s.rank, player: s.player.display_name, exact: s.exact, correct: s.correct, scorer: s.scorer, points: s.total
+    }))));
+
+    status.textContent = "All three files downloaded ✓";
+  });
+}
+
+/* ---------- Onboarding (first-ever login on any device) ---------- */
+function maybeShowOnboarding() {
+  if (localStorage.getItem("pfc_onboarded")) return;
+  document.getElementById("onboarding-body").innerHTML = `
+    <div class="modal-section">
+      <h4>How it works</h4>
+      <p>Predict the score for every Portsmouth fixture before kickoff. Pick a first Pompey goalscorer for a bonus. Climb the leaderboard across all 46 gameweeks.</p>
+    </div>
+    <div class="modal-section">
+      <h4>Points</h4>
+      <p><span class="badge-pill badge-gold">+3</span> exact score &nbsp; <span class="badge-pill badge-blue">+1</span> correct result &nbsp; <span class="badge-pill badge-green">+2</span> first Pompey goalscorer. Maximum 5 points per match.</p>
+    </div>
+    <div class="modal-section">
+      <h4>Disaster Insurance Guarantee</h4>
+      <p>In the highly unlikely event of a catastrophic system failure or total application breakdown halfway through the season, the league will be officially cancelled and 100% of joining fees will be instantly refunded via the PayPal Pool.</p>
+    </div>`;
+  openModal("modal-onboarding");
+  localStorage.setItem("pfc_onboarded", "1");
+}
+
+/* ---------- hook it all into tab switching / enterApp ---------- */
+document.querySelector('[data-view="chat"]').addEventListener("click", renderChat, { passive: true });
+
 
 /* ============================================================
    SCORING ENGINE
