@@ -314,6 +314,25 @@
 
   /* ---------- leaderboard ---------- */
   .mover-grid{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:12px;}
+
+  /* ---------- prize pool ---------- */
+  .prize-card{
+    background:linear-gradient(155deg, var(--navy) 0%, var(--navy-deep) 100%);
+    border-radius:16px; padding:16px; margin-bottom:12px; color:var(--white);
+  }
+  .prize-card .pc-title{
+    font-family:'Bebas Neue', Impact, sans-serif; font-size:16px; letter-spacing:0.5px;
+    text-align:center; margin-bottom:12px; color:rgba(255,255,255,0.75);
+  }
+  .prize-podium{display:flex; align-items:flex-end; gap:8px; justify-content:center;}
+  .prize-place{flex:1; text-align:center; border-radius:12px; padding:10px 6px;}
+  .prize-place.first{background:rgba(212,175,55,0.18); border:1px solid rgba(212,175,55,0.4); padding-top:16px;}
+  .prize-place.second{background:rgba(255,255,255,0.08);}
+  .prize-place.third{background:rgba(255,255,255,0.06);}
+  .prize-place .pp-medal{font-size:20px;}
+  .prize-place .pp-amount{font-family:'Bebas Neue', Impact, sans-serif; font-size:22px; color:var(--gold);}
+  .prize-place.second .pp-amount, .prize-place.third .pp-amount{color:rgba(255,255,255,0.85); font-size:18px;}
+  .prize-card .pc-note{text-align:center; font-size:11px; color:rgba(255,255,255,0.6); margin-top:12px;}
   .mover-card{border-radius:14px; padding:12px; text-align:center;}
   .mover-card.up{background:#e7f6ec;}
   .mover-card.down{background:#fdecec;}
@@ -536,6 +555,7 @@
     </section>
 
     <section id="view-leaderboard" class="view">
+      <div id="prize-slot"></div>
       <div id="mover-slot"></div>
       <div class="lb-summary" id="lb-player-count"></div>
       <div class="card" style="padding:0; overflow-x:auto;">
@@ -2434,9 +2454,38 @@ function denseRank(standings) {
   });
 }
 
+async function renderPrizePoolCard() {
+  const slot = document.getElementById("prize-slot");
+  const players = await fetchAllPlayersAdmin();
+  const prize = computePrizePool(players);
+  const gbp = n => `£${n.toFixed(0)}`;
+
+  if (prize.verifiedCount === 0) {
+    slot.innerHTML = `
+      <div class="prize-card">
+        <div class="pc-title">💰 PRIZE POOL</div>
+        <div class="pc-note" style="margin-top:0;">Prize amounts appear here once the first entry is verified. Pay your £10 to get the pool started.</div>
+      </div>`;
+    return;
+  }
+
+  slot.innerHTML = `
+    <div class="prize-card">
+      <div class="pc-title">💰 PRIZE POOL — ${prize.verifiedCount} PAID IN</div>
+      <div class="prize-podium">
+        <div class="prize-place second"><div class="pp-medal">🥈</div><div class="pp-amount">${gbp(prize.second)}</div></div>
+        <div class="prize-place first"><div class="pp-medal">🥇</div><div class="pp-amount">${gbp(prize.first)}</div></div>
+        <div class="prize-place third"><div class="pp-medal">🥉</div><div class="pp-amount">${gbp(prize.third)}</div></div>
+      </div>
+      <div class="pc-note">Based on verified entries so far — get more mates to pay in and this grows.</div>
+    </div>`;
+}
+
 async function renderLeaderboard() {
   const tableEl = document.getElementById("lb-table");
   tableEl.innerHTML = `<tr><td style="padding:20px; text-align:center; color:var(--grey);">Loading…</td></tr>`;
+
+  renderPrizePoolCard();
 
   const [players, allPredictions, allResults, allFixtures] = await Promise.all([
     sbFetchAll("players?is_active=eq.true&is_participant=eq.true&select=*"),
