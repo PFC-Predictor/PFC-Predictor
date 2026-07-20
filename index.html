@@ -363,6 +363,7 @@
     padding:12px 14px; font-weight:700; font-size:14px; cursor:pointer;
   }
   .collapsible.collapsed .collapsible-body{display:none;}
+  .fixture-form-body{display:flex; flex-direction:column; gap:10px;}
   .collapsible.collapsed .chev{transform:rotate(-90deg);}
   .rate-row{display:flex; justify-content:space-between; padding:8px 14px; font-size:12.5px; border-top:1px solid var(--grey-light);}
   .rate-row .rname{font-weight:600;}
@@ -1536,7 +1537,7 @@ async function renderAdminAddFixturePanel() {
         <span>📅 Add Fixture</span>
         <span class="chev">▾</span>
       </div>
-      <div class="collapsible-body" style="padding:0 14px 14px; display:flex; flex-direction:column; gap:10px;">
+      <div class="collapsible-body fixture-form-body" style="padding:0 14px 14px;">
         <select id="new-fixture-competition" style="height:40px; border-radius:8px; border:1px solid var(--grey-light); padding:0 10px;">
           <option value="Championship">Championship (league)</option>
           <option value="Carabao Cup">Carabao Cup</option>
