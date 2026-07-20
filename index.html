@@ -1539,9 +1539,10 @@ async function renderAdminAddFixturePanel() {
       </div>
     </div>`;
 
-  document.getElementById("fixture-toggle").addEventListener("click", () => {
-    fixturePanelCollapsed = !fixturePanelCollapsed;
-    document.querySelector("#admin-fixtures-slot .collapsible").classList.toggle("collapsed", fixturePanelCollapsed);
+  document.getElementById("fixture-toggle").addEventListener("click", (e) => {
+    const panel = e.currentTarget.closest(".collapsible");
+    panel.classList.toggle("collapsed");
+    fixturePanelCollapsed = panel.classList.contains("collapsed");
   });
 
   document.getElementById("btn-add-fixture").addEventListener("click", async () => {
@@ -1632,9 +1633,10 @@ async function renderAdminSquadPanel() {
       </div>
     </div>`;
 
-  document.getElementById("squad-toggle").addEventListener("click", () => {
-    squadPanelCollapsed = !squadPanelCollapsed;
-    document.querySelector("#admin-squad-slot .collapsible").classList.toggle("collapsed", squadPanelCollapsed);
+  document.getElementById("squad-toggle").addEventListener("click", (e) => {
+    const panel = e.currentTarget.closest(".collapsible");
+    panel.classList.toggle("collapsed");
+    squadPanelCollapsed = panel.classList.contains("collapsed");
   });
 
   document.getElementById("btn-add-squad").addEventListener("click", async () => {
