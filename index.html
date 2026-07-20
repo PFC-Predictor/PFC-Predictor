@@ -467,6 +467,7 @@
   #pull-indicator.spinning .spinner{animation:pull-spin 0.7s linear infinite;}
   @keyframes pull-spin{to{transform:rotate(360deg);}}
 </style>
+<link rel="manifest" href="manifest.json">
 </head>
 <body>
 
@@ -1146,12 +1147,14 @@ document.getElementById("btn-instructions").addEventListener("click", () => {
     </div>
     <div class="modal-section">
       <h4>4. Prize structure</h4>
-      <p id="instructions-prize">Entry is £10 per player. 10% goes to league administration. The remaining pool splits 60% to first, 30% to second, 10% to third.</p>
+      <p id="instructions-prize">Entry is £10 per player. 10% goes to league administration. The remaining pool's split depends on how many people have paid: under 15 paid entries, the winner takes the entire pool; 15 to 29, it's 70% to first and 30% to second; 30 or more, it's 60/30/10 across first, second and third.</p>
     </div>`;
   fetchAllPlayersAdmin().then(players => {
     const prize = computePrizePool(players);
     const gbp = n => `£${n.toFixed(2)}`;
-    document.getElementById("instructions-prize").innerHTML += `<br><strong>Current figures:</strong> 1st ${gbp(prize.first)} · 2nd ${gbp(prize.second)} · 3rd ${gbp(prize.third)}`;
+    const labels = ["1st", "2nd", "3rd"];
+    const figures = prize.amounts.map((amt, i) => `${labels[i]} ${gbp(amt)}`).join(" · ");
+    document.getElementById("instructions-prize").innerHTML += `<br><strong>Current figures (${prize.verifiedCount} paid):</strong> ${figures}`;
   }).catch(() => {});
   openModal("modal-instructions");
 });
@@ -2261,7 +2264,7 @@ async function saveLeagueSettings(deadline) {
   return res.json();
 }
 
-async function verifyPlayerPayment(playerId) {
+async function setPlayerPaymentVerified(playerId, verified) {
   const res = await fetch(`${REST_URL}/players?id=eq.${playerId}`, {
     method: "PATCH",
     headers: {
@@ -2270,9 +2273,9 @@ async function verifyPlayerPayment(playerId) {
       "Content-Type": "application/json",
       Prefer: "return=representation"
     },
-    body: JSON.stringify({ payment_verified: true })
+    body: JSON.stringify({ payment_verified: verified })
   });
-  if (!res.ok) throw new Error("Could not verify payment.");
+  if (!res.ok) throw new Error("Could not update payment status.");
   return res.json();
 }
 
@@ -2306,21 +2309,37 @@ async function purgeUnverifiedPlayer(playerId) {
   if (!res.ok) throw new Error("Could not purge this player.");
 }
 
+// Winner count scales with how many people have actually paid, so a small
+// pool isn't split into a token third-place amount nobody's excited about.
+function prizeTierSplits(verifiedCount) {
+  if (verifiedCount < 15) return [1.0];          // winner takes all
+  if (verifiedCount < 30) return [0.7, 0.3];      // two winners
+  return [0.6, 0.3, 0.1];                          // three winners
+}
+
 function computePrizePool(players) {
-  const countingPlayers = players.filter(p => !p.pool_exempt);
+  // is_active matters here specifically because of merges: the old,
+  // superseded account can still carry payment_verified = true from before
+  // it was merged away, and without this filter it silently double-counts
+  // alongside the new account it was merged into.
+  const countingPlayers = players.filter(p => !p.pool_exempt && p.is_active);
   const verifiedCount = countingPlayers.filter(p => p.payment_verified).length;
   const totalCollected = verifiedCount * ENTRY_FEE;
   const adminFee = totalCollected * ADMIN_FEE_PCT;
   const pool = totalCollected - adminFee;
+  const splits = prizeTierSplits(verifiedCount);
+  const amounts = splits.map(pct => pool * pct);
   return {
     registered: players.length,
     entries: countingPlayers.length,
     verifiedCount,
     totalCollected,
     adminFee,
-    first: pool * 0.6,
-    second: pool * 0.3,
-    third: pool * 0.1
+    winners: splits.length,
+    amounts,
+    first: amounts[0] || 0,
+    second: amounts[1] || 0,
+    third: amounts[2] || 0
   };
 }
 
@@ -2337,9 +2356,11 @@ async function renderAdminPaymentDashboard() {
   const slot = document.getElementById("admin-slot");
   slot.innerHTML = `<div class="placeholder-note">Loading payment dashboard…</div>`;
 
-  const [players, settings, allPredictions] = await Promise.all([fetchAllPlayersAdmin(), fetchLeagueSettings(), sbFetchAll("predictions?select=player_id")]);
+  const [players, settings, allPredictions, allMessages] = await Promise.all([fetchAllPlayersAdmin(), fetchLeagueSettings(), sbFetchAll("predictions?select=player_id"), sbFetchAll("messages?select=player_id")]);
   const predictionCountByPlayer = new Map();
   allPredictions.forEach(p => predictionCountByPlayer.set(p.player_id, (predictionCountByPlayer.get(p.player_id) || 0) + 1));
+  const messageCountByPlayer = new Map();
+  allMessages.forEach(m => messageCountByPlayer.set(m.player_id, (messageCountByPlayer.get(m.player_id) || 0) + 1));
   const prize = computePrizePool(players);
   const deadline = settings?.payment_deadline || "";
   const deadlinePassed = deadline && new Date(deadline).getTime() < Date.now();
@@ -2361,10 +2382,13 @@ async function renderAdminPaymentDashboard() {
         <div class="prize-tile"><div class="label">Verified paid</div><div class="value">${prize.verifiedCount}</div></div>
         <div class="prize-tile"><div class="label">Collected</div><div class="value">${gbp(prize.totalCollected)}</div></div>
         <div class="prize-tile"><div class="label">Admin fee (10%)</div><div class="value">${gbp(prize.adminFee)}</div></div>
-        <div class="prize-tile"><div class="label">1st place (60%)</div><div class="value">${gbp(prize.first)}</div></div>
-        <div class="prize-tile"><div class="label">2nd place (30%)</div><div class="value">${gbp(prize.second)}</div></div>
-        <div class="prize-tile"><div class="label">3rd place (10%)</div><div class="value">${gbp(prize.third)}</div></div>
+        ${prize.amounts.map((amt, i) => {
+          const label = ["1st place", "2nd place", "3rd place"][i];
+          const pct = prizeTierSplits(prize.verifiedCount)[i];
+          return `<div class="prize-tile"><div class="label">${label} (${Math.round(pct * 100)}%)</div><div class="value">${gbp(amt)}</div></div>`;
+        }).join("")}
       </div>
+      <div style="font-size:11px; color:var(--grey); margin-top:-4px; margin-bottom:12px;">${prize.winners} winner${prize.winners === 1 ? "" : "s"} at this entry count. Under 15 paid = 1 winner, 15–29 = 2, 30+ = 3.</div>
       <div class="deadline-row">
         <span>Deadline:</span>
         <input type="date" id="deadline-input" value="${deadline}">
@@ -2373,6 +2397,9 @@ async function renderAdminPaymentDashboard() {
       <div id="deadline-status" style="font-size:12px; color:var(--grey); margin-top:-8px; margin-bottom:10px;"></div>
       ${sortedPlayers.map(p => {
         const overdue = deadlinePassed && !p.payment_verified && !p.pool_exempt;
+        const remainingPreds = predictionCountByPlayer.get(p.id) || 0;
+        const remainingMsgs = messageCountByPlayer.get(p.id) || 0;
+        const safeToDelete = !p.is_active && remainingPreds === 0 && remainingMsgs === 0;
         return `
         <div class="player-row ${overdue ? 'overdue' : ''}">
           <div class="pinfo">
@@ -2380,10 +2407,11 @@ async function renderAdminPaymentDashboard() {
             <div class="pmeta">${p.phone_number || "no mobile on file"} · joined ${new Date(p.created_at).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}</div>
           </div>
           <div class="pactions">
-            <button class="btn-verify" data-verify="${p.id}" ${p.payment_verified ? "disabled" : ""}>${p.payment_verified ? "Paid ✓" : "Verify"}</button>
+            <button class="btn-verify" data-verify="${p.id}" data-current="${p.payment_verified}">${p.payment_verified ? "Paid ✓ (tap to undo)" : "Verify"}</button>
             <button class="btn-verify" style="background:var(--grey-light); color:var(--text);" data-exempt="${p.id}" data-current="${p.pool_exempt}">${p.pool_exempt ? "Un-exempt" : "Exempt"}</button>
             ${!p.payment_verified && !p.pool_exempt && p.phone_number ? `<a href="${whatsappNudgeLink(p.phone_number)}" target="_blank" rel="noopener" class="btn-verify" style="background:#25D366; color:var(--white); text-decoration:none; display:inline-block;">WhatsApp</a>` : ""}
             ${!p.payment_verified ? `<button class="btn-purge" data-purge="${p.id}" data-name="${p.display_name}">Purge</button>` : ""}
+            ${safeToDelete ? `<button class="btn-purge" data-delete-duplicate="${p.id}" data-name="${p.display_name}">Delete duplicate</button>` : (!p.is_active ? `<span style="font-size:10px; color:var(--grey);">Can't delete — ${remainingPreds + remainingMsgs} record(s) still attached</span>` : "")}
           </div>
         </div>`;
       }).join("")}
@@ -2421,9 +2449,30 @@ async function renderAdminPaymentDashboard() {
 
   slot.querySelectorAll("[data-verify]").forEach(btn => {
     btn.addEventListener("click", async () => {
-      btn.disabled = true; btn.textContent = "Verifying…";
-      try { await verifyPlayerPayment(btn.dataset.verify); renderAdminPaymentDashboard(); }
+      const currentlyVerified = btn.dataset.current === "true";
+      if (!currentlyVerified) {
+        const ok = confirm("Confirm this player has actually paid their £10? This affects the real prize pool figures shown to everyone.");
+        if (!ok) return;
+      }
+      btn.disabled = true; btn.textContent = "Updating…";
+      try { await setPlayerPaymentVerified(btn.dataset.verify, !currentlyVerified); renderAdminPaymentDashboard(); }
       catch (err) { alert(err.message); btn.disabled = false; }
+    });
+  });
+
+  slot.querySelectorAll("[data-delete-duplicate]").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const ok = confirm(`Permanently delete the leftover inactive record for ${btn.dataset.name}? This only appears because it has zero predictions or messages left attached — everything real was already moved when it was merged.`);
+      if (!ok) return;
+      btn.disabled = true; btn.textContent = "Deleting…";
+      try {
+        const res = await fetch(`${REST_URL}/players?id=eq.${btn.dataset.deleteDuplicate}`, {
+          method: "DELETE",
+          headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${getAccessToken()}` }
+        });
+        if (!res.ok) throw new Error("Could not delete — it may still have records attached.");
+        renderAdminPaymentDashboard();
+      } catch (err) { alert(err.message); btn.disabled = false; }
     });
   });
 
@@ -2494,6 +2543,29 @@ function denseRank(standings) {
   });
 }
 
+function buildPodiumHtml(amounts, gbp) {
+  const medals = ["🥇", "🥈", "🥉"];
+  if (amounts.length === 1) {
+    return `<div class="prize-podium"><div class="prize-place first" style="flex:none; width:160px;"><div class="pp-medal">🏆</div><div class="pp-amount">${gbp(amounts[0])}</div><div style="font-size:10px; color:rgba(255,255,255,0.7); margin-top:2px;">WINNER TAKES ALL</div></div></div>`;
+  }
+  if (amounts.length === 2) {
+    return `<div class="prize-podium">
+      <div class="prize-place second"><div class="pp-medal">🥈</div><div class="pp-amount">${gbp(amounts[1])}</div></div>
+      <div class="prize-place first"><div class="pp-medal">🥇</div><div class="pp-amount">${gbp(amounts[0])}</div></div>
+    </div>`;
+  }
+  return `<div class="prize-podium">
+    <div class="prize-place second"><div class="pp-medal">🥈</div><div class="pp-amount">${gbp(amounts[1])}</div></div>
+    <div class="prize-place first"><div class="pp-medal">🥇</div><div class="pp-amount">${gbp(amounts[0])}</div></div>
+    <div class="prize-place third"><div class="pp-medal">🥉</div><div class="pp-amount">${gbp(amounts[2])}</div></div>
+  </div>`;
+}
+
+function potentialLineText(amounts, gbp) {
+  const labels = ["1st", "2nd", "3rd"];
+  return amounts.map((amt, i) => `${labels[i]} ${gbp(amt)}`).join(" · ");
+}
+
 async function renderPrizePoolCard() {
   const slot = document.getElementById("prize-slot");
   const players = await fetchAllPlayersAdmin();
@@ -2502,8 +2574,10 @@ async function renderPrizePoolCard() {
 
   const potentialCollected = prize.entries * ENTRY_FEE;
   const potentialPool = potentialCollected - (potentialCollected * ADMIN_FEE_PCT);
+  const potentialSplits = prizeTierSplits(prize.entries);
+  const potentialAmounts = potentialSplits.map(pct => potentialPool * pct);
   const potentialLine = prize.entries > prize.verifiedCount
-    ? `<div class="pc-potential">If everyone who's joined pays — <strong>not confirmed yet</strong>: 1st ${gbp(potentialPool * 0.6)} · 2nd ${gbp(potentialPool * 0.3)} · 3rd ${gbp(potentialPool * 0.1)}</div>`
+    ? `<div class="pc-potential">If everyone who's joined pays — <strong>not confirmed yet</strong>: ${potentialLineText(potentialAmounts, gbp)}</div>`
     : "";
 
   if (prize.verifiedCount === 0) {
@@ -2519,12 +2593,8 @@ async function renderPrizePoolCard() {
   slot.innerHTML = `
     <div class="prize-card">
       <div class="pc-title">💰 PRIZE POOL — ${prize.verifiedCount} PAID IN OUT OF ${prize.entries} ENTRIES</div>
-      <div class="prize-podium">
-        <div class="prize-place second"><div class="pp-medal">🥈</div><div class="pp-amount">${gbp(prize.second)}</div></div>
-        <div class="prize-place first"><div class="pp-medal">🥇</div><div class="pp-amount">${gbp(prize.first)}</div></div>
-        <div class="prize-place third"><div class="pp-medal">🥉</div><div class="pp-amount">${gbp(prize.third)}</div></div>
-      </div>
-      <div class="pc-note">Based on verified entries so far — get more mates to pay in and this grows.</div>
+      ${buildPodiumHtml(prize.amounts, gbp)}
+      <div class="pc-note">${prize.winners === 1 ? "Under 15 paid entries — one winner takes it all. " : ""}Based on verified entries so far — get more mates to pay in and this grows.</div>
       ${potentialLine}
     </div>`;
 }
@@ -2959,6 +3029,12 @@ async function renderAdminResultsPanel() {
     }
   }, { passive: true });
 })();
+
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("sw.js").catch((err) => console.error("SW registration failed:", err));
+  });
+}
 
 boot();
 </script>
