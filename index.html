@@ -1131,8 +1131,8 @@ document.getElementById("btn-instructions").addEventListener("click", () => {
       <p>Enter a home and away score for each fixture before kickoff and tap Save. Type one digit and the box jumps straight to the other team's score.</p>
     </div>
     <div class="modal-section">
-      <h4>2. First goalscorer</h4>
-      <p>Only Portsmouth players are eligible. Pick from the squad dropdown, or leave it as "No goalscorer" if you're not confident.</p>
+      <h4>2. First Pompey goalscorer</h4>
+      <p>Only Portsmouth players are eligible — this is about who scores for Pompey, not the opposition. Pick from the squad dropdown, or leave it as "No Pompey goalscorer" if you're not confident.</p>
     </div>
     <div class="modal-section">
       <h4>3. How points work</h4>
@@ -1646,7 +1646,7 @@ async function renderAdminMissingPanel() {
             <span class="rr-teams">${f.home_team} v ${f.away_team}</span>
             <span class="rr-badge ${missing.length === 0 ? 'done' : ''}">${fixturePreds.length}/${players.length} predicted</span>
           </div>
-          <div style="font-size:11px; color:var(--grey); margin-bottom:6px;">${scorerCount}/${fixturePreds.length} also picked a first goalscorer</div>
+          <div style="font-size:11px; color:var(--grey); margin-bottom:6px;">${scorerCount}/${fixturePreds.length} also picked a first Pompey goalscorer</div>
           ${missing.length > 0 ? `
             <div style="font-size:12px; margin-bottom:8px;">Missing: ${missing.map(m => m.display_name).join(", ")}</div>
             <button class="rr-save" style="background:var(--grey-light); color:var(--navy);" data-copy-missing="${f.id}" data-teams="${f.home_team} v ${f.away_team}" data-names="${missing.map(m => m.display_name).join(', ')}">Copy WhatsApp nudge</button>
@@ -1683,28 +1683,34 @@ async function renderAdminExportPanel() {
   slot.innerHTML = `
     <div class="card">
       <div class="admin-header" style="margin-top:0;">📦 Data Backup</div>
-      <button class="mc-save" id="btn-export-all">Export Full Archive (3 files)</button>
+      <p style="font-size:12px; color:var(--grey); margin-top:-6px; margin-bottom:12px;">Three separate exports so you can run them one at a time as a routine backup.</p>
+      <button class="mc-save" id="btn-export-predictions" style="margin-bottom:8px;">Export Predictions</button>
+      <button class="mc-save" id="btn-export-results" style="margin-bottom:8px;">Export Results</button>
+      <button class="mc-save" id="btn-export-players">Export Players</button>
       <div id="export-status" style="font-size:12px; color:var(--grey); margin-top:8px;"></div>
     </div>`;
-  document.getElementById("btn-export-all").addEventListener("click", async () => {
-    const status = document.getElementById("export-status");
+
+  const status = document.getElementById("export-status");
+
+  document.getElementById("btn-export-predictions").addEventListener("click", async () => {
     status.textContent = "Exporting predictions…";
     const predictions = await sbFetchAll("predictions?select=*");
-    downloadCsv("predictions.csv", toCsv(predictions));
+    downloadCsv(`predictions_${new Date().toISOString().slice(0,10)}.csv`, toCsv(predictions));
+    status.textContent = "Predictions downloaded ✓";
+  });
 
+  document.getElementById("btn-export-results").addEventListener("click", async () => {
     status.textContent = "Exporting results…";
     const results = await sbFetchAll("results?select=*");
-    downloadCsv("results.csv", toCsv(results));
+    downloadCsv(`results_${new Date().toISOString().slice(0,10)}.csv`, toCsv(results));
+    status.textContent = "Results downloaded ✓";
+  });
 
-    status.textContent = "Building leaderboard snapshot…";
-    const [players, fixtures] = await Promise.all([sbFetchAll("players?select=*"), sbFetchAll("fixtures?select=*")]);
-    const resultByFixture = new Map(results.map(r => [r.fixture_id, r]));
-    const standings = denseRank(computeStandingsFor(players, predictions, resultByFixture));
-    downloadCsv("leaderboard_snapshot.csv", toCsv(standings.map(s => ({
-      position: s.rank, player: s.player.display_name, exact: s.exact, correct: s.correct, scorer: s.scorer, points: s.total
-    }))));
-
-    status.textContent = "All three files downloaded ✓";
+  document.getElementById("btn-export-players").addEventListener("click", async () => {
+    status.textContent = "Exporting players…";
+    const players = await sbFetchAll("players?select=*");
+    downloadCsv(`players_${new Date().toISOString().slice(0,10)}.csv`, toCsv(players));
+    status.textContent = "Players downloaded ✓";
   });
 }
 
@@ -2078,7 +2084,7 @@ async function renderGameweek(gw) {
   });
 }
 
-const POSITION_ORDER = ["GK", "DEF", "MID", "FWD"];
+const POSITION_ORDER = ["FWD", "MID", "DEF", "GK"];
 const POSITION_LABELS = { GK: "Goalkeeper", DEF: "Defender", MID: "Midfielder", FWD: "Forward" };
 function positionLabel(code) { return POSITION_LABELS[code] || code || ""; }
 function sortSquadByPosition(squad) {
@@ -2121,7 +2127,7 @@ function buildMatchCard(fixture, squad, existingPred, result) {
     <div class="mc-scorer">
       <label>First Pompey goalscorer</label>
       <select class="mc-scorer-select" ${locked ? "disabled" : ""}>
-        <option value="">No goalscorer</option>
+        <option value="">No Pompey goalscorer</option>
         ${sortSquadByPosition(squad).filter(s => s.position !== "GK").map(s => `<option value="${s.player_name}" ${existingPred?.first_scorer === s.player_name ? "selected" : ""}>${s.player_name}${s.position ? ` (${positionLabel(s.position)})` : ""}</option>`).join("")}
       </select>
     </div>
@@ -2746,7 +2752,7 @@ function renderSeasonRecords(players, predictions, allResults, resultsByFixture,
   const rows = [
     highest && `<div class="record-row"><div class="rlabel">Highest single match score</div><div class="rdetail">${highest.player?.display_name || "—"} — ${highest.total} pts (${highest.fixture ? `${highest.fixture.home_team} v ${highest.fixture.away_team}` : "unknown fixture"})</div></div>`,
     mostExact && `<div class="record-row"><div class="rlabel">Most exact scores</div><div class="rdetail">${mostExact.player.display_name} — ${mostExact.value}</div></div>`,
-    mostScorer && `<div class="record-row"><div class="rlabel">Most first goalscorer picks correct</div><div class="rdetail">${mostScorer.player.display_name} — ${mostScorer.value}</div></div>`,
+    mostScorer && `<div class="record-row"><div class="rlabel">Most first Pompey goalscorer picks correct</div><div class="rdetail">${mostScorer.player.display_name} — ${mostScorer.value}</div></div>`,
     longestCorrectStreak && `<div class="record-row"><div class="rlabel">Longest correct-result streak</div><div class="rdetail">${longestCorrectStreak.player.display_name} — ${longestCorrectStreak.value}</div></div>`,
     longestExactStreak && `<div class="record-row"><div class="rlabel">Longest exact-score streak</div><div class="rdetail">${longestExactStreak.player.display_name} — ${longestExactStreak.value}</div></div>`,
     bestRate && `<div class="record-row"><div class="rlabel">Best performance rate</div><div class="rdetail">${bestRate.player.display_name} — ${bestRate.rate.toFixed(2)} pts/prediction</div></div>`
@@ -2838,7 +2844,7 @@ async function renderAdminResultsPanel() {
               <span class="sep" style="font-family:'Bebas Neue', Impact, sans-serif; font-size:18px; color:var(--grey);">–</span>
               <input type="tel" inputmode="numeric" maxlength="2" class="rr-away" value="${existing?.away_score ?? ''}" placeholder="0">
               <select class="rr-scorer">
-                <option value="">No goalscorer</option>
+                <option value="">No Pompey goalscorer</option>
                 ${sortSquadByPosition(squad).map(s => `<option value="${s.player_name}" ${existing?.first_scorer === s.player_name ? "selected" : ""}>${s.player_name}${s.position ? ` (${positionLabel(s.position)})` : ""}${!s.active ? " — inactive" : ""}</option>`).join("")}
               </select>
             </div>
