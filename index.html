@@ -1260,7 +1260,7 @@ function openInstructionsModal() {
     </div>
     <div class="modal-section">
       <h4>6. Around the app</h4>
-      <p>👀 <strong>Everyone's Picks</strong>, below the fixture list, shows what everyone predicted once a match kicks off, grouped by scoreline so you can see who's backing what. 🏆 <strong>Leaderboard</strong> shows the live prize pool at the top and the table below, tap any player's row for their full prediction history. 📊 <strong>The Crowd's Verdict</strong> shows the split of predictions for the very next fixture. 💬 <strong>Chat</strong> is the group's own space to talk trash before kickoff. 📢 <strong>What's New</strong>, in the header, flags anything added to the app since you last checked. 🔗 <strong>Share</strong>, also in the header, gives you a QR code and link if you want to invite someone yourself. Forgotten your PIN? There's a link on the unlock screen to reset it without losing your account.</p>
+      <p>👀 <strong>Everyone's Picks</strong>, below the fixture list, shows what everyone predicted once a match kicks off, grouped by scoreline so you can see who's backing what. 🏆 <strong>Leaderboard</strong> shows the live prize pool at the top and the table below, tap any player's row for their full prediction history. 📊 <strong>The Crowd's Verdict</strong> shows the split of predictions for the very next fixture. 💬 <strong>Chat</strong> is the group's own space to communicate. 📢 <strong>What's New</strong>, in the header, flags anything added to the app since you last checked. 🔗 <strong>Share</strong>, also in the header, gives you a QR code and link if you want to invite someone yourself. Forgotten your PIN? There's a link on the unlock screen to reset it without losing your account.</p>
     </div>`;
   fetchAllPlayersAdmin().then(players => {
     const prize = computePrizePool(players);
@@ -2657,7 +2657,7 @@ function whatsappNudgeLink(phoneNumber) {
   // UK numbers are typically stored starting with 0 — WhatsApp needs the
   // international form with the leading 0 dropped and 44 in its place.
   const intl = digits.startsWith("0") ? `44${digits.slice(1)}` : digits;
-  const message = "Hi! Thanks for joining. Please don't forget to pay your £10 entry via https://www.paypal.com/pool/9q61PGoEEs?sr=ancr. Thanks! If you no longer want to be part of the league, just let me know and I'll remove you.";
+  const message = "Hi! Thanks for joining. Please don't forget to pay your £10 entry via https://www.paypal.com/pool/9q61PGoEEs?sr=ancr . If you no longer want to be part of the league, just let me know and I'll remove you.";
   return `https://wa.me/${intl}?text=${encodeURIComponent(message)}`;
 }
 
