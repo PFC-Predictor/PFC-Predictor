@@ -1238,7 +1238,7 @@ document.getElementById("btn-instructions").addEventListener("click", () => {
     </div>
     <div class="modal-section">
       <h4>4. Prize structure</h4>
-      <p id="instructions-prize">Entry is £10 per player. 10% goes to league administration. The remaining pool's split depends on how many people have paid: under 20 paid entries, the winner takes the entire pool; 20 to 39, it's 70% to first and 30% to second; 40 or more, it's 60/30/10 across first, second and third.</p>
+      <p id="instructions-prize">Entry is £10 per player. 10% goes to league administration. The remaining pool's split depends on how many people have paid: under 20 paid entries, the winner takes the entire pool; 20 to 49, it's 80% to first and 20% to second; 50 or more, it's 70/20/10 across first, second and third.</p>
     </div>
     <div class="modal-section">
       <h4>5. One device only</h4>
@@ -2433,8 +2433,8 @@ async function purgeUnverifiedPlayer(playerId) {
 // pool isn't split into a token third-place amount nobody's excited about.
 function prizeTierSplits(verifiedCount) {
   if (verifiedCount < 20) return [1.0];          // winner takes all
-  if (verifiedCount < 40) return [0.7, 0.3];      // two winners
-  return [0.6, 0.3, 0.1];                          // three winners
+  if (verifiedCount < 50) return [0.8, 0.2];      // two winners
+  return [0.7, 0.2, 0.1];                          // three winners
 }
 
 function computePrizePool(players) {
