@@ -2496,7 +2496,7 @@ function whatsappNudgeLink(phoneNumber) {
   // UK numbers are typically stored starting with 0 — WhatsApp needs the
   // international form with the leading 0 dropped and 44 in its place.
   const intl = digits.startsWith("0") ? `44${digits.slice(1)}` : digits;
-  const message = "Hi! Please don't forget to pay your £10 entry via PayPal — you'll find the link in your Profile tab. Thanks!";
+  const message = "Hi! Thanks for joining. Please don't forget to pay your £10 entry via https://www.paypal.com/pool/9q61PGoEEs?sr=ancr. Thanks!";
   return `https://wa.me/${intl}?text=${encodeURIComponent(message)}`;
 }
 
