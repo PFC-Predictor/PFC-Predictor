@@ -1821,10 +1821,13 @@ async function renderAdminExportPanel() {
   slot.innerHTML = `
     <div class="card">
       <div class="admin-header" style="margin-top:0;">📦 Data Backup</div>
-      <p style="font-size:12px; color:var(--grey); margin-top:-6px; margin-bottom:12px;">Three separate exports so you can run them one at a time as a routine backup.</p>
+      <p style="font-size:12px; color:var(--grey); margin-top:-6px; margin-bottom:12px;">Separate exports so you can run them one at a time as a routine backup.</p>
       <button class="mc-save" id="btn-export-predictions" style="margin-bottom:8px;">Export Predictions</button>
       <button class="mc-save" id="btn-export-results" style="margin-bottom:8px;">Export Results</button>
-      <button class="mc-save" id="btn-export-players">Export Players</button>
+      <button class="mc-save" id="btn-export-players" style="margin-bottom:8px;">Export Players</button>
+      <button class="mc-save" id="btn-export-paymentlog" style="margin-bottom:8px;">Export Payment Log</button>
+      <button class="mc-save" id="btn-export-fixtures" style="margin-bottom:8px;">Export Fixtures</button>
+      <button class="mc-save" id="btn-export-squad">Export Squad</button>
       <div id="export-status" style="font-size:12px; color:var(--grey); margin-top:8px;"></div>
     </div>`;
 
@@ -1849,6 +1852,27 @@ async function renderAdminExportPanel() {
     const players = await sbFetchAll("players?select=*");
     downloadCsv(`players_${new Date().toISOString().slice(0,10)}.csv`, toCsv(players));
     status.textContent = "Players downloaded ✓";
+  });
+
+  document.getElementById("btn-export-paymentlog").addEventListener("click", async () => {
+    status.textContent = "Exporting payment log…";
+    const log = await sbFetchAll("payment_log?select=*");
+    downloadCsv(`payment_log_${new Date().toISOString().slice(0,10)}.csv`, toCsv(log));
+    status.textContent = "Payment log downloaded ✓";
+  });
+
+  document.getElementById("btn-export-fixtures").addEventListener("click", async () => {
+    status.textContent = "Exporting fixtures…";
+    const fixtures = await sbFetchAll("fixtures?select=*");
+    downloadCsv(`fixtures_${new Date().toISOString().slice(0,10)}.csv`, toCsv(fixtures));
+    status.textContent = "Fixtures downloaded ✓";
+  });
+
+  document.getElementById("btn-export-squad").addEventListener("click", async () => {
+    status.textContent = "Exporting squad…";
+    const squad = await sbFetchAll("squad?select=*");
+    downloadCsv(`squad_${new Date().toISOString().slice(0,10)}.csv`, toCsv(squad));
+    status.textContent = "Squad downloaded ✓";
   });
 }
 
@@ -2534,19 +2558,24 @@ async function renderAdminPaymentDashboard() {
         <span class="chev">▾</span>
       </div>
       <div class="collapsible-body" style="padding:0 14px 14px;">
+      <input type="text" id="payment-search" placeholder="Search players…" style="width:100%; height:38px; border-radius:8px; border:1px solid var(--grey-light); padding:0 10px; font-size:13px; margin-bottom:8px;">
+      <div id="payment-player-list">
       ${sortedPlayers.map(p => {
         const overdue = deadlinePassed && !p.payment_verified && !p.pool_exempt;
         const remainingPreds = predictionCountByPlayer.get(p.id) || 0;
         const remainingMsgs = messageCountByPlayer.get(p.id) || 0;
         const safeToDelete = !p.is_active && remainingPreds === 0 && remainingMsgs === 0;
         return `
-        <div class="player-row ${overdue ? 'overdue' : ''}">
+        <div class="player-row ${overdue ? 'overdue' : ''}" data-search-name="${p.display_name.toLowerCase()}">
           <div class="pinfo">
             <div class="pname">${p.display_name}${overdue ? " ⚠️" : ""}${p.pool_exempt ? " <span style=\"color:var(--grey); font-weight:400;\">(exempt)</span>" : ""}${!p.is_active ? " <span style=\"color:var(--grey); font-weight:400;\">(inactive)</span>" : ""}</div>
             <div class="pmeta">${p.phone_number || "no mobile on file"} · joined ${new Date(p.created_at).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}</div>
           </div>
           <div class="pactions">
-            <button class="btn-verify" data-verify="${p.id}" data-current="${p.payment_verified}">${p.payment_verified ? "Paid ✓ (tap to undo)" : "Verify"}</button>
+            <button class="btn-verify" data-verify="${p.id}" data-current="${p.payment_verified}">${p.payment_verified ? "Paid ✓" : "Verify"}</button>
+            <button class="btn-verify" style="background:var(--grey-light); color:var(--text); width:32px; flex:none;" data-more-toggle="${p.id}">⋯</button>
+          </div>
+          <div class="pactions" data-more-panel="${p.id}" style="display:none; width:100%; justify-content:flex-end; margin-top:6px;">
             <button class="btn-verify" style="background:var(--grey-light); color:var(--text);" data-exempt="${p.id}" data-current="${p.pool_exempt}">${p.pool_exempt ? "Un-exempt" : "Exempt"}</button>
             ${!p.payment_verified && !p.pool_exempt && p.phone_number ? `<a href="${whatsappNudgeLink(p.phone_number)}" target="_blank" rel="noopener" class="btn-verify" style="background:#25D366; color:var(--white); text-decoration:none; display:inline-block;">WhatsApp</a>` : ""}
             ${!p.payment_verified ? `<button class="btn-purge" data-purge="${p.id}" data-name="${p.display_name}">Purge</button>` : ""}
@@ -2555,7 +2584,22 @@ async function renderAdminPaymentDashboard() {
         </div>`;
       }).join("")}
       </div>
+      </div>
     </div>`;
+
+  document.getElementById("payment-search").addEventListener("input", (e) => {
+    const q = e.target.value.trim().toLowerCase();
+    document.querySelectorAll("#payment-player-list [data-search-name]").forEach(row => {
+      row.style.display = row.dataset.searchName.includes(q) ? "" : "none";
+    });
+  });
+
+  slot.querySelectorAll("[data-more-toggle]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const panel = slot.querySelector(`[data-more-panel="${btn.dataset.moreToggle}"]`);
+      panel.style.display = panel.style.display === "none" ? "flex" : "none";
+    });
+  });
 
   document.getElementById("payment-players-toggle").addEventListener("click", (e) => {
     const panel = e.currentTarget.closest(".collapsible");
