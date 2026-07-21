@@ -454,6 +454,24 @@
   .history-row{padding:10px 14px; border-top:1px solid var(--grey-light); font-size:12.5px;}
   .history-row .hr-top{display:flex; justify-content:space-between;}
 
+  /* ---------- chat bubbles ---------- */
+  .chat-row{display:flex; margin-bottom:10px;}
+  .chat-row.mine{justify-content:flex-end;}
+  .chat-row.theirs{justify-content:flex-start;}
+  .chat-bubble{max-width:75%; padding:8px 12px; border-radius:16px; position:relative;}
+  .chat-row.mine .chat-bubble{background:var(--navy); color:var(--white); border-bottom-right-radius:4px;}
+  .chat-row.theirs .chat-bubble{background:var(--white); color:var(--text); border:1px solid var(--grey-light); border-bottom-left-radius:4px;}
+  .chat-bubble .cb-name{font-size:11px; font-weight:700; margin-bottom:2px; color:var(--red);}
+  .chat-row.mine .chat-bubble .cb-name{display:none;}
+  .chat-bubble .cb-text{font-size:13.5px; line-height:1.4; word-break:break-word;}
+  .chat-bubble .cb-time{font-size:10px; margin-top:3px; text-align:right;}
+  .chat-row.mine .chat-bubble .cb-time{color:rgba(255,255,255,0.65);}
+  .chat-row.theirs .chat-bubble .cb-time{color:var(--grey);}
+  .chat-bubble .cb-delete{
+    background:none; border:none; color:inherit; opacity:0.6; font-size:12px;
+    margin-left:6px; vertical-align:middle;
+  }
+
   /* ---------- pull to refresh ---------- */
   #pull-indicator{
     position:fixed; top:calc(var(--safe-top) + 4px); left:0; right:0; z-index:60;
@@ -632,19 +650,18 @@
           goalscorer. Maximum 5 points per match.
         </p>
         <p style="font-size:12px; color:var(--grey); line-height:1.6; margin-top:10px;">
-          <strong>Disaster Insurance Guarantee:</strong> in the highly unlikely event of a catastrophic
-          system failure or total application breakdown halfway through the season, the league will be
-          officially cancelled and 100% of joining fees will be refunded by the admin as quickly as
-          possible via the PayPal Pool. Refunds aren't automatic or instant, PayPal requires the admin to
-          process each one individually.
+          <strong>App Failure Policy:</strong> in the unlikely event of a system failure
+          halfway through the season, the league will be officially cancelled and 100% of joining
+          fees will be refunded by the admin as quickly as possible via the PayPal Pool.
         </p>
       </div>
-      <div id="admin-fixtures-slot"></div>
       <div id="admin-results-slot"></div>
       <div id="admin-missing-slot"></div>
+      <div id="admin-fixtures-slot"></div>
       <div id="admin-squad-slot"></div>
       <div id="admin-export-slot"></div>
       <div id="admin-slot"></div>
+      <div id="admin-relink-slot"></div>
     </section>
   </main>
 
@@ -1180,6 +1197,7 @@ document.querySelectorAll("nav.floating-nav .tab").forEach(tab => {
         renderAdminMissingPanel();
         renderAdminSquadPanel();
         renderAdminExportPanel();
+        renderAdminRelinkPanel();
       }
     }
     if (tab.dataset.view === "leaderboard") renderLeaderboard();
@@ -1213,6 +1231,10 @@ document.getElementById("btn-instructions").addEventListener("click", () => {
     <div class="modal-section">
       <h4>4. Prize structure</h4>
       <p id="instructions-prize">Entry is £10 per player. 10% goes to league administration. The remaining pool's split depends on how many people have paid: under 20 paid entries, the winner takes the entire pool; 20 to 39, it's 70% to first and 30% to second; 40 or more, it's 60/30/10 across first, second and third.</p>
+    </div>
+    <div class="modal-section">
+      <h4>5. One device only</h4>
+      <p>Your account lives on this phone only, there's no email or password to sign in elsewhere with. If you're reading this from your Home Screen icon, you're already set up correctly, just keep opening it from there all season. If you're reading this in a browser tab instead, add it to your Home Screen now (Share, then Add to Home Screen) and use that icon from now on, don't sign up again, since your account already exists on this device either way. If you'd rather not add an icon, at least bookmark this page or save the link in your phone's Notes app, so you're not relying on finding it again in a group chat later. Opening the link fresh on a different phone, or clearing this one, will look like a brand new signup rather than your existing account. If that ever happens, tell the admin, your old and new accounts can be merged so nothing's lost.</p>
     </div>`;
   fetchAllPlayersAdmin().then(players => {
     const prize = computePrizePool(players);
@@ -1481,15 +1503,19 @@ async function renderChat() {
     feed.innerHTML = `<div style="text-align:center; color:var(--grey); font-size:13px; margin-top:40px;">No messages yet — be the first to say something.</div>`;
     return;
   }
-  feed.innerHTML = messages.map(m => `
-    <div style="margin-bottom:10px; display:flex; justify-content:space-between; gap:8px;">
-      <div style="flex:1; min-width:0;">
-        <div style="font-weight:700; font-size:12px; color:var(--navy);">${m.players?.display_name || "Unknown"}</div>
-        <div style="font-size:13px;">${escapeHtml(m.message_text)}</div>
-        <div style="font-size:10px; color:var(--grey);">${new Date(m.created_at).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}</div>
+  feed.innerHTML = messages.map(m => {
+    const mine = m.player_id === currentPlayer?.id;
+    const time = new Date(m.created_at).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
+    const deleteBtn = currentPlayer?.is_admin ? `<button data-delete-message="${m.id}" class="cb-delete">🗑️</button>` : "";
+    return `
+    <div class="chat-row ${mine ? 'mine' : 'theirs'}">
+      <div class="chat-bubble">
+        <div class="cb-name">${m.players?.display_name || "Unknown"}</div>
+        <div class="cb-text">${escapeHtml(m.message_text)}</div>
+        <div class="cb-time">${time}${deleteBtn}</div>
       </div>
-      ${currentPlayer?.is_admin ? `<button data-delete-message="${m.id}" style="background:none; border:none; color:var(--grey); font-size:16px; flex-shrink:0; height:fit-content;">🗑️</button>` : ""}
-    </div>`).join("");
+    </div>`;
+  }).join("");
   feed.scrollTop = feed.scrollHeight;
 
   feed.querySelectorAll("[data-delete-message]").forEach(btn => {
@@ -1693,6 +1719,8 @@ async function renderAdminSquadPanel() {
 }
 
 /* ---------- Admin: Missing Predictions (next 7 days) ---------- */
+let missingPanelCollapsed = true;
+
 async function renderAdminMissingPanel() {
   const slot = document.getElementById("admin-missing-slot");
   slot.innerHTML = `<div class="placeholder-note">Loading…</div>`;
@@ -1715,8 +1743,12 @@ async function renderAdminMissingPanel() {
   const preds = await sbFetchAll(`predictions?fixture_id=in.(${upcoming.map(f => f.id).join(",")})&select=*`);
 
   slot.innerHTML = `
-    <div class="card">
-      <div class="admin-header" style="margin-top:0;">📋 Missing Predictions (next 7 days)</div>
+    <div class="card collapsible ${missingPanelCollapsed ? 'collapsed' : ''}" style="padding:0;">
+      <div class="collapsible-header" id="missing-toggle">
+        <span>📋 Missing Predictions (next 7 days)</span>
+        <span class="chev">▾</span>
+      </div>
+      <div class="collapsible-body" style="padding:0 14px 14px;">
       ${upcoming.map(f => {
         const fixturePreds = preds.filter(p => p.fixture_id === f.id);
         const predictedIds = new Set(fixturePreds.map(p => p.player_id));
@@ -1735,7 +1767,14 @@ async function renderAdminMissingPanel() {
           ` : `<div style="font-size:12px; color:#1c8a45;">Everyone's in ✓</div>`}
         </div>`;
       }).join("")}
+      </div>
     </div>`;
+
+  document.getElementById("missing-toggle").addEventListener("click", (e) => {
+    const panel = e.currentTarget.closest(".collapsible");
+    panel.classList.toggle("collapsed");
+    missingPanelCollapsed = panel.classList.contains("collapsed");
+  });
 
   slot.querySelectorAll("[data-copy-missing]").forEach(btn => {
     btn.addEventListener("click", () => {
@@ -1809,8 +1848,8 @@ function maybeShowOnboarding() {
       <p><span class="badge-pill badge-gold">+3</span> exact score &nbsp; <span class="badge-pill badge-blue">+1</span> correct result &nbsp; <span class="badge-pill badge-green">+2</span> first Pompey goalscorer. Maximum 5 points per match.</p>
     </div>
     <div class="modal-section">
-      <h4>Disaster Insurance Guarantee</h4>
-      <p>In the highly unlikely event of a catastrophic system failure or total application breakdown halfway through the season, the league will be officially cancelled and 100% of joining fees will be refunded by the admin as quickly as possible via the PayPal Pool. Refunds aren't automatic or instant, PayPal requires the admin to process each one individually.</p>
+      <h4>App Failure Policy</h4>
+      <p>In the unlikely event of a system failure halfway through the season, the league will be officially cancelled and 100% of joining fees will be refunded by the admin as quickly as possible via the PayPal Pool.</p>
     </div>`;
   openModal("modal-onboarding");
   localStorage.setItem("pfc_onboarded", "1");
@@ -2488,27 +2527,6 @@ async function renderAdminPaymentDashboard() {
           </div>
         </div>`;
       }).join("")}
-    </div>
-
-    <div class="card">
-      <div class="admin-header">🔗 Re-link a lost session</div>
-      <p style="font-size:12px; color:var(--grey); margin-top:-4px;">
-        Use this when someone loses their session, starts a fresh account, then contacts you.
-        Pick their old orphaned account and their new one — prediction and chat history moves
-        across. Any fixture predicted under both accounts is left on the old one and reported
-        below for you to check by hand.
-      </p>
-      <div class="deadline-row" style="flex-wrap:wrap;">
-        <select id="merge-old" style="flex:1; min-width:120px; height:36px; border-radius:8px; border:1px solid var(--grey-light);">
-          ${mergeOptionsHtml(players, predictionCountByPlayer)}
-        </select>
-        <span>→</span>
-        <select id="merge-new" style="flex:1; min-width:120px; height:36px; border-radius:8px; border:1px solid var(--grey-light);">
-          ${mergeOptionsHtml(players, predictionCountByPlayer)}
-        </select>
-        <button id="btn-merge">Merge</button>
-      </div>
-      <div id="merge-status" style="font-size:12px; color:var(--grey);"></div>
     </div>`;
 
   document.getElementById("btn-save-deadline").addEventListener("click", async () => {
@@ -2567,6 +2585,37 @@ async function renderAdminPaymentDashboard() {
       catch (err) { alert(err.message); btn.disabled = false; }
     });
   });
+}
+
+async function renderAdminRelinkPanel() {
+  const slot = document.getElementById("admin-relink-slot");
+  slot.innerHTML = `<div class="placeholder-note">Loading…</div>`;
+
+  const [players, allPredictions] = await Promise.all([fetchAllPlayersAdmin(), sbFetchAll("predictions?select=player_id")]);
+  const predictionCountByPlayer = new Map();
+  allPredictions.forEach(p => predictionCountByPlayer.set(p.player_id, (predictionCountByPlayer.get(p.player_id) || 0) + 1));
+
+  slot.innerHTML = `
+    <div class="card">
+      <div class="admin-header" style="margin-top:0;">🔗 Re-link a lost session</div>
+      <p style="font-size:12px; color:var(--grey); margin-top:-4px;">
+        Use this when someone loses their session, starts a fresh account, then contacts you.
+        Pick their old orphaned account and their new one — prediction and chat history moves
+        across. Any fixture predicted under both accounts is left on the old one and reported
+        below for you to check by hand.
+      </p>
+      <div class="deadline-row" style="flex-wrap:wrap;">
+        <select id="merge-old" style="flex:1; min-width:120px; height:36px; border-radius:8px; border:1px solid var(--grey-light);">
+          ${mergeOptionsHtml(players, predictionCountByPlayer)}
+        </select>
+        <span>→</span>
+        <select id="merge-new" style="flex:1; min-width:120px; height:36px; border-radius:8px; border:1px solid var(--grey-light);">
+          ${mergeOptionsHtml(players, predictionCountByPlayer)}
+        </select>
+        <button id="btn-merge">Merge</button>
+      </div>
+      <div id="merge-status" style="font-size:12px; color:var(--grey);"></div>
+    </div>`;
 
   document.getElementById("btn-merge").addEventListener("click", async () => {
     const oldId = document.getElementById("merge-old").value;
@@ -2580,6 +2629,7 @@ async function renderAdminPaymentDashboard() {
       const result = await mergePlayerAccounts(oldId, newId);
       status.textContent = `Moved ${result.moved} prediction(s) and ${result.messagesMoved} message(s).` +
         (result.skipped.length ? ` ${result.skipped.length} fixture(s) had a clash and were left on the old account — check those manually.` : " No clashes.");
+      renderAdminRelinkPanel();
       renderAdminPaymentDashboard();
     } catch (err) {
       status.textContent = err.message;
@@ -3062,7 +3112,7 @@ async function renderAdminResultsPanel() {
     if (view === "fixtures") return initFixturesView;
     if (view === "leaderboard") return renderLeaderboard;
     if (view === "chat") return renderChat;
-    if (view === "profile" && currentPlayer?.is_admin) return () => { renderAdminAddFixturePanel(); renderAdminPaymentDashboard(); renderAdminResultsPanel(); renderAdminMissingPanel(); renderAdminSquadPanel(); renderAdminExportPanel(); };
+    if (view === "profile" && currentPlayer?.is_admin) return () => { renderAdminAddFixturePanel(); renderAdminPaymentDashboard(); renderAdminResultsPanel(); renderAdminMissingPanel(); renderAdminSquadPanel(); renderAdminExportPanel(); renderAdminRelinkPanel(); };
     return null;
   }
 
