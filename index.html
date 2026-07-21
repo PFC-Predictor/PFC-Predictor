@@ -37,7 +37,7 @@
   }
   .display{font-family:'Bebas Neue', Impact, sans-serif; letter-spacing:0.5px;}
 
-  #app{min-height:100vh; display:flex; flex-direction:column;}
+  #app{min-height:100vh; min-height:100dvh; display:flex; flex-direction:column;}
 
   /* ---------- header ---------- */
   header.top-header{
@@ -115,6 +115,14 @@
     display:flex;
     padding:6px;
     max-width:640px; margin:0 auto;
+    /* forces its own compositing layer, the standard mitigation for iOS
+       Safari's known bug where fixed elements jump when scroll direction
+       changes — doesn't fully eliminate it on every iOS version, since
+       Apple's own engine still has an open bug report on this, but it
+       removes most of the visible movement in practice */
+    transform:translateZ(0);
+    -webkit-transform:translateZ(0);
+    will-change:transform;
   }
   nav.floating-nav .tab{
     flex:1; min-height:52px;
