@@ -346,6 +346,9 @@
     margin-top:10px; padding-top:10px; border-top:1px dashed rgba(255,255,255,0.2);
   }
   .prize-card .pc-potential strong{color:rgba(255,255,255,0.8);}
+  .prize-card .pc-potential-amounts{
+    font-size:13px; font-weight:700; color:rgba(255,255,255,0.85); margin-top:4px;
+  }
   .mover-card{border-radius:14px; padding:12px; text-align:center;}
   .mover-card.up{background:#e7f6ec;}
   .mover-card.down{background:#fdecec;}
@@ -669,6 +672,7 @@
       <div id="admin-squad-slot"></div>
       <div id="admin-export-slot"></div>
       <div id="admin-slot"></div>
+      <div id="admin-paymentlog-slot"></div>
       <div id="admin-relink-slot"></div>
     </section>
   </main>
@@ -806,6 +810,10 @@ const SCHEMA = {
   league_settings: {
     table: "league_settings",
     columns: ["id","payment_deadline"]
+  },
+  payment_log: {
+    table: "payment_log",
+    columns: ["id","player_id","added_by","date_added","created_at"]
   }
 };
 
@@ -1205,6 +1213,7 @@ document.querySelectorAll("nav.floating-nav .tab").forEach(tab => {
         renderAdminMissingPanel();
         renderAdminSquadPanel();
         renderAdminExportPanel();
+        renderAdminPaymentLogPanel();
         renderAdminRelinkPanel();
       }
     }
@@ -2472,6 +2481,8 @@ function whatsappNudgeLink(phoneNumber) {
   return `https://wa.me/${intl}?text=${encodeURIComponent(message)}`;
 }
 
+let paymentPlayersCollapsed = true;
+
 async function renderAdminPaymentDashboard() {
   const slot = document.getElementById("admin-slot");
   slot.innerHTML = `<div class="placeholder-note">Loading payment dashboard…</div>`;
@@ -2508,13 +2519,21 @@ async function renderAdminPaymentDashboard() {
           return `<div class="prize-tile"><div class="label">${label} (${Math.round(pct * 100)}%)</div><div class="value">${gbp(amt)}</div></div>`;
         }).join("")}
       </div>
-      <div style="font-size:11px; color:var(--grey); margin-top:-4px; margin-bottom:12px;">${prize.winners} winner${prize.winners === 1 ? "" : "s"} at this entry count. Under 15 paid = 1 winner, 15–29 = 2, 30+ = 3.</div>
+      <div style="font-size:11px; color:var(--grey); margin-top:-4px; margin-bottom:12px;">${prize.winners} winner${prize.winners === 1 ? "" : "s"} at this entry count. Under 20 paid = 1 winner, 20–49 = 2, 50+ = 3.</div>
       <div class="deadline-row">
         <span>Deadline:</span>
         <input type="date" id="deadline-input" value="${deadline}">
         <button id="btn-save-deadline">Save</button>
       </div>
       <div id="deadline-status" style="font-size:12px; color:var(--grey); margin-top:-8px; margin-bottom:10px;"></div>
+    </div>
+
+    <div class="card collapsible ${paymentPlayersCollapsed ? 'collapsed' : ''}" style="padding:0; margin-top:12px;">
+      <div class="collapsible-header" id="payment-players-toggle">
+        <span>👥 Players (${sortedPlayers.length})</span>
+        <span class="chev">▾</span>
+      </div>
+      <div class="collapsible-body" style="padding:0 14px 14px;">
       ${sortedPlayers.map(p => {
         const overdue = deadlinePassed && !p.payment_verified && !p.pool_exempt;
         const remainingPreds = predictionCountByPlayer.get(p.id) || 0;
@@ -2535,7 +2554,14 @@ async function renderAdminPaymentDashboard() {
           </div>
         </div>`;
       }).join("")}
+      </div>
     </div>`;
+
+  document.getElementById("payment-players-toggle").addEventListener("click", (e) => {
+    const panel = e.currentTarget.closest(".collapsible");
+    panel.classList.toggle("collapsed");
+    paymentPlayersCollapsed = panel.classList.contains("collapsed");
+  });
 
   document.getElementById("btn-save-deadline").addEventListener("click", async () => {
     const val = document.getElementById("deadline-input").value;
@@ -2591,6 +2617,86 @@ async function renderAdminPaymentDashboard() {
       btn.disabled = true; btn.textContent = "Purging…";
       try { await purgeUnverifiedPlayer(btn.dataset.purge); renderAdminPaymentDashboard(); }
       catch (err) { alert(err.message); btn.disabled = false; }
+    });
+  });
+}
+
+async function renderAdminPaymentLogPanel() {
+  const slot = document.getElementById("admin-paymentlog-slot");
+  slot.innerHTML = `<div class="placeholder-note">Loading…</div>`;
+
+  const [players, logEntries] = await Promise.all([
+    fetchAllPlayersAdmin(),
+    sbFetchAll("payment_log?select=*,player:player_id(display_name),admin:added_by(display_name)&order=created_at.desc")
+  ]);
+
+  const playerOptions = [...players].sort((a, b) => a.display_name.localeCompare(b.display_name))
+    .map(p => `<option value="${p.id}">${p.display_name}</option>`).join("");
+
+  const todayIso = new Date().toISOString().slice(0, 10);
+
+  slot.innerHTML = `
+    <div class="card">
+      <div class="admin-header" style="margin-top:0;">📝 Payment Audit Log</div>
+      <p style="font-size:12px; color:var(--grey); margin-top:-6px; margin-bottom:12px;">
+        Use this to record any payment that didn't come through the pool as a normal PayPal
+        contribution, for example, someone sent you the money directly and you added it yourself.
+        This doesn't verify them, it's just a record of how and when — go to the Payment Dashboard
+        to actually mark them paid.
+      </p>
+      <div class="deadline-row" style="flex-wrap:wrap;">
+        <select id="paylog-player" style="flex:1; min-width:140px; height:36px; border-radius:8px; border:1px solid var(--grey-light);">
+          ${playerOptions}
+        </select>
+        <input type="date" id="paylog-date" value="${todayIso}" style="height:36px; border-radius:8px; border:1px solid var(--grey-light);">
+        <button id="btn-add-paylog">Log entry</button>
+      </div>
+      <div id="paylog-status" style="font-size:12px; color:var(--grey); margin-bottom:4px;"></div>
+      ${logEntries.length === 0 ? `<div class="placeholder-note">No entries logged yet.</div>` :
+        logEntries.map(e => `
+          <div class="player-row">
+            <div class="pinfo">
+              <div class="pname">${e.player?.display_name || "Unknown player"}</div>
+              <div class="pmeta">Added by ${e.admin?.display_name || "Unknown"} · dated ${new Date(e.date_added).toLocaleDateString("en-GB")} · logged ${new Date(e.created_at).toLocaleDateString("en-GB")}</div>
+            </div>
+            <div class="pactions">
+              <button class="btn-purge" data-delete-paylog="${e.id}">Delete</button>
+            </div>
+          </div>`).join("")}
+    </div>`;
+
+  document.getElementById("btn-add-paylog").addEventListener("click", async () => {
+    const playerId = document.getElementById("paylog-player").value;
+    const dateAdded = document.getElementById("paylog-date").value;
+    const status = document.getElementById("paylog-status");
+    if (!dateAdded) { status.textContent = "Pick a date."; return; }
+    status.textContent = "Saving…";
+    try {
+      const res = await fetch(`${REST_URL}/payment_log`, {
+        method: "POST",
+        headers: {
+          apikey: SUPABASE_ANON_KEY,
+          Authorization: `Bearer ${getAccessToken()}`,
+          "Content-Type": "application/json",
+          Prefer: "return=representation"
+        },
+        body: JSON.stringify({ player_id: playerId, added_by: currentPlayer.id, date_added: dateAdded })
+      });
+      if (!res.ok) throw new Error("Could not save this entry.");
+      renderAdminPaymentLogPanel();
+    } catch (err) {
+      status.textContent = err.message;
+    }
+  });
+
+  slot.querySelectorAll("[data-delete-paylog]").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      if (!confirm("Delete this log entry? This only removes the record, not their verified status.")) return;
+      await fetch(`${REST_URL}/payment_log?id=eq.${btn.dataset.deletePaylog}`, {
+        method: "DELETE",
+        headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${getAccessToken()}` }
+      });
+      renderAdminPaymentLogPanel();
     });
   });
 }
@@ -2708,7 +2814,10 @@ async function renderPrizePoolCard() {
   const potentialSplits = prizeTierSplits(prize.entries);
   const potentialAmounts = potentialSplits.map(pct => potentialPool * pct);
   const potentialLine = prize.entries > prize.verifiedCount
-    ? `<div class="pc-potential">If everyone who's joined pays — <strong>not confirmed yet</strong>: ${potentialLineText(potentialAmounts, gbp)}</div>`
+    ? `<div class="pc-potential">
+        <div>If everyone who's joined pays — <strong>not confirmed yet</strong>:</div>
+        <div class="pc-potential-amounts">${potentialLineText(potentialAmounts, gbp)}</div>
+      </div>`
     : "";
 
   if (prize.verifiedCount === 0) {
@@ -2725,7 +2834,7 @@ async function renderPrizePoolCard() {
     <div class="prize-card">
       <div class="pc-title">💰 PRIZE POOL — ${prize.verifiedCount} PAID IN OUT OF ${prize.entries} ENTRIES</div>
       ${buildPodiumHtml(prize.amounts, gbp)}
-      <div class="pc-note">${prize.winners === 1 ? "Under 20 paid entries — one winner takes it all. " : ""}Based on verified entries so far — get more mates to pay in and this grows.</div>
+      <div class="pc-note">${prize.winners === 1 ? "Under 20 paid entries — one winner takes it all. " : ""}Based on verified entries so far.</div>
       ${potentialLine}
     </div>`;
 }
@@ -3120,7 +3229,7 @@ async function renderAdminResultsPanel() {
     if (view === "fixtures") return initFixturesView;
     if (view === "leaderboard") return renderLeaderboard;
     if (view === "chat") return renderChat;
-    if (view === "profile" && currentPlayer?.is_admin) return () => { renderAdminAddFixturePanel(); renderAdminPaymentDashboard(); renderAdminResultsPanel(); renderAdminMissingPanel(); renderAdminSquadPanel(); renderAdminExportPanel(); renderAdminRelinkPanel(); };
+    if (view === "profile" && currentPlayer?.is_admin) return () => { renderAdminAddFixturePanel(); renderAdminPaymentDashboard(); renderAdminResultsPanel(); renderAdminMissingPanel(); renderAdminSquadPanel(); renderAdminExportPanel(); renderAdminPaymentLogPanel(); renderAdminRelinkPanel(); };
     return null;
   }
 
