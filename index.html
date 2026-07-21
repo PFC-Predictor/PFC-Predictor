@@ -446,7 +446,13 @@
   .gw-group.collapsed .chev{transform:rotate(-90deg);}
   .pick-card{padding:12px 14px; border-top:1px solid var(--grey-light);}
   .pick-card .pc-teams{font-weight:700; font-size:13px; margin-bottom:8px;}
-  .pick-line{display:flex; justify-content:space-between; align-items:center; padding:4px 0; font-size:12.5px;}
+  .pick-score-group{margin-bottom:8px;}
+  .pick-score-label{
+    font-family:'Bebas Neue', Impact, sans-serif; font-size:15px; color:var(--navy);
+    letter-spacing:0.5px; border-bottom:1px solid var(--grey-light); padding-bottom:3px; margin-bottom:2px;
+  }
+  .pick-score-count{font-family:'Inter',sans-serif; font-size:11px; color:var(--grey); font-weight:400;}
+  .pick-line{display:flex; justify-content:space-between; align-items:center; padding:4px 0 4px 8px; font-size:12.5px;}
   .pick-line .pl-name{flex:1;}
   .pick-line .pl-score{font-weight:700; margin-right:8px;}
   .pick-line .pl-sub{font-size:10.5px; color:var(--grey); display:block;}
@@ -664,6 +670,7 @@
       <div id="admin-results-slot"></div>
       <div id="admin-missing-slot"></div>
       <div id="admin-fixtures-slot"></div>
+      <div id="admin-editfixtures-slot"></div>
       <div id="admin-squad-slot"></div>
       <div id="admin-export-slot"></div>
       <div id="admin-slot"></div>
@@ -1203,6 +1210,7 @@ document.querySelectorAll("nav.floating-nav .tab").forEach(tab => {
       refreshPayEntryCard();
       if (currentPlayer.is_admin) {
         renderAdminAddFixturePanel();
+        renderAdminEditFixturesPanel();
         renderAdminPaymentDashboard();
         renderAdminResultsPanel();
         renderAdminMissingPanel();
@@ -1452,19 +1460,34 @@ function renderPicksGrid(players, predictions, resultByFixture, fixtures) {
           const locked = new Date(f.kickoff).getTime() <= now;
           const preds = predictions.filter(p => p.fixture_id === f.id);
           if (!locked) return "";
+
+          // group by scoreline so matching predictions cluster together,
+          // most popular scoreline first, rather than listing players in
+          // whatever order they happen to have been fetched in
+          const byScore = new Map();
+          players.forEach(pl => {
+            const pred = preds.find(p => p.player_id === pl.id);
+            if (!pred || pred.home_score == null) return;
+            const key = `${pred.home_score}-${pred.away_score}`;
+            if (!byScore.has(key)) byScore.set(key, []);
+            byScore.get(key).push({ pl, pred });
+          });
+          const scoreGroups = [...byScore.entries()].sort((a, b) => b[1].length - a[1].length);
+
           return `
           <div class="pick-card">
             <div class="pc-teams">${f.home_team} v ${f.away_team} ${result ? `<span style="color:var(--grey); font-weight:400;">— ${result.home_score}-${result.away_score}</span>` : ""}</div>
-            ${players.map(pl => {
-              const pred = preds.find(p => p.player_id === pl.id);
-              if (!pred || pred.home_score == null) return "";
-              const badge = result ? badgeFor(pred, result) : null;
-              return `<div class="pick-line">
-                <span class="pl-name">${pl.display_name}${!result && pred.first_scorer ? `<span class="pl-sub">⚽ ${pred.first_scorer}</span>` : ""}</span>
-                <span class="pl-score">${pred.home_score}-${pred.away_score}</span>
-                ${badge || ""}
-              </div>`;
-            }).join("")}
+            ${scoreGroups.map(([scoreKey, entries]) => `
+              <div class="pick-score-group">
+                <div class="pick-score-label">${scoreKey} <span class="pick-score-count">(${entries.length})</span></div>
+                ${entries.map(({ pl, pred }) => {
+                  const badge = result ? badgeFor(pred, result) : null;
+                  return `<div class="pick-line">
+                    <span class="pl-name">${pl.display_name}${!result && pred.first_scorer ? `<span class="pl-sub">⚽ ${pred.first_scorer}</span>` : ""}</span>
+                    ${badge || ""}
+                  </div>`;
+                }).join("")}
+              </div>`).join("")}
           </div>`;
         }).join("")}
       </div>
@@ -1567,6 +1590,126 @@ document.getElementById("chat-form").addEventListener("submit", async (e) => {
 
 /* ---------- Admin: Squad management ---------- */
 let fixturePanelCollapsed = true;
+let editFixturesFilter = "upcoming"; // "upcoming" | "all"
+let editFixturesCollapsed = true;
+
+function toLocalDatetimeInputValue(dateObj) {
+  // datetime-local inputs expect local wall-clock digits, not UTC — using
+  // toISOString() here would silently show the wrong hour by exactly the
+  // timezone offset, the same class of bug as the original BST kickoff issue.
+  const pad = n => String(n).padStart(2, "0");
+  return `${dateObj.getFullYear()}-${pad(dateObj.getMonth() + 1)}-${pad(dateObj.getDate())}T${pad(dateObj.getHours())}:${pad(dateObj.getMinutes())}`;
+}
+
+async function renderAdminEditFixturesPanel() {
+  const slot = document.getElementById("admin-editfixtures-slot");
+  slot.innerHTML = `<div class="placeholder-note">Loading…</div>`;
+
+  const fixtures = await sbFetchAll("fixtures?select=*&order=kickoff.asc");
+  const now = Date.now();
+  const visible = editFixturesFilter === "upcoming"
+    ? fixtures.filter(f => new Date(f.kickoff).getTime() > now)
+    : fixtures;
+
+  const COMPETITIONS = ["Championship", "Carabao Cup", "FA Cup", "Play-off", "Friendly"];
+
+  slot.innerHTML = `
+    <div class="card collapsible ${editFixturesCollapsed ? 'collapsed' : ''}" style="padding:0;">
+      <div class="collapsible-header" id="editfixtures-toggle">
+        <span>✏️ Edit Fixtures</span>
+        <span class="chev">▾</span>
+      </div>
+      <div class="collapsible-body" style="padding:0 14px 14px;">
+        <div class="rr-filter" style="padding:0 0 10px;">
+          <button data-editfix-filter="upcoming" class="${editFixturesFilter === 'upcoming' ? 'active' : ''}">Upcoming</button>
+          <button data-editfix-filter="all" class="${editFixturesFilter === 'all' ? 'active' : ''}">All fixtures</button>
+        </div>
+        <input type="text" id="editfixtures-search" placeholder="Search teams…" style="width:100%; height:38px; border-radius:8px; border:1px solid var(--grey-light); padding:0 10px; font-size:13px; margin-bottom:10px;">
+        <div id="editfixtures-list">
+        ${visible.map(f => {
+          const kickoffLocal = toLocalDatetimeInputValue(new Date(f.kickoff));
+          return `
+          <div class="result-row" data-search-name="${(f.home_team + ' ' + f.away_team).toLowerCase()}">
+            <div class="rr-inputs" style="margin-bottom:6px;">
+              <input type="text" class="ef-home" value="${f.home_team}" style="flex:1; height:38px; border-radius:8px; border:1px solid var(--grey-light); padding:0 8px; font-size:13px;">
+              <span style="font-size:12px; color:var(--grey);">v</span>
+              <input type="text" class="ef-away" value="${f.away_team}" style="flex:1; height:38px; border-radius:8px; border:1px solid var(--grey-light); padding:0 8px; font-size:13px;">
+            </div>
+            <div class="rr-inputs" style="margin-bottom:6px;">
+              <select class="ef-competition" style="height:38px; border-radius:8px; border:1px solid var(--grey-light);">
+                ${COMPETITIONS.map(c => `<option value="${c}" ${f.competition === c ? "selected" : ""}>${c}</option>`).join("")}
+              </select>
+              <input type="number" class="ef-gw" value="${f.gameweek ?? ""}" placeholder="GW (league only)" style="width:110px; height:38px; border-radius:8px; border:1px solid var(--grey-light); padding:0 8px; font-size:13px;">
+            </div>
+            <div class="rr-inputs" style="margin-bottom:6px;">
+              <input type="datetime-local" class="ef-kickoff" value="${kickoffLocal}" style="flex:1; height:38px; border-radius:8px; border:1px solid var(--grey-light); padding:0 8px; font-size:13px;">
+            </div>
+            <div class="rr-inputs" style="margin-bottom:8px;">
+              <input type="text" class="ef-venue" value="${f.venue || ""}" placeholder="Venue (optional)" style="flex:1; height:38px; border-radius:8px; border:1px solid var(--grey-light); padding:0 8px; font-size:13px;">
+            </div>
+            <button class="rr-save" data-save-fixture="${f.id}">Save changes</button>
+            <div class="rr-status" data-status-fixture="${f.id}"></div>
+          </div>`;
+        }).join("")}
+        </div>
+      </div>
+    </div>`;
+
+  document.getElementById("editfixtures-toggle").addEventListener("click", (e) => {
+    const panel = e.currentTarget.closest(".collapsible");
+    panel.classList.toggle("collapsed");
+    editFixturesCollapsed = panel.classList.contains("collapsed");
+  });
+
+  slot.querySelectorAll("[data-editfix-filter]").forEach(btn => {
+    btn.addEventListener("click", () => { editFixturesFilter = btn.dataset.editfixFilter; editFixturesCollapsed = false; renderAdminEditFixturesPanel(); });
+  });
+
+  document.getElementById("editfixtures-search").addEventListener("input", (e) => {
+    const q = e.target.value.trim().toLowerCase();
+    document.querySelectorAll("#editfixtures-list [data-search-name]").forEach(row => {
+      row.style.display = row.dataset.searchName.includes(q) ? "" : "none";
+    });
+  });
+
+  slot.querySelectorAll("[data-save-fixture]").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const row = btn.closest(".result-row");
+      const status = row.querySelector("[data-status-fixture]");
+      const competition = row.querySelector(".ef-competition").value;
+      const gwVal = row.querySelector(".ef-gw").value;
+      const home = row.querySelector(".ef-home").value.trim();
+      const away = row.querySelector(".ef-away").value.trim();
+      const kickoffLocal = row.querySelector(".ef-kickoff").value;
+      const venue = row.querySelector(".ef-venue").value.trim();
+      if (!home || !away || !kickoffLocal) { status.textContent = "Home team, away team and kickoff are required."; return; }
+      status.textContent = "Saving…";
+      try {
+        const res = await fetch(`${REST_URL}/fixtures?id=eq.${btn.dataset.saveFixture}`, {
+          method: "PATCH",
+          headers: {
+            apikey: SUPABASE_ANON_KEY,
+            Authorization: `Bearer ${getAccessToken()}`,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            competition,
+            gameweek: competition === "Championship" ? (gwVal ? parseInt(gwVal, 10) : null) : null,
+            home_team: home,
+            away_team: away,
+            kickoff: new Date(kickoffLocal).toISOString(),
+            venue: venue || null
+          })
+        });
+        if (!res.ok) throw new Error("Could not save.");
+        status.textContent = "Saved ✓";
+      } catch (err) {
+        status.textContent = err.message;
+      }
+    });
+  });
+}
+
 async function renderAdminAddFixturePanel() {
   const slot = document.getElementById("admin-fixtures-slot");
   slot.innerHTML = `
@@ -2199,6 +2342,7 @@ async function renderVerdictPanel(fixture) {
             <div class="verdict-tile ${leading === 'D' ? 'leading' : ''}"><span class="pct">${pct(d)}%</span>Draw</div>
             <div class="verdict-tile ${leading === 'A' ? 'leading' : ''}"><span class="pct">${pct(a)}%</span>${fixture.away_team} win</div>
           </div>
+          <div style="text-align:center; font-size:10.5px; color:var(--grey); margin-top:8px;">Based on ${total} prediction${total === 1 ? "" : "s"}</div>
         </div>
       </div>
     </div>`;
@@ -3268,7 +3412,7 @@ async function renderAdminResultsPanel() {
     if (view === "fixtures") return initFixturesView;
     if (view === "leaderboard") return renderLeaderboard;
     if (view === "chat") return renderChat;
-    if (view === "profile" && currentPlayer?.is_admin) return () => { renderAdminAddFixturePanel(); renderAdminPaymentDashboard(); renderAdminResultsPanel(); renderAdminMissingPanel(); renderAdminSquadPanel(); renderAdminExportPanel(); renderAdminPaymentLogPanel(); renderAdminRelinkPanel(); };
+    if (view === "profile" && currentPlayer?.is_admin) return () => { renderAdminAddFixturePanel(); renderAdminEditFixturesPanel(); renderAdminPaymentDashboard(); renderAdminResultsPanel(); renderAdminMissingPanel(); renderAdminSquadPanel(); renderAdminExportPanel(); renderAdminPaymentLogPanel(); renderAdminRelinkPanel(); };
     return null;
   }
 
