@@ -1026,7 +1026,9 @@ function enterApp() {
   showScreen("app");
   initFixturesView();
   maybeShowOnboarding();
-  checkForUnseenUpdate();
+  checkForUnseenUpdate().then(whatsNewShown => {
+    if (!whatsNewShown) maybeAutoOpenInstructions();
+  });
 }
 
 const SCREENS = ["loading","newplayer","set-pin","unlock","lost","app"];
@@ -1234,11 +1236,11 @@ document.querySelectorAll(".modal-overlay").forEach(overlay => {
   overlay.addEventListener("click", (e) => { if (e.target === overlay) overlay.classList.add("hidden"); });
 });
 
-document.getElementById("btn-instructions").addEventListener("click", () => {
+function openInstructionsModal() {
   document.getElementById("instructions-body").innerHTML = `
     <div class="modal-section">
       <h4>1. Making a prediction</h4>
-      <p>Enter a home and away score for each fixture before kickoff and tap Save. Type one digit and the box jumps straight to the other team's score.</p>
+      <p>Enter a home and away score for each fixture before kickoff and tap Save. Type one digit and the box jumps straight to the other team's score. Use the ‹ › arrows above the fixture list to move between gameweeks, you can fill in every prediction in one sitting or come back week by week, whichever suits you. Either way, every prediction locks the moment its match kicks off, so there's no editing after that, get them in early if you're not going to be free nearer the time.</p>
     </div>
     <div class="modal-section">
       <h4>2. First Pompey goalscorer</h4>
@@ -1255,6 +1257,10 @@ document.getElementById("btn-instructions").addEventListener("click", () => {
     <div class="modal-section">
       <h4>5. One device only</h4>
       <p>Your account lives on this phone only, there's no email or password to sign in elsewhere with. If you're reading this from your Home Screen icon, you're already set up correctly, just keep opening it from there all season. If you're reading this in a browser tab instead, add it to your Home Screen now (Share, then Add to Home Screen) and use that icon from now on, don't sign up again, since your account already exists on this device either way. If you'd rather not add an icon, at least bookmark this page or save the link in your phone's Notes app, so you're not relying on finding it again in a group chat later. Opening the link fresh on a different phone, or clearing this one, will look like a brand new signup rather than your existing account. If that ever happens, tell the admin, your old and new accounts can be merged so nothing's lost.</p>
+    </div>
+    <div class="modal-section">
+      <h4>6. Around the app</h4>
+      <p>👀 <strong>Everyone's Picks</strong>, below the fixture list, shows what everyone predicted once a match kicks off, grouped by scoreline so you can see who's backing what. 🏆 <strong>Leaderboard</strong> shows the live prize pool at the top and the table below, tap any player's row for their full prediction history. 📊 <strong>The Crowd's Verdict</strong> shows the split of predictions for the very next fixture. 💬 <strong>Chat</strong> is the group's own space to talk trash before kickoff. 📢 <strong>What's New</strong>, in the header, flags anything added to the app since you last checked. 🔗 <strong>Share</strong>, also in the header, gives you a QR code and link if you want to invite someone yourself. Forgotten your PIN? There's a link on the unlock screen to reset it without losing your account.</p>
     </div>`;
   fetchAllPlayersAdmin().then(players => {
     const prize = computePrizePool(players);
@@ -1264,7 +1270,9 @@ document.getElementById("btn-instructions").addEventListener("click", () => {
     document.getElementById("instructions-prize").innerHTML += `<br><strong>Current figures (${prize.verifiedCount} paid):</strong> ${figures}`;
   }).catch(() => {});
   openModal("modal-instructions");
-});
+}
+
+document.getElementById("btn-instructions").addEventListener("click", openInstructionsModal);
 
 let pendingWhatsNewId = null;
 
@@ -1304,15 +1312,17 @@ document.querySelector('#modal-whats-new .modal-close').addEventListener("click"
 async function checkForUnseenUpdate() {
   try {
     const updates = await sbFetchAll("app_updates?select=*&order=id.desc&limit=1");
-    if (updates.length === 0) return;
+    if (updates.length === 0) return false;
     const latestId = updates[0].id;
     const lastSeen = localStorage.getItem(LS_KEYS.lastSeenUpdateId);
     if (String(latestId) !== lastSeen) {
       document.getElementById("whats-new-dot").classList.remove("hidden");
       renderWhatsNewModal();
       openModal("modal-whats-new");
+      return true;
     }
-  } catch (e) { /* non-critical */ }
+    return false;
+  } catch (e) { return false; }
 }
 
 document.getElementById("btn-share").addEventListener("click", async () => {
@@ -2032,6 +2042,13 @@ function maybeShowOnboarding() {
     </div>`;
   openModal("modal-onboarding");
   localStorage.setItem("pfc_onboarded", "1");
+  localStorage.setItem("pfc_instructions_autoopened", "1"); // new signups get onboarding instead, not both modals stacked
+}
+
+function maybeAutoOpenInstructions() {
+  if (localStorage.getItem("pfc_instructions_autoopened")) return;
+  localStorage.setItem("pfc_instructions_autoopened", "1");
+  openInstructionsModal();
 }
 
 /* ---------- hook it all into tab switching / enterApp ---------- */
@@ -2620,7 +2637,7 @@ function computePrizePool(players) {
   const adminFee = totalCollected * ADMIN_FEE_PCT;
   const pool = totalCollected - adminFee;
   const splits = prizeTierSplits(verifiedCount);
-  const amounts = splits.map(pct => pool * pct);
+  const amounts = splits.map(pct => Math.round((pool * pct) / 5) * 5);
   return {
     registered: players.length,
     entries: countingPlayers.length,
@@ -2640,7 +2657,7 @@ function whatsappNudgeLink(phoneNumber) {
   // UK numbers are typically stored starting with 0 — WhatsApp needs the
   // international form with the leading 0 dropped and 44 in its place.
   const intl = digits.startsWith("0") ? `44${digits.slice(1)}` : digits;
-  const message = "Hi! Thanks for joining. Please don't forget to pay your £10 entry via https://www.paypal.com/pool/9q61PGoEEs?sr=ancr. Thanks!";
+  const message = "Hi! Thanks for joining. Please don't forget to pay your £10 entry via https://www.paypal.com/pool/9q61PGoEEs?sr=ancr. Thanks! If you no longer want to be part of the league, just let me know and I'll remove you.";
   return `https://wa.me/${intl}?text=${encodeURIComponent(message)}`;
 }
 
@@ -2668,6 +2685,10 @@ async function renderAdminPaymentDashboard() {
     return a.display_name.localeCompare(b.display_name);
   });
 
+  const unpaid = players
+    .filter(p => p.is_active && !p.pool_exempt && !p.payment_verified)
+    .sort((a, b) => a.display_name.localeCompare(b.display_name));
+
   slot.innerHTML = `
     <div class="card">
       <div class="admin-header">💰 Payment Dashboard</div>
@@ -2689,6 +2710,22 @@ async function renderAdminPaymentDashboard() {
         <button id="btn-save-deadline">Save</button>
       </div>
       <div id="deadline-status" style="font-size:12px; color:var(--grey); margin-top:-8px; margin-bottom:10px;"></div>
+    </div>
+
+    <div class="card" style="margin-top:12px;">
+      <div class="admin-header" style="margin-top:0;">📋 Unpaid Summary</div>
+      ${unpaid.length === 0
+        ? `<div class="placeholder-note">Everyone active has paid ✓</div>`
+        : unpaid.map(p => `
+          <div class="player-row">
+            <div class="pinfo">
+              <div class="pname">${p.display_name}</div>
+              <div class="pmeta">${p.phone_number || "no mobile on file"}</div>
+            </div>
+            ${p.phone_number
+              ? `<a href="${whatsappNudgeLink(p.phone_number)}" target="_blank" rel="noopener" class="btn-verify" style="background:#25D366; color:var(--white); text-decoration:none; display:inline-block;">WhatsApp</a>`
+              : `<span style="font-size:11px; color:var(--grey);">No number</span>`}
+          </div>`).join("")}
     </div>
 
     <div class="card collapsible ${paymentPlayersCollapsed ? 'collapsed' : ''}" style="padding:0; margin-top:12px;">
@@ -2966,18 +3003,18 @@ function denseRank(standings) {
 function buildPodiumHtml(amounts, gbp) {
   const medals = ["🥇", "🥈", "🥉"];
   if (amounts.length === 1) {
-    return `<div class="prize-podium"><div class="prize-place first" style="flex:none; width:160px;"><div class="pp-medal">🏆</div><div class="pp-amount">${gbp(amounts[0])}</div><div style="font-size:10px; color:rgba(255,255,255,0.7); margin-top:2px;">WINNER TAKES ALL</div></div></div>`;
+    return `<div class="prize-podium"><div class="prize-place first" style="flex:none; width:160px;"><div class="pp-medal">💷</div><div class="pp-amount">${gbp(amounts[0])}</div><div style="font-size:10px; color:rgba(255,255,255,0.7); margin-top:2px;">WINNER TAKES ALL</div></div></div>`;
   }
   if (amounts.length === 2) {
     return `<div class="prize-podium">
-      <div class="prize-place first"><div class="pp-medal">🥇</div><div class="pp-amount">${gbp(amounts[0])}</div></div>
-      <div class="prize-place second"><div class="pp-medal">🥈</div><div class="pp-amount">${gbp(amounts[1])}</div></div>
+      <div class="prize-place first"><div class="pp-medal">💷</div><div class="pp-amount">${gbp(amounts[0])}</div></div>
+      <div class="prize-place second"><div class="pp-medal">💷</div><div class="pp-amount">${gbp(amounts[1])}</div></div>
     </div>`;
   }
   return `<div class="prize-podium">
-    <div class="prize-place second"><div class="pp-medal">🥈</div><div class="pp-amount">${gbp(amounts[1])}</div></div>
-    <div class="prize-place first"><div class="pp-medal">🥇</div><div class="pp-amount">${gbp(amounts[0])}</div></div>
-    <div class="prize-place third"><div class="pp-medal">🥉</div><div class="pp-amount">${gbp(amounts[2])}</div></div>
+    <div class="prize-place second"><div class="pp-medal">💷</div><div class="pp-amount">${gbp(amounts[1])}</div></div>
+    <div class="prize-place first"><div class="pp-medal">💷</div><div class="pp-amount">${gbp(amounts[0])}</div></div>
+    <div class="prize-place third"><div class="pp-medal">💷</div><div class="pp-amount">${gbp(amounts[2])}</div></div>
   </div>`;
 }
 
@@ -2995,7 +3032,7 @@ async function renderPrizePoolCard() {
   const potentialCollected = prize.entries * ENTRY_FEE;
   const potentialPool = potentialCollected - (potentialCollected * ADMIN_FEE_PCT);
   const potentialSplits = prizeTierSplits(prize.entries);
-  const potentialAmounts = potentialSplits.map(pct => potentialPool * pct);
+  const potentialAmounts = potentialSplits.map(pct => Math.round((potentialPool * pct) / 5) * 5);
   const potentialLine = prize.entries > prize.verifiedCount
     ? `<div class="pc-potential">
         <div>If everyone who's joined pays — <strong>not confirmed yet</strong>:</div>
