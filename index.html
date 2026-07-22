@@ -732,6 +732,19 @@
     </div>
   </div>
 
+  <div id="modal-payment-nudge" class="modal-overlay hidden">
+    <div class="modal-sheet">
+      <div class="modal-header">
+        <h2 style="margin:0;">💷 Have you paid?</h2>
+        <button class="icon-btn modal-close" style="background:var(--grey-light); color:var(--navy);">✕</button>
+      </div>
+      <div class="modal-body" style="text-align:center;">
+        <p style="font-size:14px; color:var(--grey); margin-bottom:14px;">Nice first prediction! Just checking, since you're not marked as paid yet, £10 confirms your place in the league. No PayPal account? Tap "Contribute as a Guest" once you're on the page.</p>
+        <a href="https://www.paypal.com/pool/9q61PGoEEs?sr=ancr" target="_blank" rel="noopener" class="btn-primary" style="display:block; text-decoration:none; line-height:44px; background:var(--navy);">Pay via PayPal Pool</a>
+      </div>
+    </div>
+  </div>
+
   <div id="modal-share" class="modal-overlay hidden">
     <div class="modal-sheet">
       <div class="modal-header">
@@ -1018,6 +1031,20 @@ async function boot() {
   }
 }
 
+async function maybeShowPaymentNudge() {
+  if (localStorage.getItem("pfc_payment_nudge_shown")) return;
+  localStorage.setItem("pfc_payment_nudge_shown", "1"); // only ever once, regardless of outcome below
+  try {
+    const res = await fetch(`${REST_URL}/players?id=eq.${currentPlayer.id}&select=payment_verified`, {
+      headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${getAccessToken()}` }
+    });
+    const rows = await res.json();
+    if (rows[0] && !rows[0].payment_verified) {
+      openModal("modal-payment-nudge");
+    }
+  } catch (e) { /* non-critical — skip silently rather than block the save flow */ }
+}
+
 function enterApp() {
   document.getElementById("player-pill-name").textContent = currentPlayer.display_name;
   document.getElementById("player-pill-avatar").textContent = currentPlayer.display_name.slice(0,1).toUpperCase();
@@ -1253,7 +1280,7 @@ function openInstructionsModal() {
     </div>
     <div class="modal-section">
       <h4>4. Prize structure</h4>
-      <p id="instructions-prize">Entry is £10 per player. 10% goes to league administration. The remaining pool's split depends on how many people have paid: under 20 paid entries, the winner takes the entire pool; 20 to 49, it's 80% to first and 20% to second; 50 or more, it's 70/20/10 across first, second and third.</p>
+      <p id="instructions-prize">Entry is £10 per player. 10% goes to league administration. The remaining pool's split depends on how many people have paid: under 20 paid entries, the winner takes the entire pool; 20 to 49, it's 80% to first and 20% to second; 50 or more, it's 70/20/10 across first, second and third. No PayPal account? Tap "Contribute as a Guest" on the PayPal page, you don't need to sign up.</p>
     </div>
     <div class="modal-section">
       <h4>5. One device only</h4>
@@ -2044,6 +2071,11 @@ function maybeShowOnboarding() {
     <div class="modal-section">
       <h4>App Failure Policy</h4>
       <p>In the unlikely event of a system failure halfway through the season, the league will be officially cancelled and 100% of joining fees will be refunded by the admin as quickly as possible via the PayPal Pool.</p>
+    </div>
+    <div class="modal-section" style="background:#fff7dc; border-radius:12px; padding:12px; margin:0 -4px;">
+      <h4>💷 Have you paid?</h4>
+      <p>£10 entry confirms your place in the league. If you haven't yet, pay now so you don't forget. No PayPal account? Tap "Contribute as a Guest" once you're on the page, you don't need to sign up.</p>
+      <a href="https://www.paypal.com/pool/9q61PGoEEs?sr=ancr" target="_blank" rel="noopener" class="btn-primary" style="display:block; text-align:center; text-decoration:none; line-height:44px; background:var(--navy); margin-top:8px;">Pay via PayPal Pool</a>
     </div>`;
   openModal("modal-onboarding");
   localStorage.setItem("pfc_onboarded", "1");
@@ -2477,6 +2509,7 @@ function buildMatchCard(fixture, squad, existingPred, result) {
           first_scorer: wrap.querySelector(".mc-scorer-select").value
         });
         statusEl.textContent = "Saved ✓";
+        maybeShowPaymentNudge();
       } catch (err) {
         statusEl.textContent = err.message;
       } finally {
@@ -2662,7 +2695,7 @@ function whatsappNudgeLink(phoneNumber) {
   // UK numbers are typically stored starting with 0 — WhatsApp needs the
   // international form with the leading 0 dropped and 44 in its place.
   const intl = digits.startsWith("0") ? `44${digits.slice(1)}` : digits;
-  const message = "Hi! Thanks for joining. Please don't forget to pay your £10 entry via https://www.paypal.com/pool/9q61PGoEEs?sr=ancr . If you no longer want to be part of the league, just let me know and I'll remove you.";
+  const message = "Hi! Thanks for joining. Please don't forget to pay your £10 entry via https://www.paypal.com/pool/9q61PGoEEs?sr=ancr . No PayPal account? Tap \"Contribute as a Guest\" on that page, you don't need to sign up. If you no longer want to be part of the league, just let me know and I'll remove you.";
   return `https://wa.me/${intl}?text=${encodeURIComponent(message)}`;
 }
 
