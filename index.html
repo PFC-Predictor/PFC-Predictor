@@ -166,7 +166,7 @@
     touch-action:manipulation;
   }
   .auth-form button:disabled{opacity:0.6;}
-  .auth-note{font-size:12px; color:rgba(255,255,255,0.55); margin-top:14px;}
+  .auth-note{font-size:12px; color:rgba(255,255,255,0.55); margin-top:6px;}
   .auth-status{font-size:13px; min-height:18px; margin-top:4px;}
 
   .pin-dots{display:flex; gap:14px; justify-content:center; margin:18px 0;}
@@ -517,8 +517,8 @@
     <button type="submit" id="btn-create-account">Get started</button>
     <div class="auth-status" id="newplayer-status"></div>
   </form>
-  <div class="auth-note" style="color:#ffd479; font-weight:600;">📲 If you're on iPhone, you might prefer to add this page to your Home Screen first (Share button → Add to Home Screen), then open it from the icon before entering your name.</div>
-  <div class="auth-note">Your mobile is only visible to Ant James as the league admin, never to other players. Used to reach you if there's a payment or prediction query. Any issues, contact Ant James.</div>
+  <div class="auth-note" style="color:#ffd479; font-weight:600;">📲 We recommend adding this page to your Home Screen first, then add your details. On iPhone: Share button → Add to Home Screen. On Android: ⋮ menu → Add to Home screen (or Install app).</div>
+  <div class="auth-note">Your mobile is only visible to Ant James as the league admin, never to other players. Any issues, contact Ant James.</div>
 </div>
 
 <!-- ============ AUTH: SET UP LOCAL PIN (first time on this device, post signup) ============ -->
@@ -1260,7 +1260,11 @@ function openInstructionsModal() {
       <p>Your account lives on this phone only, there's no email or password to sign in elsewhere with. If you're reading this from your Home Screen icon, you're already set up correctly, just keep opening it from there all season. If you're reading this in a browser tab instead, add it to your Home Screen now (Share, then Add to Home Screen) and use that icon from now on, don't sign up again, since your account already exists on this device either way. If you'd rather not add an icon, at least bookmark this page or save the link in your phone's Notes app, so you're not relying on finding it again in a group chat later. Opening the link fresh on a different phone, or clearing this one, will look like a brand new signup rather than your existing account. If that ever happens, tell the admin, your old and new accounts can be merged so nothing's lost.</p>
     </div>
     <div class="modal-section">
-      <h4>6. Around the app</h4>
+      <h4>6. Your mobile number</h4>
+      <p>Only Ant James, as league admin, can see it, no other player ever can. It's used to reach you if there's a payment or prediction query, for example a nudge if you're close to missing a deadline. Any issues, contact Ant James directly.</p>
+    </div>
+    <div class="modal-section">
+      <h4>7. Around the app</h4>
       <p>👀 <strong>Everyone's Picks</strong>, below the fixture list, shows what everyone predicted once a match kicks off, grouped by scoreline so you can see who's backing what. 🏆 <strong>Leaderboard</strong> shows the live prize pool at the top and the table below, tap any player's row for their full prediction history. 📊 <strong>The Crowd's Verdict</strong> shows the split of predictions for the very next fixture. 💬 <strong>Chat</strong> is the group's own space to communicate. 📢 <strong>What's New</strong>, in the header, flags anything added to the app since you last checked. 🔗 <strong>Share</strong>, also in the header, gives you a QR code and link if you want to invite someone yourself. Forgotten your PIN? There's a link on the unlock screen to reset it without losing your account.</p>
     </div>`;
   fetchAllPlayersAdmin().then(players => {
