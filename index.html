@@ -509,6 +509,7 @@
   <div class="crest-big">⚽</div>
   <h1 class="display">POMPEY PREDICTOR</h1>
   <p>Enter your name to get started. Next time, your PIN gets you straight in.</p>
+  <p style="color:#ffd479; font-weight:600; font-size:13px; max-width:320px; margin:-8px 0 18px;">💷 Pay the one-off £10 entry as soon as you log in, the PayPal link is in your Profile tab.</p>
   <form class="auth-form" id="form-newplayer">
     <input type="text" id="input-firstname" placeholder="First name" autocomplete="given-name" required>
     <input type="text" id="input-surname" placeholder="Surname" autocomplete="family-name" required>
@@ -2713,7 +2714,7 @@ async function renderAdminPaymentDashboard() {
     </div>
 
     <div class="card" style="margin-top:12px;">
-      <div class="admin-header" style="margin-top:0;">📋 Unpaid Summary</div>
+      <div class="admin-header" style="margin-top:0;">📋 Unpaid Summary (${unpaid.length})</div>
       ${unpaid.length === 0
         ? `<div class="placeholder-note">Everyone active has paid ✓</div>`
         : unpaid.map(p => `
@@ -3035,7 +3036,7 @@ async function renderPrizePoolCard() {
   const potentialAmounts = potentialSplits.map(pct => Math.round((potentialPool * pct) / 5) * 5);
   const potentialLine = prize.entries > prize.verifiedCount
     ? `<div class="pc-potential">
-        <div>If everyone who's joined pays — <strong>not confirmed yet</strong>:</div>
+        <div>If everyone who's joined pays:</div>
         <div class="pc-potential-amounts">${potentialLineText(potentialAmounts, gbp)}</div>
       </div>`
     : "";
