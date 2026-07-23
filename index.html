@@ -1350,7 +1350,7 @@ async function renderWhatsNewModal() {
   body.innerHTML = updates.map(u => `
     <div class="modal-section">
       <h4>${u.version}</h4>
-      <p>${u.notes || ""}</p>
+      <p style="white-space:pre-line;">${escapeHtml(u.notes || "")}</p>
       <p style="color:var(--grey); font-size:11px; margin-top:4px;">${new Date(u.created_at).toLocaleDateString("en-GB")}</p>
     </div>`).join("");
   pendingWhatsNewId = updates[0].id;
@@ -3050,8 +3050,12 @@ async function renderAdminPostUpdatePanel() {
       </div>
       <div class="collapsible-body" style="padding:0 14px 14px;">
         <p style="font-size:12px; color:var(--grey); margin-top:-4px;">This appears in the What's New modal and auto-opens once for anyone who hasn't seen it yet.</p>
-        <input type="text" id="update-version" placeholder="Heading, e.g. Predict at your own pace" style="width:100%; height:38px; border-radius:8px; border:1px solid var(--grey-light); padding:0 10px; font-size:13px; margin-bottom:8px;">
-        <textarea id="update-notes" placeholder="Details…" rows="4" style="width:100%; border-radius:8px; border:1px solid var(--grey-light); padding:8px 10px; font-size:13px; margin-bottom:8px; font-family:inherit;"></textarea>
+        <p style="font-size:11px; color:var(--grey); background:var(--grey-light); border-radius:8px; padding:8px 10px; margin-bottom:10px; line-height:1.5;">
+          <strong>Style: keep it punchy.</strong> One emoji-led line per point, bold the key word, skip full paragraphs.<br>
+          e.g. "🆕 Picks now has its own tab" not "We have decided to move Everyone's Picks into its own dedicated tab."
+        </p>
+        <input type="text" id="update-version" placeholder="Heading, e.g. 📱 App Update — New Tab, New Look" style="width:100%; height:38px; border-radius:8px; border:1px solid var(--grey-light); padding:0 10px; font-size:13px; margin-bottom:8px;">
+        <textarea id="update-notes" placeholder="One punchy emoji-led line per change, e.g.&#10;🆕 Picks now has its own tab&#10;💬 Chat moved to the header icon" rows="5" style="width:100%; border-radius:8px; border:1px solid var(--grey-light); padding:8px 10px; font-size:13px; margin-bottom:8px; font-family:inherit;"></textarea>
         <button id="btn-post-update" class="mc-save">Post update</button>
         <div id="postupdate-status" style="font-size:12px; color:var(--grey); margin-top:6px;"></div>
         ${updates.length ? updates.map(u => `
