@@ -989,7 +989,23 @@ async function fetchMyPlayerRow() {
 
 async function createPlayerRow(firstName, surname, mobile) {
   const session = getSession();
-  const displayName = `${firstName.trim()} ${surname.trim()}`;
+  let displayName = `${firstName.trim()} ${surname.trim()}`;
+
+  // A name collision in a private league almost always means someone signing
+  // up a second time, not two different friends sharing an identical name —
+  // flag it visibly everywhere (leaderboard, chat, admin) rather than let it
+  // quietly inflate entry counts and prize projections.
+  try {
+    const checkRes = await fetch(`${REST_URL}/players?is_active=eq.true&select=display_name`, {
+      headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${session.access_token}` }
+    });
+    if (checkRes.ok) {
+      const existing = await checkRes.json();
+      const isDuplicate = existing.some(p => p.display_name.trim().toLowerCase() === displayName.toLowerCase());
+      if (isDuplicate) displayName = `${displayName} ⚠️`;
+    }
+  } catch (e) { /* non-critical — if this check fails, signup still proceeds normally */ }
+
   const res = await fetch(`${REST_URL}/players`, {
     method: "POST",
     headers: {
@@ -2608,8 +2624,8 @@ document.getElementById("month-next").addEventListener("click", () => {
    under the old account and reported, not silently dropped.
    ============================================================ */
 function mergeOptionsHtml(players, predictionCountByPlayer) {
-  const withActivity = [...players].sort((a, b) => (predictionCountByPlayer.get(b.id) || 0) - (predictionCountByPlayer.get(a.id) || 0));
-  return withActivity.map(p => {
+  const chronological = [...players].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+  return chronological.map(p => {
     const count = predictionCountByPlayer.get(p.id) || 0;
     const joined = new Date(p.created_at).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
     return `<option value="${p.id}">${p.display_name} — joined ${joined}, ${count} prediction${count === 1 ? "" : "s"}${!p.is_active ? " (inactive)" : ""}</option>`;
@@ -2645,6 +2661,17 @@ async function mergePlayerAccounts(oldId, newId) {
       method: "PATCH", headers, body: JSON.stringify({ player_id: newId })
     });
   }
+
+  // Payment Log references players from both sides (player_id and added_by),
+  // and that table's foreign keys have no automatic cleanup rule, so leaving
+  // either untouched blocks deletion of the old account later with an opaque
+  // "may still have records attached" error.
+  await fetch(`${REST_URL}/payment_log?player_id=eq.${oldId}`, {
+    method: "PATCH", headers, body: JSON.stringify({ player_id: newId })
+  });
+  await fetch(`${REST_URL}/payment_log?added_by=eq.${oldId}`, {
+    method: "PATCH", headers, body: JSON.stringify({ added_by: newId })
+  });
 
   // Deactivate the orphaned account rather than delete it — any skipped
   // predictions stay safely attached to it for manual review.
@@ -2780,11 +2807,16 @@ async function renderAdminPaymentDashboard() {
   const slot = document.getElementById("admin-slot");
   slot.innerHTML = `<div class="placeholder-note">Loading payment dashboard…</div>`;
 
-  const [players, settings, allPredictions, allMessages] = await Promise.all([fetchAllPlayersAdmin(), fetchLeagueSettings(), sbFetchAll("predictions?select=player_id"), sbFetchAll("messages?select=player_id")]);
+  const [players, settings, allPredictions, allMessages, allPaymentLog] = await Promise.all([fetchAllPlayersAdmin(), fetchLeagueSettings(), sbFetchAll("predictions?select=player_id"), sbFetchAll("messages?select=player_id"), sbFetchAll("payment_log?select=player_id,added_by")]);
   const predictionCountByPlayer = new Map();
   allPredictions.forEach(p => predictionCountByPlayer.set(p.player_id, (predictionCountByPlayer.get(p.player_id) || 0) + 1));
   const messageCountByPlayer = new Map();
   allMessages.forEach(m => messageCountByPlayer.set(m.player_id, (messageCountByPlayer.get(m.player_id) || 0) + 1));
+  const paymentLogCountByPlayer = new Map();
+  allPaymentLog.forEach(l => {
+    paymentLogCountByPlayer.set(l.player_id, (paymentLogCountByPlayer.get(l.player_id) || 0) + 1);
+    paymentLogCountByPlayer.set(l.added_by, (paymentLogCountByPlayer.get(l.added_by) || 0) + 1);
+  });
   const prize = computePrizePool(players);
   const deadline = settings?.payment_deadline || "";
   const deadlinePassed = deadline && new Date(deadline).getTime() < Date.now();
@@ -2853,7 +2885,8 @@ async function renderAdminPaymentDashboard() {
         const overdue = deadlinePassed && !p.payment_verified && !p.pool_exempt;
         const remainingPreds = predictionCountByPlayer.get(p.id) || 0;
         const remainingMsgs = messageCountByPlayer.get(p.id) || 0;
-        const safeToDelete = !p.is_active && remainingPreds === 0 && remainingMsgs === 0;
+        const remainingPayLog = paymentLogCountByPlayer.get(p.id) || 0;
+        const safeToDelete = !p.is_active && remainingPreds === 0 && remainingMsgs === 0 && remainingPayLog === 0;
         return `
         <div class="player-row ${overdue ? 'overdue' : ''}" data-search-name="${p.display_name.toLowerCase()}">
           <div class="pinfo">
@@ -2868,7 +2901,7 @@ async function renderAdminPaymentDashboard() {
             <button class="btn-verify" style="background:var(--grey-light); color:var(--text);" data-exempt="${p.id}" data-current="${p.pool_exempt}">${p.pool_exempt ? "Un-exempt" : "Exempt"}</button>
             ${!p.payment_verified && !p.pool_exempt && p.phone_number ? `<a href="${whatsappNudgeLink(p.phone_number)}" target="_blank" rel="noopener" class="btn-verify" style="background:#25D366; color:var(--white); text-decoration:none; display:inline-block;">WhatsApp</a>` : ""}
             ${!p.payment_verified ? `<button class="btn-purge" data-purge="${p.id}" data-name="${p.display_name}">Purge</button>` : ""}
-            ${safeToDelete ? `<button class="btn-purge" data-delete-duplicate="${p.id}" data-name="${p.display_name}">Delete duplicate</button>` : (!p.is_active ? `<span style="font-size:10px; color:var(--grey);">Can't delete — ${remainingPreds + remainingMsgs} record(s) still attached</span>` : "")}
+            ${safeToDelete ? `<button class="btn-purge" data-delete-duplicate="${p.id}" data-name="${p.display_name}">Delete duplicate</button>` : (!p.is_active ? `<span style="font-size:10px; color:var(--grey);">Can't delete — ${remainingPreds + remainingMsgs + remainingPayLog} record(s) still attached</span>` : "")}
           </div>
         </div>`;
       }).join("")}
