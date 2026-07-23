@@ -55,10 +55,10 @@
     font-size:18px;
   }
   .brand h1{font-family:'Bebas Neue', Impact, sans-serif; font-size:22px; margin:0; letter-spacing:1px;}
-  .header-actions{display:flex; align-items:center; gap:6px;}
+  .header-actions{display:flex; align-items:center; gap:4px;}
   .icon-btn{
     background:rgba(255,255,255,0.12); border:none; color:var(--white);
-    width:40px; height:40px; border-radius:10px; font-size:18px;
+    width:36px; height:36px; border-radius:9px; font-size:16px;
     display:flex; align-items:center; justify-content:center;
     touch-action:manipulation;
   }
@@ -201,6 +201,15 @@
   .hero-card .countdown{
     font-family:'Bebas Neue', Impact, sans-serif; font-size:22px; color:var(--gold); letter-spacing:1px;
   }
+
+  /* ---------- personal stats pills ---------- */
+  .stats-pills{display:flex; gap:8px; margin-bottom:12px;}
+  .stats-pill{
+    flex:1; background:var(--white); border-radius:14px; padding:10px 6px; text-align:center;
+    box-shadow:0 1px 3px rgba(11,27,51,0.08);
+  }
+  .stats-pill .sp-count{font-family:'Bebas Neue', Impact, sans-serif; font-size:24px; color:var(--navy);}
+  .stats-pill .sp-label{font-size:10.5px; color:var(--grey); text-transform:uppercase; letter-spacing:0.3px;}
 
   /* ---------- shout-out ---------- */
   .shoutout-card{
@@ -566,6 +575,7 @@
         <span class="pill-name" id="player-pill-name"></span>
       </div>
       <button class="icon-btn" id="btn-instructions" title="Instructions">ℹ️</button>
+      <button class="icon-btn" id="btn-chat" title="Chat">💬</button>
       <button class="icon-btn whats-new-badge" id="btn-whats-new" title="What's New">
         📢<span class="dot hidden" id="whats-new-dot"></span>
       </button>
@@ -576,21 +586,19 @@
   <main>
     <section id="view-fixtures" class="view active">
       <div id="hero-card-slot"></div>
+      <div id="stats-pills-slot"></div>
       <div id="shoutout-slot"></div>
       <div id="reminder-slot"></div>
-      <div id="cup-fixtures-slot"></div>
 
       <div class="gw-nav">
-        <button id="gw-prev">‹</button>
-        <span class="gw-label" id="gw-label">GAMEWEEK 1</span>
-        <button id="gw-next">›</button>
+        <button id="month-prev">‹</button>
+        <span class="gw-label" id="month-label">MONTH</span>
+        <button id="month-next">›</button>
       </div>
 
       <div id="match-list"></div>
 
       <div id="verdict-slot"></div>
-
-      <button id="btn-everyones-picks" style="width:100%; height:44px; border-radius:10px; border:2px solid var(--navy); background:transparent; color:var(--navy); font-weight:700; font-size:13px; margin-top:4px;">👀 Everyone's Picks</button>
     </section>
 
     <section id="view-leaderboard" class="view">
@@ -619,15 +627,15 @@
       </div>
     </section>
 
-    <section id="view-chat" class="view">
-      <div class="card" style="padding:0; display:flex; flex-direction:column; height:60vh;">
-        <div id="chat-feed" style="flex:1; overflow-y:auto; padding:14px;"></div>
-        <form id="chat-form" style="display:flex; gap:8px; padding:10px; border-top:1px solid var(--grey-light);">
-          <input type="text" id="chat-input" placeholder="Say something…" maxlength="500"
-            style="flex:1; height:44px; border-radius:10px; border:1px solid var(--grey-light); padding:0 12px; font-size:14px;">
-          <button type="submit" style="width:60px; height:44px; border-radius:10px; border:none; background:var(--navy); color:var(--white); font-weight:700;">Send</button>
-        </form>
+    <section id="view-picks" class="view">
+      <div id="awards-slot"></div>
+      <p style="font-size:12px; color:var(--grey); text-align:center; margin:-6px 0 12px;">🔒 Picks only appear here once a match has kicked off — nobody can see your prediction before then.</p>
+      <div class="picks-filter">
+        <select id="picks-player-filter">
+          <option value="">All players — grid view</option>
+        </select>
       </div>
+      <div id="picks-content"></div>
     </section>
 
     <section id="view-profile" class="view">
@@ -667,6 +675,11 @@
           points, whoever has the most exact scores ranks higher. Still level after that, it comes down to
           who's named the most correct first goalscorers.
         </p>
+        <p style="font-size:13px; line-height:1.6; margin-top:10px;">
+          <strong>Cup matches:</strong> the Carabao Cup and FA Cup can go to extra time or penalties, but
+          your prediction is only ever judged on the score at 90 minutes, whatever happens after that
+          doesn't count either way.
+        </p>
         <p style="font-size:12px; color:var(--grey); line-height:1.6; margin-top:10px;">
           <strong>App Failure Policy:</strong> in the unlikely event of a system failure
           halfway through the season, the league will be officially cancelled and 100% of joining
@@ -689,21 +702,27 @@
   <div class="footer-credit">Developed by Ant & Louis James</div>
 
   <nav class="floating-nav">
-    <button class="tab active" data-view="fixtures"><span class="emoji">⚽</span>Fixtures</button>
+    <button class="tab active" data-view="fixtures"><span class="emoji">⚽</span>Predictions</button>
     <button class="tab" data-view="leaderboard"><span class="emoji">🏆</span>Leaderboard</button>
-    <button class="tab" data-view="chat"><span class="emoji">💬</span>Chat</button>
+    <button class="tab" data-view="picks"><span class="emoji">👀</span>Picks</button>
     <button class="tab" data-view="profile"><span class="emoji">👤</span>Profile</button>
   </nav>
 
-  <!-- ============ EVERYONE'S PICKS (full-screen overlay, reached from Fixtures) ============ -->
-  <div id="picks-overlay" class="modal-overlay hidden">
-    <div class="modal-sheet" style="max-width:640px; margin:0 auto; height:100%; border-radius:0;">
+  <!-- ============ CHAT (header modal, since the tab now goes to Everyone's Picks) ============ -->
+  <div id="modal-chat" class="modal-overlay hidden">
+    <div class="modal-sheet" style="max-width:640px; margin:0 auto; height:85%; border-radius:20px 20px 0 0;">
       <div class="modal-header">
-        <button id="btn-picks-back" class="icon-btn" style="background:var(--grey-light); color:var(--navy);">←</button>
-        <h2 style="margin:0; font-family:'Bebas Neue', Impact, sans-serif; font-size:20px;">EVERYONE'S PICKS</h2>
-        <span style="width:40px;"></span>
+        <h2 style="margin:0;">💬 Chat</h2>
+        <button class="icon-btn modal-close" style="background:var(--grey-light); color:var(--navy);">✕</button>
       </div>
-      <div class="modal-body" id="picks-body"></div>
+      <div style="flex:1; display:flex; flex-direction:column; min-height:0;">
+        <div id="chat-feed" style="flex:1; overflow-y:auto; padding:14px;"></div>
+        <form id="chat-form" style="display:flex; gap:8px; padding:10px; border-top:1px solid var(--grey-light);">
+          <input type="text" id="chat-input" placeholder="Say something…" maxlength="500"
+            style="flex:1; height:44px; border-radius:10px; border:1px solid var(--grey-light); padding:0 12px; font-size:14px;">
+          <button type="submit" style="width:60px; height:44px; border-radius:10px; border:none; background:var(--navy); color:var(--white); font-weight:700;">Send</button>
+        </form>
+      </div>
     </div>
   </div>
 
@@ -1258,7 +1277,13 @@ document.querySelectorAll("nav.floating-nav .tab").forEach(tab => {
       }
     }
     if (tab.dataset.view === "leaderboard") renderLeaderboard();
+    if (tab.dataset.view === "picks") renderPicksOverlay();
   }, { passive: true });
+});
+
+document.getElementById("btn-chat").addEventListener("click", () => {
+  openModal("modal-chat");
+  renderChat();
 });
 
 function openModal(id) { document.getElementById(id).classList.remove("hidden"); }
@@ -1283,7 +1308,7 @@ function openInstructionsModal() {
     </div>
     <div class="modal-section">
       <h4>3. How points work</h4>
-      <p><span class="badge-pill badge-gold">+3</span> exact score &nbsp; <span class="badge-pill badge-blue">+1</span> correct result &nbsp; <span class="badge-pill badge-green">+2</span> first Pompey goalscorer. Maximum 5 points per match — the exact score point replaces the correct-result point rather than stacking with it. Your leaderboard position is based on total points, and if two players are level, whoever has the most exact scores ranks higher, then whoever's named the most correct first goalscorers if it's still level after that.</p>
+      <p><span class="badge-pill badge-gold">+3</span> exact score &nbsp; <span class="badge-pill badge-blue">+1</span> correct result &nbsp; <span class="badge-pill badge-green">+2</span> first Pompey goalscorer. Maximum 5 points per match — the exact score point replaces the correct-result point rather than stacking with it. Your leaderboard position is based on total points, and if two players are level, whoever has the most exact scores ranks higher, then whoever's named the most correct first goalscorers if it's still level after that. Cup matches (Carabao Cup, FA Cup) are always judged on the 90-minute score only, extra time and penalties don't affect your prediction either way.</p>
     </div>
     <div class="modal-section">
       <h4>4. Prize structure</h4>
@@ -1299,7 +1324,7 @@ function openInstructionsModal() {
     </div>
     <div class="modal-section">
       <h4>7. Around the app</h4>
-      <p>👀 <strong>Everyone's Picks</strong>, below the fixture list, shows what everyone predicted once a match kicks off, grouped by scoreline so you can see who's backing what. 🏆 <strong>Leaderboard</strong> shows the live prize pool at the top and the table below, tap any player's row for their full prediction history. 📊 <strong>The Crowd's Verdict</strong> shows the split of predictions for the very next fixture. 💬 <strong>Chat</strong> is the group's own space to communicate. 📢 <strong>What's New</strong>, in the header, flags anything added to the app since you last checked. 🔗 <strong>Share</strong>, also in the header, gives you a QR code and link if you want to invite someone yourself. Forgotten your PIN? There's a link on the unlock screen to reset it without losing your account.</p>
+      <p>👀 <strong>Picks</strong>, its own tab at the bottom, shows what everyone predicted once a match kicks off, grouped by scoreline so you can see who's backing what. 🏆 <strong>Leaderboard</strong> shows the live prize pool at the top and the table below, tap any player's row for their full prediction history. 📊 <strong>The Crowd's Verdict</strong> shows the split of predictions for the very next fixture. 💬 <strong>Chat</strong> moved to the header, tap the speech bubble icon any time to open it. 📢 <strong>What's New</strong>, also in the header, flags anything added to the app since you last checked. 🔗 <strong>Share</strong>, also in the header, gives you a QR code and link if you want to invite someone yourself. Forgotten your PIN? There's a link on the unlock screen to reset it without losing your account.</p>
     </div>`;
   fetchAllPlayersAdmin().then(players => {
     const prize = computePrizePool(players);
@@ -1411,20 +1436,11 @@ function renderQr(url) {
   new QRCode(slot, { text: url, width: 200, height: 200 });
 }
 
-/* ---------- Everyone's Picks ---------- */
-document.getElementById("btn-everyones-picks").addEventListener("click", () => {
-  openModal("picks-overlay");
-  document.getElementById("picks-overlay").classList.remove("hidden");
-  document.getElementById("picks-overlay").style.display = "flex";
-  renderPicksOverlay();
-});
-document.getElementById("btn-picks-back").addEventListener("click", () => {
-  document.getElementById("picks-overlay").classList.add("hidden");
-});
+/* ---------- Everyone's Picks (now a standard nav tab, see the nav click handler) ---------- */
 
 async function renderPicksOverlay() {
-  const body = document.getElementById("picks-body");
-  body.innerHTML = `<div class="placeholder-note">Loading…</div>`;
+  const filterSelect = document.getElementById("picks-player-filter");
+  document.getElementById("picks-content").innerHTML = `<div class="placeholder-note">Loading…</div>`;
 
   const [players, predictions, results, fixtures] = await Promise.all([
     sbFetchAll("players?is_active=eq.true&is_participant=eq.true&select=*"),
@@ -1435,23 +1451,16 @@ async function renderPicksOverlay() {
   const resultByFixture = new Map(results.map(r => [r.fixture_id, r]));
   const playerById = new Map(players.map(p => [p.id, p]));
 
-  body.innerHTML = `
-    <div id="awards-slot"></div>
-    <p style="font-size:12px; color:var(--grey); text-align:center; margin:-6px 0 12px;">🔒 Picks only appear here once a match has kicked off — nobody can see your prediction before then.</p>
-    <div class="picks-filter">
-      <select id="picks-player-filter">
-        <option value="">All players — grid view</option>
-        ${players.map(p => `<option value="${p.id}">${p.display_name}</option>`).join("")}
-      </select>
-    </div>
-    <div id="picks-content"></div>`;
+  filterSelect.innerHTML = `
+    <option value="">All players — grid view</option>
+    ${players.map(p => `<option value="${p.id}">${p.display_name}</option>`).join("")}`;
 
   renderAwardsPanel(players, predictions, resultByFixture, fixtures);
 
-  document.getElementById("picks-player-filter").addEventListener("change", (e) => {
+  filterSelect.onchange = (e) => {
     if (e.target.value) renderPicksHistoryFor(e.target.value, playerById, predictions, resultByFixture, fixtures);
     else renderPicksGrid(players, predictions, resultByFixture, fixtures);
-  });
+  };
 
   renderPicksGrid(players, predictions, resultByFixture, fixtures);
 }
@@ -2049,15 +2058,35 @@ async function renderAdminExportPanel() {
       await loadSheetJsLibrary();
 
       status.textContent = "Building workbook…";
+      const playerName = new Map(players.map(p => [p.id, p.display_name]));
+      const fixtureName = new Map(fixtures.map(f => [f.id, `${f.home_team} v ${f.away_team} (${new Date(f.kickoff).toLocaleDateString("en-GB")})`]));
+
+      const predictionsReadable = predictions.map(p => ({
+        id: p.id, created_at: p.created_at,
+        player: playerName.get(p.player_id) || p.player_id, player_id: p.player_id,
+        fixture: fixtureName.get(p.fixture_id) || p.fixture_id, fixture_id: p.fixture_id,
+        home_score: p.home_score, away_score: p.away_score, first_scorer: p.first_scorer
+      }));
+      const resultsReadable = results.map(r => ({
+        id: r.id, fixture: fixtureName.get(r.fixture_id) || r.fixture_id, fixture_id: r.fixture_id,
+        home_score: r.home_score, away_score: r.away_score, first_scorer: r.first_scorer
+      }));
+      const paymentLogReadable = paymentLog.map(l => ({
+        id: l.id,
+        player: playerName.get(l.player_id) || l.player_id, player_id: l.player_id,
+        added_by: playerName.get(l.added_by) || l.added_by, added_by_id: l.added_by,
+        date_added: l.date_added, created_at: l.created_at
+      }));
+
       const wb = XLSX.utils.book_new();
       const addSheet = (name, rows) => {
         const ws = XLSX.utils.json_to_sheet(rows.length ? rows : [{}]);
         XLSX.utils.book_append_sheet(wb, ws, name);
       };
-      addSheet("Predictions", predictions);
-      addSheet("Results", results);
+      addSheet("Predictions", predictionsReadable);
+      addSheet("Results", resultsReadable);
       addSheet("Players", players);
-      addSheet("PaymentLog", paymentLog);
+      addSheet("PaymentLog", paymentLogReadable);
       addSheet("Fixtures", fixtures);
       addSheet("Squad", squad);
 
@@ -2144,7 +2173,7 @@ function maybeAutoOpenInstructions() {
 }
 
 /* ---------- hook it all into tab switching / enterApp ---------- */
-document.querySelector('[data-view="chat"]').addEventListener("click", renderChat, { passive: true });
+
 
 
 /* ============================================================
@@ -2184,27 +2213,9 @@ function outcomeOf(homeScore, awayScore) {
 /* ============================================================
    FETCH HELPERS
    ============================================================ */
-async function fetchFixturesByGameweek(gw) {
-  const res = await fetch(`${REST_URL}/fixtures?gameweek=eq.${gw}&select=*&order=kickoff.asc`, {
-    headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${getAccessToken() || SUPABASE_ANON_KEY}` }
-  });
-  if (!res.ok) throw new Error("Could not load fixtures.");
-  return res.json();
-}
 async function fetchNextFixture() {
   const nowIso = new Date().toISOString();
   const res = await fetch(`${REST_URL}/fixtures?kickoff=gte.${encodeURIComponent(nowIso)}&select=*&order=kickoff.asc&limit=1`, {
-    headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${getAccessToken() || SUPABASE_ANON_KEY}` }
-  });
-  if (!res.ok) return null;
-  const rows = await res.json();
-  return rows[0] || null;
-}
-async function fetchNextLeagueFixture() {
-  // deliberately excludes cup ties, since gameweek is null for them and the
-  // numbered browser needs a real gameweek to open on
-  const nowIso = new Date().toISOString();
-  const res = await fetch(`${REST_URL}/fixtures?kickoff=gte.${encodeURIComponent(nowIso)}&competition=eq.Championship&select=*&order=kickoff.asc&limit=1`, {
     headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${getAccessToken() || SUPABASE_ANON_KEY}` }
   });
   if (!res.ok) return null;
@@ -2295,7 +2306,8 @@ async function backfillZeroPrediction(fixture_id) {
 /* ============================================================
    FIXTURES VIEW STATE + RENDER
    ============================================================ */
-let currentGW = 1;
+let currentMonthKey = null;
+let availableMonths = [];
 let countdownTimers = [];
 
 function clearCountdownTimers() {
@@ -2303,43 +2315,35 @@ function clearCountdownTimers() {
   countdownTimers = [];
 }
 
-async function renderCupFixtures() {
-  const slot = document.getElementById("cup-fixtures-slot");
-  const cupFixtures = await sbFetchAll("fixtures?competition=neq.Championship&select=*&order=kickoff.asc");
-  if (cupFixtures.length === 0) { slot.innerHTML = ""; return; }
-
-  const squad = await fetchActiveSquad();
-  const fixtureIds = cupFixtures.map(f => f.id);
-  const [myPreds, results] = await Promise.all([
-    fetchMyPredictionsForFixtures(fixtureIds),
-    fetchResultsForFixtures(fixtureIds)
-  ]);
-  const predByFixture = new Map(myPreds.map(p => [p.fixture_id, p]));
-  const resultByFixture = new Map(results.map(r => [r.fixture_id, r]));
-
-  slot.innerHTML = `<div class="admin-header" style="margin:0 0 4px;">🏆 Cup Fixtures</div><div id="cup-fixtures-list"></div>`;
-  const list = document.getElementById("cup-fixtures-list");
-  cupFixtures.forEach(f => {
-    list.appendChild(buildMatchCard(f, squad, predByFixture.get(f.id), resultByFixture.get(f.id)));
-  });
-
-  // fold any cup tie within 48 hours into the same reminder banner as league fixtures —
-  // both this function and renderGameweek write their own slice then call the
-  // shared refresh, so whichever finishes last still produces the correct combined banner
-  lastCupSoon = cupFixtures.filter(f => !predByFixture.has(f.id) && new Date(f.kickoff).getTime() > Date.now() && new Date(f.kickoff).getTime() - Date.now() <= 48 * 3600 * 1000);
-  refreshReminderBanner();
+function monthKeyFor(iso) {
+  const d = new Date(iso);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+function monthLabelFor(monthKey) {
+  const [y, m] = monthKey.split("-").map(Number);
+  return new Date(y, m - 1, 1).toLocaleDateString("en-GB", { month: "long", year: "numeric" }).toUpperCase();
 }
 
 async function initFixturesView() {
   clearCountdownTimers();
-  const [next, nextLeague] = await Promise.all([fetchNextFixture(), fetchNextLeagueFixture()]);
-  currentGW = nextLeague ? nextLeague.gameweek : 1;
+  const [next, allFixtures] = await Promise.all([
+    fetchNextFixture(),
+    sbFetchAll("fixtures?select=*&order=kickoff.asc")
+  ]);
+
+  availableMonths = [...new Set(allFixtures.map(f => monthKeyFor(f.kickoff)))].sort();
+  const preferredMonth = monthKeyFor(next ? next.kickoff : (allFixtures[0]?.kickoff || new Date().toISOString()));
+  currentMonthKey = availableMonths.includes(preferredMonth) ? preferredMonth : (availableMonths[0] || null);
+
+  const myPreds = await sbFetchAll(`predictions?player_id=eq.${currentPlayer.id}&select=*`);
+
   await Promise.all([
     renderHeroCard(next),
+    renderStatsPills(),
     renderShoutout(),
     renderVerdictPanel(next),
-    renderGameweek(currentGW),
-    renderCupFixtures()
+    renderMonth(currentMonthKey, allFixtures),
+    renderReminderBanner(allFixtures, myPreds)
   ]);
 }
 
@@ -2375,6 +2379,30 @@ async function renderHeroCard(next) {
   const el = document.getElementById("hero-countdown");
   const timer = setInterval(() => { if (el) el.textContent = countdownText(next.kickoff); }, 30000);
   countdownTimers.push(timer);
+}
+
+async function renderStatsPills() {
+  const slot = document.getElementById("stats-pills-slot");
+  const [myPreds, results] = await Promise.all([
+    sbFetchAll(`predictions?player_id=eq.${currentPlayer.id}&select=*`),
+    sbFetchAll("results?select=*")
+  ]);
+  const resultByFixture = new Map(results.map(r => [r.fixture_id, r]));
+  let exact = 0, correct = 0, scorer = 0;
+  myPreds.forEach(pred => {
+    const result = resultByFixture.get(pred.fixture_id);
+    if (!result) return;
+    const bd = calcPoints(pred, result);
+    if (bd.exact) exact++;
+    if (bd.correct) correct++;
+    if (bd.scorer) scorer++;
+  });
+  slot.innerHTML = `
+    <div class="stats-pills">
+      <div class="stats-pill"><div class="sp-count">${exact}</div><div class="sp-label">Exact score</div></div>
+      <div class="stats-pill"><div class="sp-count">${correct}</div><div class="sp-label">Correct result</div></div>
+      <div class="stats-pill"><div class="sp-count">${scorer}</div><div class="sp-label">Scorer picked</div></div>
+    </div>`;
 }
 
 async function renderShoutout() {
@@ -2460,36 +2488,35 @@ async function renderVerdictPanel(fixture) {
   });
 }
 
-let lastLeagueFixtures = [];
-let lastLeagueMyPreds = [];
-let lastCupSoon = [];
+async function renderMonth(monthKey, cachedFixtures) {
+  if (!monthKey) {
+    document.getElementById("month-label").textContent = "NO FIXTURES";
+    document.getElementById("month-prev").disabled = true;
+    document.getElementById("month-next").disabled = true;
+    document.getElementById("match-list").innerHTML = "";
+    return;
+  }
 
-function refreshReminderBanner() {
-  renderReminderBanner([...lastLeagueFixtures, ...lastCupSoon], lastLeagueMyPreds);
-}
+  document.getElementById("month-label").textContent = monthLabelFor(monthKey);
+  const idx = availableMonths.indexOf(monthKey);
+  document.getElementById("month-prev").disabled = idx <= 0;
+  document.getElementById("month-next").disabled = idx >= availableMonths.length - 1;
 
-async function renderGameweek(gw) {
-  document.getElementById("gw-label").textContent = `GAMEWEEK ${gw}`;
-  document.getElementById("gw-prev").disabled = gw <= 1;
-  document.getElementById("gw-next").disabled = gw >= 46;
+  const allFixtures = cachedFixtures || await sbFetchAll("fixtures?select=*&order=kickoff.asc");
+  const monthFixtures = allFixtures.filter(f => monthKeyFor(f.kickoff) === monthKey);
 
-  const [fixtures, squad] = await Promise.all([fetchFixturesByGameweek(gw), fetchActiveSquad()]);
-  const fixtureIds = fixtures.map(f => f.id);
+  const squad = await fetchActiveSquad();
+  const fixtureIds = monthFixtures.map(f => f.id);
   const [myPreds, results] = await Promise.all([
     fetchMyPredictionsForFixtures(fixtureIds),
     fetchResultsForFixtures(fixtureIds)
   ]);
-
-  lastLeagueFixtures = fixtures;
-  lastLeagueMyPreds = myPreds;
-  refreshReminderBanner();
-
   const predByFixture = new Map(myPreds.map(p => [p.fixture_id, p]));
   const resultByFixture = new Map(results.map(r => [r.fixture_id, r]));
 
   const list = document.getElementById("match-list");
   list.innerHTML = "";
-  fixtures.forEach(f => {
+  monthFixtures.forEach(f => {
     list.appendChild(buildMatchCard(f, squad, predByFixture.get(f.id), resultByFixture.get(f.id)));
   });
 }
@@ -2576,8 +2603,14 @@ function buildMatchCard(fixture, squad, existingPred, result) {
   return wrap;
 }
 
-document.getElementById("gw-prev").addEventListener("click", () => { if (currentGW > 1) renderGameweek(--currentGW); }, { passive: true });
-document.getElementById("gw-next").addEventListener("click", () => { if (currentGW < 46) renderGameweek(++currentGW); }, { passive: true });
+document.getElementById("month-prev").addEventListener("click", () => {
+  const idx = availableMonths.indexOf(currentMonthKey);
+  if (idx > 0) { currentMonthKey = availableMonths[idx - 1]; renderMonth(currentMonthKey); }
+}, { passive: true });
+document.getElementById("month-next").addEventListener("click", () => {
+  const idx = availableMonths.indexOf(currentMonthKey);
+  if (idx < availableMonths.length - 1) { currentMonthKey = availableMonths[idx + 1]; renderMonth(currentMonthKey); }
+}, { passive: true });
 
 /* ============================================================
    ADMIN: RE-LINK / MERGE (for a player whose device lost its
@@ -3619,7 +3652,7 @@ async function renderAdminResultsPanel() {
     const view = activeTab ? activeTab.dataset.view : "fixtures";
     if (view === "fixtures") return initFixturesView;
     if (view === "leaderboard") return renderLeaderboard;
-    if (view === "chat") return renderChat;
+    if (view === "picks") return renderPicksOverlay;
     if (view === "profile" && currentPlayer?.is_admin) return () => { renderAdminAddFixturePanel(); renderAdminEditFixturesPanel(); renderAdminPaymentDashboard(); renderAdminResultsPanel(); renderAdminMissingPanel(); renderAdminSquadPanel(); renderAdminExportPanel(); renderAdminPaymentLogPanel(); renderAdminPostUpdatePanel(); renderAdminRelinkPanel(); };
     return null;
   }
