@@ -656,11 +656,16 @@
         <p style="font-size:11px; color:var(--grey); margin-top:6px; margin-bottom:0;">No PayPal account? Tap "Contribute as a Guest" once you're on the page — you don't need to sign up.</p>
       </div>
       <div class="card">
-        <h3 style="margin-top:0;">Rules &amp; points system</h3>
+        <h3 style="margin-top:0;">Points system</h3>
         <p style="font-size:13px; line-height:1.6;">
           3 points for an exact score. 1 point for a correct result (win, draw or loss called correctly) —
           this doesn't stack with the exact score point. 2 points for correctly naming the first Pompey
           goalscorer. Maximum 5 points per match.
+        </p>
+        <p style="font-size:13px; line-height:1.6; margin-top:10px;">
+          <strong>Where it counts:</strong> total points decide your position. If two players are level on
+          points, whoever has the most exact scores ranks higher. Still level after that, it comes down to
+          who's named the most correct first goalscorers.
         </p>
         <p style="font-size:12px; color:var(--grey); line-height:1.6; margin-top:10px;">
           <strong>App Failure Policy:</strong> in the unlikely event of a system failure
@@ -676,6 +681,7 @@
       <div id="admin-export-slot"></div>
       <div id="admin-slot"></div>
       <div id="admin-paymentlog-slot"></div>
+      <div id="admin-postupdate-slot"></div>
       <div id="admin-relink-slot"></div>
     </section>
   </main>
@@ -1247,6 +1253,7 @@ document.querySelectorAll("nav.floating-nav .tab").forEach(tab => {
         renderAdminSquadPanel();
         renderAdminExportPanel();
         renderAdminPaymentLogPanel();
+        renderAdminPostUpdatePanel();
         renderAdminRelinkPanel();
       }
     }
@@ -1268,7 +1275,7 @@ function openInstructionsModal() {
   document.getElementById("instructions-body").innerHTML = `
     <div class="modal-section">
       <h4>1. Making a prediction</h4>
-      <p>Enter a home and away score for each fixture before kickoff and tap Save. Type one digit and the box jumps straight to the other team's score. Use the ‹ › arrows above the fixture list to move between gameweeks, you can fill in every prediction in one sitting or come back week by week, whichever suits you. Either way, every prediction locks the moment its match kicks off, so there's no editing after that, get them in early if you're not going to be free nearer the time.</p>
+      <p>Enter a home and away score for each fixture before kickoff and tap Save. Type one digit and the box jumps straight to the other team's score. All 46 Championship fixtures are already loaded, not added week by week, so use the ‹ › arrows above the fixture list to move between gameweeks and predict as many as you like in one sitting, or come back week by week, whichever suits you. Either way, every prediction locks the moment its match kicks off, so there's no editing after that, get them in early if you're not going to be free nearer the time.</p>
     </div>
     <div class="modal-section">
       <h4>2. First Pompey goalscorer</h4>
@@ -1276,7 +1283,7 @@ function openInstructionsModal() {
     </div>
     <div class="modal-section">
       <h4>3. How points work</h4>
-      <p><span class="badge-pill badge-gold">+3</span> exact score &nbsp; <span class="badge-pill badge-blue">+1</span> correct result &nbsp; <span class="badge-pill badge-green">+2</span> first Pompey goalscorer. Maximum 5 points per match — the exact score point replaces the correct-result point rather than stacking with it.</p>
+      <p><span class="badge-pill badge-gold">+3</span> exact score &nbsp; <span class="badge-pill badge-blue">+1</span> correct result &nbsp; <span class="badge-pill badge-green">+2</span> first Pompey goalscorer. Maximum 5 points per match — the exact score point replaces the correct-result point rather than stacking with it. Your leaderboard position is based on total points, and if two players are level, whoever has the most exact scores ranks higher, then whoever's named the most correct first goalscorers if it's still level after that.</p>
     </div>
     <div class="modal-section">
       <h4>4. Prize structure</h4>
@@ -1376,6 +1383,18 @@ document.getElementById("btn-share").addEventListener("click", async () => {
     else { navigator.clipboard?.writeText(appUrl); alert("Link copied — your browser doesn't support the native share sheet."); }
   });
 });
+
+let sheetJsLoaded = false;
+function loadSheetJsLibrary() {
+  return new Promise((resolve, reject) => {
+    if (sheetJsLoaded && window.XLSX) { resolve(); return; }
+    const script = document.createElement("script");
+    script.src = "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
+    script.onload = () => { sheetJsLoaded = true; resolve(); };
+    script.onerror = () => reject(new Error("Could not load the spreadsheet library — check your connection and try again."));
+    document.head.appendChild(script);
+  });
+}
 
 let qrLibLoaded = false;
 function loadQrLibraryAndRender(url) {
@@ -2001,7 +2020,8 @@ async function renderAdminExportPanel() {
   slot.innerHTML = `
     <div class="card">
       <div class="admin-header" style="margin-top:0;">📦 Data Backup</div>
-      <p style="font-size:12px; color:var(--grey); margin-top:-6px; margin-bottom:12px;">Separate exports so you can run them one at a time as a routine backup.</p>
+      <button class="mc-save" id="btn-export-workbook" style="margin-bottom:8px; background:var(--red);">Export All (One Workbook, 6 Sheets)</button>
+      <p style="font-size:12px; color:var(--grey); margin-top:-4px; margin-bottom:12px;">Or run these one at a time as a routine backup instead.</p>
       <button class="mc-save" id="btn-export-predictions" style="margin-bottom:8px;">Export Predictions</button>
       <button class="mc-save" id="btn-export-results" style="margin-bottom:8px;">Export Results</button>
       <button class="mc-save" id="btn-export-players" style="margin-bottom:8px;">Export Players</button>
@@ -2012,6 +2032,41 @@ async function renderAdminExportPanel() {
     </div>`;
 
   const status = document.getElementById("export-status");
+
+  document.getElementById("btn-export-workbook").addEventListener("click", async () => {
+    status.textContent = "Gathering all six tables…";
+    try {
+      const [predictions, results, players, paymentLog, fixtures, squad] = await Promise.all([
+        sbFetchAll("predictions?select=*"),
+        sbFetchAll("results?select=*"),
+        sbFetchAll("players?select=*"),
+        sbFetchAll("payment_log?select=*"),
+        sbFetchAll("fixtures?select=*"),
+        sbFetchAll("squad?select=*")
+      ]);
+
+      status.textContent = "Loading spreadsheet library…";
+      await loadSheetJsLibrary();
+
+      status.textContent = "Building workbook…";
+      const wb = XLSX.utils.book_new();
+      const addSheet = (name, rows) => {
+        const ws = XLSX.utils.json_to_sheet(rows.length ? rows : [{}]);
+        XLSX.utils.book_append_sheet(wb, ws, name);
+      };
+      addSheet("Predictions", predictions);
+      addSheet("Results", results);
+      addSheet("Players", players);
+      addSheet("PaymentLog", paymentLog);
+      addSheet("Fixtures", fixtures);
+      addSheet("Squad", squad);
+
+      XLSX.writeFile(wb, `pompey_predictor_backup_${new Date().toISOString().slice(0,10)}.xlsx`);
+      status.textContent = "Workbook downloaded ✓";
+    } catch (err) {
+      status.textContent = "Could not build the workbook: " + err.message;
+    }
+  });
 
   document.getElementById("btn-export-predictions").addEventListener("click", async () => {
     status.textContent = "Exporting predictions…";
@@ -2062,7 +2117,7 @@ function maybeShowOnboarding() {
   document.getElementById("onboarding-body").innerHTML = `
     <div class="modal-section">
       <h4>How it works</h4>
-      <p>Predict the score for every Portsmouth fixture before kickoff. Pick a first Pompey goalscorer for a bonus. Climb the leaderboard across all 46 gameweeks.</p>
+      <p>Predict the score for every Portsmouth fixture before kickoff. Pick a first Pompey goalscorer for a bonus. Climb the leaderboard across all 46 gameweeks. All 46 Championship fixtures are already loaded, not added week by week, so if you'd rather not log in before every single match, you can sit down once and predict as many as you like in one go, then forget about it until results start coming in. Just make sure each one's saved before its match kicks off, or it won't count.</p>
     </div>
     <div class="modal-section">
       <h4>Points</h4>
@@ -2959,6 +3014,81 @@ async function renderAdminPaymentLogPanel() {
   });
 }
 
+let postUpdateCollapsed = true;
+
+async function renderAdminPostUpdatePanel() {
+  const slot = document.getElementById("admin-postupdate-slot");
+  slot.innerHTML = `<div class="placeholder-note">Loading…</div>`;
+
+  const updates = await sbFetchAll("app_updates?select=*&order=id.desc");
+
+  slot.innerHTML = `
+    <div class="card collapsible ${postUpdateCollapsed ? 'collapsed' : ''}" style="padding:0;">
+      <div class="collapsible-header" id="postupdate-toggle">
+        <span>📢 Post What's New Update</span>
+        <span class="chev">▾</span>
+      </div>
+      <div class="collapsible-body" style="padding:0 14px 14px;">
+        <p style="font-size:12px; color:var(--grey); margin-top:-4px;">This appears in the What's New modal and auto-opens once for anyone who hasn't seen it yet.</p>
+        <input type="text" id="update-version" placeholder="Heading, e.g. Predict at your own pace" style="width:100%; height:38px; border-radius:8px; border:1px solid var(--grey-light); padding:0 10px; font-size:13px; margin-bottom:8px;">
+        <textarea id="update-notes" placeholder="Details…" rows="4" style="width:100%; border-radius:8px; border:1px solid var(--grey-light); padding:8px 10px; font-size:13px; margin-bottom:8px; font-family:inherit;"></textarea>
+        <button id="btn-post-update" class="mc-save">Post update</button>
+        <div id="postupdate-status" style="font-size:12px; color:var(--grey); margin-top:6px;"></div>
+        ${updates.length ? updates.map(u => `
+          <div class="player-row">
+            <div class="pinfo">
+              <div class="pname">${u.version}</div>
+              <div class="pmeta">${new Date(u.created_at).toLocaleDateString("en-GB")}</div>
+            </div>
+            <div class="pactions">
+              <button class="btn-purge" data-delete-update="${u.id}">Delete</button>
+            </div>
+          </div>`).join("") : ""}
+      </div>
+    </div>`;
+
+  document.getElementById("postupdate-toggle").addEventListener("click", (e) => {
+    const panel = e.currentTarget.closest(".collapsible");
+    panel.classList.toggle("collapsed");
+    postUpdateCollapsed = panel.classList.contains("collapsed");
+  });
+
+  document.getElementById("btn-post-update").addEventListener("click", async () => {
+    const version = document.getElementById("update-version").value.trim();
+    const notes = document.getElementById("update-notes").value.trim();
+    const status = document.getElementById("postupdate-status");
+    if (!version) { status.textContent = "A heading is required."; return; }
+    status.textContent = "Posting…";
+    try {
+      const res = await fetch(`${REST_URL}/app_updates`, {
+        method: "POST",
+        headers: {
+          apikey: SUPABASE_ANON_KEY,
+          Authorization: `Bearer ${getAccessToken()}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ version, notes })
+      });
+      if (!res.ok) throw new Error("Could not post this update.");
+      postUpdateCollapsed = false;
+      renderAdminPostUpdatePanel();
+    } catch (err) {
+      status.textContent = err.message;
+    }
+  });
+
+  slot.querySelectorAll("[data-delete-update]").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      if (!confirm("Delete this update? Anyone who hasn't seen it yet simply won't see it now.")) return;
+      await fetch(`${REST_URL}/app_updates?id=eq.${btn.dataset.deleteUpdate}`, {
+        method: "DELETE",
+        headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${getAccessToken()}` }
+      });
+      renderAdminPostUpdatePanel();
+    });
+  });
+}
+
 async function renderAdminRelinkPanel() {
   const slot = document.getElementById("admin-relink-slot");
   slot.innerHTML = `<div class="placeholder-note">Loading…</div>`;
@@ -3030,12 +3160,15 @@ function computeStandingsFor(players, predictions, resultsByFixture) {
 }
 
 function denseRank(standings) {
-  const sorted = [...standings].sort((a, b) => b.total - a.total);
-  let rank = 0, lastTotal = null;
-  return sorted.map(row => {
-    if (row.total !== lastTotal) { rank++; lastTotal = row.total; }
-    return { ...row, rank };
+  // kept the function name to avoid touching every call site, but this is no
+  // longer a dense/shared ranking — positions split fully based on the full
+  // tiebreak (points, then exact, then scorer), sequential with no sharing
+  const sorted = [...standings].sort((a, b) => {
+    if (b.total !== a.total) return b.total - a.total;
+    if (b.exact !== a.exact) return b.exact - a.exact; // most exact scores wins a tie on points
+    return b.scorer - a.scorer; // then most correct first-scorer picks
   });
+  return sorted.map((row, i) => ({ ...row, rank: i + 1 }));
 }
 
 function buildPodiumHtml(amounts, gbp) {
@@ -3487,7 +3620,7 @@ async function renderAdminResultsPanel() {
     if (view === "fixtures") return initFixturesView;
     if (view === "leaderboard") return renderLeaderboard;
     if (view === "chat") return renderChat;
-    if (view === "profile" && currentPlayer?.is_admin) return () => { renderAdminAddFixturePanel(); renderAdminEditFixturesPanel(); renderAdminPaymentDashboard(); renderAdminResultsPanel(); renderAdminMissingPanel(); renderAdminSquadPanel(); renderAdminExportPanel(); renderAdminPaymentLogPanel(); renderAdminRelinkPanel(); };
+    if (view === "profile" && currentPlayer?.is_admin) return () => { renderAdminAddFixturePanel(); renderAdminEditFixturesPanel(); renderAdminPaymentDashboard(); renderAdminResultsPanel(); renderAdminMissingPanel(); renderAdminSquadPanel(); renderAdminExportPanel(); renderAdminPaymentLogPanel(); renderAdminPostUpdatePanel(); renderAdminRelinkPanel(); };
     return null;
   }
 
