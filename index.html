@@ -1315,7 +1315,7 @@ function openInstructionsModal() {
   document.getElementById("instructions-body").innerHTML = `
     <div class="modal-section">
       <h4>1. Making a prediction</h4>
-      <p>Enter a home and away score for each fixture before kickoff and tap Save. Type one digit and the box jumps straight to the other team's score. All 46 Championship fixtures are already loaded, not added week by week, so use the ‹ › arrows above the fixture list to move between gameweeks and predict as many as you like in one sitting, or come back week by week, whichever suits you. Either way, every prediction locks the moment its match kicks off, so there's no editing after that, get them in early if you're not going to be free nearer the time.</p>
+      <p>Enter a home and away score for each fixture before kickoff and tap Save. Type one digit and the box jumps straight to the other team's score. All 46 Championship fixtures are already loaded, not added week by week, so use the ‹ › arrows above the fixture list to move between months and predict as many as you like in one sitting, or come back bit by bit, whichever suits you. Either way, every prediction locks the moment its match kicks off, so there's no editing after that, get them in early if you're not going to be free nearer the time.</p>
     </div>
     <div class="modal-section">
       <h4>2. First Pompey goalscorer</h4>
@@ -2292,7 +2292,7 @@ async function savePrediction({ fixture_id, home_score, away_score, first_scorer
       "Content-Type": "application/json",
       Prefer: "resolution=merge-duplicates,return=representation"
     },
-    body: JSON.stringify([{ player_id: currentPlayer.id, fixture_id, home_score, away_score, first_scorer: first_scorer || null }])
+    body: JSON.stringify([{ player_id: currentPlayer.id, fixture_id, home_score, away_score, first_scorer: first_scorer || null, updated_at: new Date().toISOString() }])
   });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
@@ -2315,7 +2315,7 @@ async function backfillZeroPrediction(fixture_id) {
       "Content-Type": "application/json",
       Prefer: "resolution=merge-duplicates,return=representation"
     },
-    body: JSON.stringify([{ player_id: currentPlayer.id, fixture_id, home_score: 0, away_score: 0, first_scorer: null }])
+    body: JSON.stringify([{ player_id: currentPlayer.id, fixture_id, home_score: 0, away_score: 0, first_scorer: null, updated_at: new Date().toISOString() }])
   });
   return res.ok;
 }
@@ -2624,8 +2624,8 @@ document.getElementById("month-next").addEventListener("click", () => {
    under the old account and reported, not silently dropped.
    ============================================================ */
 function mergeOptionsHtml(players, predictionCountByPlayer) {
-  const chronological = [...players].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
-  return chronological.map(p => {
+  const alphabetical = [...players].sort((a, b) => a.display_name.localeCompare(b.display_name));
+  return alphabetical.map(p => {
     const count = predictionCountByPlayer.get(p.id) || 0;
     const joined = new Date(p.created_at).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
     return `<option value="${p.id}">${p.display_name} — joined ${joined}, ${count} prediction${count === 1 ? "" : "s"}${!p.is_active ? " (inactive)" : ""}</option>`;
@@ -2635,10 +2635,10 @@ function mergeOptionsHtml(players, predictionCountByPlayer) {
 async function mergePlayerAccounts(oldId, newId) {
   const [oldPreds, newPreds, oldMsgs] = await Promise.all([
     sbFetchAll(`predictions?player_id=eq.${oldId}&select=*`),
-    sbFetchAll(`predictions?player_id=eq.${newId}&select=fixture_id`),
+    sbFetchAll(`predictions?player_id=eq.${newId}&select=id,fixture_id,updated_at`),
     sbFetchAll(`messages?player_id=eq.${oldId}&select=id`)
   ]);
-  const newFixtureIds = new Set(newPreds.map(p => p.fixture_id));
+  const newPredByFixture = new Map(newPreds.map(p => [p.fixture_id, p]));
 
   const headers = {
     apikey: SUPABASE_ANON_KEY,
@@ -2647,9 +2647,25 @@ async function mergePlayerAccounts(oldId, newId) {
   };
 
   let moved = 0;
+  let replaced = 0;
   const skipped = [];
   for (const pred of oldPreds) {
-    if (newFixtureIds.has(pred.fixture_id)) { skipped.push(pred.fixture_id); continue; }
+    const clash = newPredByFixture.get(pred.fixture_id);
+    if (clash) {
+      // both accounts predicted this fixture — whichever was actually saved
+      // more recently wins, not just whichever account happens to be "new"
+      const oldIsNewer = new Date(pred.updated_at || pred.created_at) > new Date(clash.updated_at || 0);
+      if (oldIsNewer) {
+        await fetch(`${REST_URL}/predictions?id=eq.${clash.id}`, { method: "DELETE", headers });
+        const res = await fetch(`${REST_URL}/predictions?id=eq.${pred.id}`, {
+          method: "PATCH", headers, body: JSON.stringify({ player_id: newId })
+        });
+        if (res.ok) replaced++;
+      } else {
+        skipped.push(pred.fixture_id); // the new account's pick was already the more recent one — kept as is
+      }
+      continue;
+    }
     const res = await fetch(`${REST_URL}/predictions?id=eq.${pred.id}`, {
       method: "PATCH", headers, body: JSON.stringify({ player_id: newId })
     });
@@ -2680,7 +2696,7 @@ async function mergePlayerAccounts(oldId, newId) {
     body: JSON.stringify({ is_active: false })
   });
 
-  return { moved, skipped, messagesMoved: oldMsgs.length };
+  return { moved, replaced, skipped, messagesMoved: oldMsgs.length };
 }
 const ENTRY_FEE = 10;
 const ADMIN_FEE_PCT = 0.10;
@@ -3193,7 +3209,8 @@ async function renderAdminRelinkPanel() {
     try {
       const result = await mergePlayerAccounts(oldId, newId);
       status.textContent = `Moved ${result.moved} prediction(s) and ${result.messagesMoved} message(s).` +
-        (result.skipped.length ? ` ${result.skipped.length} fixture(s) had a clash and were left on the old account — check those manually.` : " No clashes.");
+        (result.replaced ? ` ${result.replaced} clash(es) resolved by keeping the more recently saved pick.` : "") +
+        (result.skipped.length ? ` ${result.skipped.length} fixture(s) already had a newer pick on the new account, kept as is.` : " No clashes.");
       renderAdminRelinkPanel();
       renderAdminPaymentDashboard();
     } catch (err) {
