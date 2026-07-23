@@ -597,8 +597,6 @@
       </div>
 
       <div id="match-list"></div>
-
-      <div id="verdict-slot"></div>
     </section>
 
     <section id="view-leaderboard" class="view">
@@ -628,6 +626,7 @@
     </section>
 
     <section id="view-picks" class="view">
+      <div id="verdict-slot"></div>
       <div id="awards-slot"></div>
       <p style="font-size:12px; color:var(--grey); text-align:center; margin:-6px 0 12px;">🔒 Picks only appear here once a match has kicked off — nobody can see your prediction before then.</p>
       <div class="picks-filter">
@@ -1441,6 +1440,8 @@ function renderQr(url) {
 async function renderPicksOverlay() {
   const filterSelect = document.getElementById("picks-player-filter");
   document.getElementById("picks-content").innerHTML = `<div class="placeholder-note">Loading…</div>`;
+
+  fetchNextFixture().then(renderVerdictPanel);
 
   const [players, predictions, results, fixtures] = await Promise.all([
     sbFetchAll("players?is_active=eq.true&is_participant=eq.true&select=*"),
@@ -2341,7 +2342,6 @@ async function initFixturesView() {
     renderHeroCard(next),
     renderStatsPills(),
     renderShoutout(),
-    renderVerdictPanel(next),
     renderMonth(currentMonthKey, allFixtures),
     renderReminderBanner(allFixtures, myPreds)
   ]);
@@ -2381,28 +2381,15 @@ async function renderHeroCard(next) {
   countdownTimers.push(timer);
 }
 
-async function renderStatsPills() {
+function renderStatsPills() {
   const slot = document.getElementById("stats-pills-slot");
-  const [myPreds, results] = await Promise.all([
-    sbFetchAll(`predictions?player_id=eq.${currentPlayer.id}&select=*`),
-    sbFetchAll("results?select=*")
-  ]);
-  const resultByFixture = new Map(results.map(r => [r.fixture_id, r]));
-  let exact = 0, correct = 0, scorer = 0;
-  myPreds.forEach(pred => {
-    const result = resultByFixture.get(pred.fixture_id);
-    if (!result) return;
-    const bd = calcPoints(pred, result);
-    if (bd.exact) exact++;
-    if (bd.correct) correct++;
-    if (bd.scorer) scorer++;
-  });
   slot.innerHTML = `
     <div class="stats-pills">
-      <div class="stats-pill"><div class="sp-count">${exact}</div><div class="sp-label">Exact score</div></div>
-      <div class="stats-pill"><div class="sp-count">${correct}</div><div class="sp-label">Correct result</div></div>
-      <div class="stats-pill"><div class="sp-count">${scorer}</div><div class="sp-label">Scorer picked</div></div>
-    </div>`;
+      <div class="stats-pill"><div class="sp-count">${POINTS.EXACT}</div><div class="sp-label">Exact score</div></div>
+      <div class="stats-pill"><div class="sp-count">${POINTS.CORRECT}</div><div class="sp-label">Correct result</div></div>
+      <div class="stats-pill"><div class="sp-count">${POINTS.SCORER}</div><div class="sp-label">Scorer picked</div></div>
+    </div>
+    <div style="text-align:center; font-size:10.5px; color:var(--grey); margin-top:-6px; margin-bottom:12px;">Maximum 5 points per match</div>`;
 }
 
 async function renderShoutout() {
