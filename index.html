@@ -2699,7 +2699,21 @@ async function mergePlayerAccounts(oldId, newId) {
     body: JSON.stringify({ is_active: false })
   });
 
-  return { moved, replaced, skipped, messagesMoved: oldMsgs.length };
+  // If the surviving account was carrying the ⚠️ duplicate-name marker,
+  // this merge is exactly what resolves it — clear it so the account
+  // resumes counting toward the prize pool normally.
+  const newRes = await fetch(`${REST_URL}/players?id=eq.${newId}&select=display_name`, { headers });
+  const newRows = await newRes.json().catch(() => []);
+  let markerCleared = false;
+  if (newRows[0]?.display_name?.includes("⚠️")) {
+    await fetch(`${REST_URL}/players?id=eq.${newId}`, {
+      method: "PATCH", headers,
+      body: JSON.stringify({ display_name: newRows[0].display_name.replace(/\s*⚠️\s*/g, "").trim() })
+    });
+    markerCleared = true;
+  }
+
+  return { moved, replaced, skipped, messagesMoved: oldMsgs.length, markerCleared };
 }
 const ENTRY_FEE = 10;
 const ADMIN_FEE_PCT = 0.10;
@@ -2790,7 +2804,11 @@ function computePrizePool(players) {
   // superseded account can still carry payment_verified = true from before
   // it was merged away, and without this filter it silently double-counts
   // alongside the new account it was merged into.
-  const countingPlayers = players.filter(p => !p.pool_exempt && p.is_active);
+  // The ⚠️ marker means a suspected duplicate hasn't been resolved yet —
+  // excluded from the money count only, since it's very likely the same
+  // person as someone already counted, but their leaderboard position and
+  // predictions stay completely normal while the admin sorts it out.
+  const countingPlayers = players.filter(p => !p.pool_exempt && p.is_active && !p.display_name.includes("⚠️"));
   const verifiedCount = countingPlayers.filter(p => p.payment_verified).length;
   const totalCollected = verifiedCount * ENTRY_FEE;
   const adminFee = totalCollected * ADMIN_FEE_PCT;
@@ -3213,7 +3231,8 @@ async function renderAdminRelinkPanel() {
       const result = await mergePlayerAccounts(oldId, newId);
       status.textContent = `Moved ${result.moved} prediction(s) and ${result.messagesMoved} message(s).` +
         (result.replaced ? ` ${result.replaced} clash(es) resolved by keeping the more recently saved pick.` : "") +
-        (result.skipped.length ? ` ${result.skipped.length} fixture(s) already had a newer pick on the new account, kept as is.` : " No clashes.");
+        (result.skipped.length ? ` ${result.skipped.length} fixture(s) already had a newer pick on the new account, kept as is.` : " No clashes.") +
+        (result.markerCleared ? " Duplicate marker cleared — this account now counts in the prize pool again." : "");
       renderAdminRelinkPanel();
       renderAdminPaymentDashboard();
     } catch (err) {
@@ -3283,6 +3302,11 @@ async function renderPrizePoolCard() {
   const prize = computePrizePool(players);
   const gbp = n => `£${n.toFixed(0)}`;
 
+  const pendingDuplicates = players.filter(p => p.is_active && !p.pool_exempt && p.display_name.includes("⚠️")).length;
+  const duplicateNote = pendingDuplicates > 0
+    ? `<div class="pc-note" style="color:#e0a800;">${pendingDuplicates} suspected duplicate${pendingDuplicates === 1 ? "" : "s"} not counted here yet, pending admin review.</div>`
+    : "";
+
   const potentialCollected = prize.entries * ENTRY_FEE;
   const potentialPool = potentialCollected - (potentialCollected * ADMIN_FEE_PCT);
   const potentialSplits = prizeTierSplits(prize.entries);
@@ -3299,6 +3323,7 @@ async function renderPrizePoolCard() {
       <div class="prize-card">
         <div class="pc-title">💰 PRIZE POOL</div>
         <div class="pc-note" style="margin-top:0;">Prize amounts appear here once the first entry is verified. Pay your £10 to get the pool started.</div>
+        ${duplicateNote}
         ${potentialLine}
       </div>`;
     return;
@@ -3309,6 +3334,7 @@ async function renderPrizePoolCard() {
       <div class="pc-title">💰 PRIZE POOL — ${prize.verifiedCount} PAID IN OUT OF ${prize.entries} ENTRIES</div>
       ${buildPodiumHtml(prize.amounts, gbp)}
       <div class="pc-note">${prize.winners === 1 ? "Under 20 paid entries — one winner takes it all. " : ""}Based on verified entries so far.</div>
+      ${duplicateNote}
       ${potentialLine}
     </div>`;
 }
