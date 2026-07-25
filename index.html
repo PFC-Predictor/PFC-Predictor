@@ -523,16 +523,16 @@
     <input type="text" id="input-firstname" placeholder="First name" autocomplete="given-name" required>
     <input type="text" id="input-surname" placeholder="Surname" autocomplete="family-name" required>
     <input type="tel" id="input-mobile" placeholder="Mobile number" autocomplete="tel" required>
-    <div style="font-size:12px; color:#ffd479; font-weight:600; margin-top:-4px;">⚠️ If you've predicted before, enter your old PIN below — this is how you get your points and history back, not a fresh start.</div>
-    <div style="font-size:11px; color:rgba(255,255,255,0.55);">Brand new to the league? Leave this blank.</div>
-    <input type="tel" inputmode="numeric" maxlength="4" id="input-reclaim-pin" placeholder="Old PIN (optional)">
+    <button type="button" id="btn-toggle-reclaim" style="background:rgba(255,212,121,0.15); border:2px solid #ffd479; color:#ffd479; border-radius:12px; height:48px; font-size:14px; font-weight:700;">🔑 I've played before</button>
+    <div id="reclaim-section" class="hidden">
+      <div style="font-size:12px; color:#ffd479; font-weight:600; margin-bottom:6px;">Enter your original PIN — this gets your points and history back, not a fresh start.</div>
+      <input type="tel" inputmode="numeric" maxlength="4" id="input-reclaim-pin" placeholder="Original PIN">
+    </div>
     <button type="submit" id="btn-create-account">Get started</button>
     <div class="auth-status" id="newplayer-status"></div>
   </form>
-  <div class="auth-note" style="color:#ffd479; font-weight:600;">Pay the one-off £10 entry as soon as you log in, the PayPal link is in your Profile tab.</div>
   <div class="auth-note">Your mobile is only visible to Ant James as the league admin, never to other players. Any issues, contact Ant James.</div>
 </div>
-
 <!-- ============ AUTH: SET UP LOCAL PIN (first time on this device, post signup) ============ -->
 <div id="screen-set-pin" class="auth-wrap hidden">
   <div class="crest-big">🔒</div>
@@ -685,6 +685,10 @@
           <strong>Cup matches:</strong> the Carabao Cup and FA Cup can go to extra time or penalties, but
           your prediction is only ever judged on the score at 90 minutes, whatever happens after that
           doesn't count either way.
+        </p>
+        <p style="font-size:13px; line-height:1.6; margin-top:10px;">
+          <strong>Prize eligibility:</strong> prizes are only paid to verified entrants, regardless of
+          league position.
         </p>
         <p style="font-size:12px; color:var(--grey); line-height:1.6; margin-top:10px;">
           <strong>App Failure Policy:</strong> in the unlikely event of a system failure
@@ -1129,6 +1133,12 @@ function showScreen(name) {
 }
 
 /* ---------- new player signup form ---------- */
+document.getElementById("btn-toggle-reclaim").addEventListener("click", () => {
+  const section = document.getElementById("reclaim-section");
+  const nowHidden = section.classList.toggle("hidden");
+  if (!nowHidden) document.getElementById("input-reclaim-pin").focus();
+});
+
 document.getElementById("form-newplayer").addEventListener("submit", async (e) => {
   e.preventDefault();
   const firstName = document.getElementById("input-firstname").value.trim();
@@ -1379,7 +1389,7 @@ function openInstructionsModal() {
     </div>
     <div class="modal-section">
       <h4>3. How points work</h4>
-      <p><span class="badge-pill badge-gold">+3</span> exact score &nbsp; <span class="badge-pill badge-blue">+1</span> correct result &nbsp; <span class="badge-pill badge-green">+2</span> first Pompey goalscorer. Maximum 5 points per match — the exact score point replaces the correct-result point rather than stacking with it. Your leaderboard position is based on total points, and if two players are level, whoever has the most exact scores ranks higher, then whoever's named the most correct first goalscorers if it's still level after that. Cup matches (Carabao Cup, FA Cup) are always judged on the 90-minute score only, extra time and penalties don't affect your prediction either way.</p>
+      <p><span class="badge-pill badge-gold">+3</span> exact score &nbsp; <span class="badge-pill badge-blue">+1</span> correct result &nbsp; <span class="badge-pill badge-green">+2</span> first Pompey goalscorer. Maximum 5 points per match — the exact score point replaces the correct-result point rather than stacking with it. Your leaderboard position is based on total points, and if two players are level, whoever has the most exact scores ranks higher, then whoever's named the most correct first goalscorers if it's still level after that. Cup matches (Carabao Cup, FA Cup) are always judged on the 90-minute score only, extra time and penalties don't affect your prediction either way. Prizes are only paid to verified entrants, regardless of league position.</p>
     </div>
     <div class="modal-section">
       <h4>4. Prize structure</h4>
@@ -2226,7 +2236,7 @@ function maybeShowOnboarding() {
     </div>
     <div class="modal-section">
       <h4>Points</h4>
-      <p><span class="badge-pill badge-gold">+3</span> exact score &nbsp; <span class="badge-pill badge-blue">+1</span> correct result &nbsp; <span class="badge-pill badge-green">+2</span> first Pompey goalscorer. Maximum 5 points per match.</p>
+      <p><span class="badge-pill badge-gold">+3</span> exact score &nbsp; <span class="badge-pill badge-blue">+1</span> correct result &nbsp; <span class="badge-pill badge-green">+2</span> first Pompey goalscorer. Maximum 5 points per match. Prizes are only paid to verified entrants, regardless of league position.</p>
     </div>
     <div class="modal-section">
       <h4>App Failure Policy</h4>
