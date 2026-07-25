@@ -523,7 +523,9 @@
     <input type="text" id="input-firstname" placeholder="First name" autocomplete="given-name" required>
     <input type="text" id="input-surname" placeholder="Surname" autocomplete="family-name" required>
     <input type="tel" id="input-mobile" placeholder="Mobile number" autocomplete="tel" required>
-    <input type="tel" inputmode="numeric" maxlength="4" id="input-reclaim-pin" placeholder="Played before? Enter your old PIN (optional)">
+    <div style="font-size:12px; color:#ffd479; font-weight:600; margin-top:-4px;">⚠️ If you've predicted before, enter your old PIN below — this is how you get your points and history back, not a fresh start.</div>
+    <div style="font-size:11px; color:rgba(255,255,255,0.55);">Brand new to the league? Leave this blank.</div>
+    <input type="tel" inputmode="numeric" maxlength="4" id="input-reclaim-pin" placeholder="Old PIN (optional)">
     <button type="submit" id="btn-create-account">Get started</button>
     <div class="auth-status" id="newplayer-status"></div>
   </form>
@@ -2678,10 +2680,12 @@ function mergeOptionsHtml(players, predictionCountByPlayer) {
 }
 
 async function mergePlayerAccounts(oldId, newId) {
-  const [oldPreds, newPreds, oldMsgs] = await Promise.all([
+  const [oldPreds, newPreds, oldMsgs, oldPlayerRows, newPlayerRows] = await Promise.all([
     sbFetchAll(`predictions?player_id=eq.${oldId}&select=*`),
     sbFetchAll(`predictions?player_id=eq.${newId}&select=id,fixture_id,updated_at`),
-    sbFetchAll(`messages?player_id=eq.${oldId}&select=id`)
+    sbFetchAll(`messages?player_id=eq.${oldId}&select=id`),
+    sbFetchAll(`players?id=eq.${oldId}&select=is_admin,is_participant,pool_exempt,payment_verified`),
+    sbFetchAll(`players?id=eq.${newId}&select=is_admin,is_participant,pool_exempt,payment_verified`)
   ]);
   const newPredByFixture = new Map(newPreds.map(p => [p.fixture_id, p]));
 
@@ -2732,6 +2736,21 @@ async function mergePlayerAccounts(oldId, newId) {
   });
   await fetch(`${REST_URL}/payment_log?added_by=eq.${oldId}`, {
     method: "PATCH", headers, body: JSON.stringify({ added_by: newId })
+  });
+
+  // Carry account status forward — losing admin, exemption or paid status
+  // on a merge is a real, not cosmetic, problem, this was the actual bug
+  // that cost Ant his own admin rights when he tested this on himself.
+  const oldFlags = oldPlayerRows[0] || {};
+  const newFlags = newPlayerRows[0] || {};
+  await fetch(`${REST_URL}/players?id=eq.${newId}`, {
+    method: "PATCH", headers,
+    body: JSON.stringify({
+      is_admin: !!oldFlags.is_admin || !!newFlags.is_admin,
+      pool_exempt: !!oldFlags.pool_exempt || !!newFlags.pool_exempt,
+      payment_verified: !!oldFlags.payment_verified || !!newFlags.payment_verified,
+      is_participant: oldFlags.is_participant !== false && newFlags.is_participant !== false
+    })
   });
 
   // Deactivate the orphaned account rather than delete it — any skipped
