@@ -1161,6 +1161,8 @@ document.getElementById("form-newplayer").addEventListener("submit", async (e) =
           status.textContent = "Welcome back! Your history has been restored.";
           setTimeout(enterApp, 900);
           return;
+        } else if (claimResult.message === "no_pin_on_file") {
+          status.textContent = "Found an account with that name, but it was set up before this feature existed, so there's no PIN saved to check against — continuing as a fresh account. Ask Ant to merge you manually this once.";
         } else if (claimResult.message === "wrong_pin") {
           status.textContent = "Found an account with that name but the PIN didn't match — continuing as a fresh account. Ask Ant to merge if you had one before.";
         } else if (claimResult.message === "locked") {
