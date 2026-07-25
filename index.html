@@ -1004,7 +1004,7 @@ async function createPlayerRow(firstName, surname, mobile) {
     });
     if (checkRes.ok) {
       const existing = await checkRes.json();
-      const isDuplicate = existing.some(p => p.display_name.trim().toLowerCase() === displayName.toLowerCase());
+      const isDuplicate = existing.some(p => p.display_name.replace(/\s*⚠️\s*/g, "").trim().toLowerCase() === displayName.toLowerCase());
       if (isDuplicate) displayName = `${displayName} ⚠️`;
     }
   } catch (e) { /* non-critical — if this check fails, signup still proceeds normally */ }
