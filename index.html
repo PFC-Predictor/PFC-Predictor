@@ -2206,7 +2206,7 @@ async function renderAdminExportPanel() {
 
 /* ---------- Onboarding (first-ever login on any device) ---------- */
 function maybeShowOnboarding() {
-  if (localStorage.getItem("pfc_onboarded")) return;
+  if (currentPlayer.has_seen_onboarding) return;
   document.getElementById("onboarding-body").innerHTML = `
     <div class="modal-section">
       <h4>How it works</h4>
@@ -2226,7 +2226,12 @@ function maybeShowOnboarding() {
       <a href="https://www.paypal.com/pool/9q61PGoEEs?sr=ancr" target="_blank" rel="noopener" class="btn-primary" style="display:block; text-align:center; text-decoration:none; line-height:44px; background:var(--navy); margin-top:8px;">Pay via PayPal Pool</a>
     </div>`;
   openModal("modal-onboarding");
-  localStorage.setItem("pfc_onboarded", "1");
+  currentPlayer.has_seen_onboarding = true; // keep in-memory copy consistent immediately
+  fetch(`${REST_URL}/players?id=eq.${currentPlayer.id}`, {
+    method: "PATCH",
+    headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${getAccessToken()}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ has_seen_onboarding: true })
+  }).catch(() => {}); // non-critical — worst case they see onboarding once more next time
   localStorage.setItem("pfc_instructions_autoopened", "1"); // new signups get onboarding instead, not both modals stacked
 }
 
@@ -2684,8 +2689,8 @@ async function mergePlayerAccounts(oldId, newId) {
     sbFetchAll(`predictions?player_id=eq.${oldId}&select=*`),
     sbFetchAll(`predictions?player_id=eq.${newId}&select=id,fixture_id,updated_at`),
     sbFetchAll(`messages?player_id=eq.${oldId}&select=id`),
-    sbFetchAll(`players?id=eq.${oldId}&select=is_admin,is_participant,pool_exempt,payment_verified`),
-    sbFetchAll(`players?id=eq.${newId}&select=is_admin,is_participant,pool_exempt,payment_verified`)
+    sbFetchAll(`players?id=eq.${oldId}&select=is_admin,is_participant,pool_exempt,payment_verified,has_seen_onboarding`),
+    sbFetchAll(`players?id=eq.${newId}&select=is_admin,is_participant,pool_exempt,payment_verified,has_seen_onboarding`)
   ]);
   const newPredByFixture = new Map(newPreds.map(p => [p.fixture_id, p]));
 
@@ -2749,7 +2754,8 @@ async function mergePlayerAccounts(oldId, newId) {
       is_admin: !!oldFlags.is_admin || !!newFlags.is_admin,
       pool_exempt: !!oldFlags.pool_exempt || !!newFlags.pool_exempt,
       payment_verified: !!oldFlags.payment_verified || !!newFlags.payment_verified,
-      is_participant: oldFlags.is_participant !== false && newFlags.is_participant !== false
+      is_participant: oldFlags.is_participant !== false && newFlags.is_participant !== false,
+      has_seen_onboarding: !!oldFlags.has_seen_onboarding || !!newFlags.has_seen_onboarding
     })
   });
 
