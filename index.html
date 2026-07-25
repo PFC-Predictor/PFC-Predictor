@@ -655,8 +655,12 @@
             </div>
             <div id="profile-mobile-status" style="font-size:11px; color:var(--grey); margin-top:4px;"></div>
           </div>
-          <button class="btn-primary" id="btn-sign-out" style="background:var(--navy); font-size:12px; padding:0 12px; height:36px; width:auto; white-space:nowrap;">Sign out</button>
+          <div style="display:flex; flex-direction:column; gap:6px;">
+            <button class="btn-primary" id="btn-sign-out" style="background:var(--navy); font-size:12px; padding:0 12px; height:36px; width:auto; white-space:nowrap;">Sign out</button>
+            <button class="btn-primary" id="btn-reset-pin" style="background:var(--grey-light); color:var(--navy); font-size:12px; padding:0 12px; height:36px; width:auto; white-space:nowrap;">Reset PIN</button>
+          </div>
         </div>
+        <div id="reset-pin-status" style="font-size:11px; color:var(--grey); margin-top:6px;"></div>
       </div>
       <div class="card" id="pay-entry-card" style="text-align:center;">
         <h3 style="margin-top:0;">£10 entry</h3>
@@ -1285,6 +1289,12 @@ document.getElementById("btn-save-mobile").addEventListener("click", async () =>
   } catch (err) {
     status.textContent = err.message;
   }
+});
+
+document.getElementById("btn-reset-pin").addEventListener("click", () => {
+  localStorage.removeItem(LS_KEYS.pinHash);
+  document.getElementById("reset-pin-status").textContent = "";
+  showScreen("set-pin");
 });
 
 document.getElementById("btn-sign-out").addEventListener("click", () => {
