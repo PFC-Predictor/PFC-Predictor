@@ -523,6 +523,7 @@
     <input type="text" id="input-firstname" placeholder="First name" autocomplete="given-name" required>
     <input type="text" id="input-surname" placeholder="Surname" autocomplete="family-name" required>
     <input type="tel" id="input-mobile" placeholder="Mobile number" autocomplete="tel" required>
+    <input type="tel" inputmode="numeric" maxlength="4" id="input-reclaim-pin" placeholder="Played before? Enter your old PIN (optional)">
     <button type="submit" id="btn-create-account">Get started</button>
     <div class="auth-status" id="newplayer-status"></div>
   </form>
@@ -1127,6 +1128,7 @@ document.getElementById("form-newplayer").addEventListener("submit", async (e) =
   const firstName = document.getElementById("input-firstname").value.trim();
   const surname = document.getElementById("input-surname").value.trim();
   const mobile = document.getElementById("input-mobile").value.trim();
+  const reclaimPin = document.getElementById("input-reclaim-pin").value.trim();
   const btn = document.getElementById("btn-create-account");
   const status = document.getElementById("newplayer-status");
   if (!firstName || !surname || !mobile) { status.textContent = "All three fields are needed."; return; }
@@ -1136,6 +1138,36 @@ document.getElementById("form-newplayer").addEventListener("submit", async (e) =
     session_user_id = user.id;
     currentPlayer = await createPlayerRow(firstName, surname, mobile);
     currentUser = user;
+
+    if (reclaimPin.length === 4) {
+      status.textContent = "Checking for your old account…";
+      try {
+        const pinHash = await hashPin(reclaimPin);
+        const claimRes = await fetch(`${REST_URL}/rpc/claim_account`, {
+          method: "POST",
+          headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${getAccessToken()}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ p_display_name: `${firstName} ${surname}`, p_pin_hash: pinHash })
+        });
+        const claimResult = await claimRes.json().catch(() => ({}));
+        if (claimResult.success) {
+          localStorage.setItem(LS_KEYS.pinHash, pinHash);
+          await fetch(`${REST_URL}/players?id=eq.${currentPlayer.id}`, {
+            method: "PATCH",
+            headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${getAccessToken()}`, "Content-Type": "application/json" },
+            body: JSON.stringify({ pin_hash: pinHash })
+          });
+          status.textContent = "Welcome back! Your history has been restored.";
+          setTimeout(enterApp, 900);
+          return;
+        } else if (claimResult.message === "wrong_pin") {
+          status.textContent = "Found an account with that name but the PIN didn't match — continuing as a fresh account. Ask Ant to merge if you had one before.";
+        } else if (claimResult.message === "locked") {
+          status.textContent = "Too many PIN attempts on that name recently — continuing as a fresh account. Try again later or ask Ant to merge.";
+        }
+        // no_match falls through silently — most people leave this field blank anyway
+      } catch (e) { /* non-critical — proceed as a normal new signup below */ }
+    }
+
     showScreen("set-pin");
   } catch (err) {
     status.textContent = err.message;
@@ -1172,7 +1204,17 @@ buildPinPad(document.getElementById("setpin-pad"),
     setPinBuffer += d;
     renderPinDots("setpin-dots", setPinBuffer.length);
     if (setPinBuffer.length === 4) {
-      localStorage.setItem(LS_KEYS.pinHash, await hashPin(setPinBuffer));
+      const hash = await hashPin(setPinBuffer);
+      localStorage.setItem(LS_KEYS.pinHash, hash);
+      // best-effort — if this fails, the PIN still works locally on this
+      // device, it just can't be used to reclaim the account elsewhere
+      try {
+        await fetch(`${REST_URL}/players?id=eq.${currentPlayer.id}`, {
+          method: "PATCH",
+          headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${getAccessToken()}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ pin_hash: hash })
+        });
+      } catch (e) { /* non-critical */ }
       setPinBuffer = "";
       enterApp();
     }
@@ -3033,7 +3075,7 @@ async function renderAdminPaymentLogPanel() {
     sbFetchAll("payment_log?select=*,player:player_id(display_name),admin:added_by(display_name)&order=created_at.desc")
   ]);
 
-  const playerOptions = [...players].sort((a, b) => a.display_name.localeCompare(b.display_name))
+  const playerOptions = [...players].filter(p => p.is_active).sort((a, b) => a.display_name.localeCompare(b.display_name))
     .map(p => `<option value="${p.id}">${p.display_name}</option>`).join("");
 
   const todayIso = new Date().toISOString().slice(0, 10);
