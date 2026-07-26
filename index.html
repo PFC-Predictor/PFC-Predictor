@@ -506,6 +506,17 @@
   }
   #pull-indicator.spinning .spinner{animation:pull-spin 0.7s linear infinite;}
   @keyframes pull-spin{to{transform:rotate(360deg);}}
+
+  #app-toast{
+    position:fixed; left:50%; bottom:calc(96px + var(--safe-bottom));
+    transform:translateX(-50%) translateY(20px);
+    background:var(--navy); color:var(--white);
+    font-size:13px; font-weight:600; padding:10px 18px; border-radius:999px;
+    box-shadow:0 4px 16px rgba(0,0,0,0.25); z-index:200;
+    opacity:0; pointer-events:none; transition:opacity 0.2s, transform 0.2s;
+  }
+  #app-toast.error{background:var(--red);}
+  #app-toast.visible{opacity:1; transform:translateX(-50%) translateY(0);}
 </style>
 <link rel="manifest" href="manifest.json">
 </head>
@@ -568,6 +579,7 @@
 <!-- ============ MAIN APP ============ -->
 <div id="app" class="hidden">
   <div id="pull-indicator"><div class="spinner"></div><span id="pull-label">Pull to refresh</span></div>
+  <div id="app-toast"></div>
   <header class="top-header">
     <div class="brand">
       <h1>POMPEY PREDICTOR</h1>
@@ -1607,9 +1619,11 @@ function renderPicksGrid(players, predictions, resultByFixture, fixtures) {
   content.innerHTML = [...byGw.entries()].map(([key, fxs]) => {
     const label = labelFor(key, fxs);
     const allDone = fxs.every(f => resultByFixture.has(f.id));
+    const lockedFixtureIds = new Set(fxs.filter(f => new Date(f.kickoff).getTime() <= now).map(f => f.id));
+    const predCount = predictions.filter(p => lockedFixtureIds.has(p.fixture_id) && p.home_score != null).length;
     return `
     <div class="gw-group ${allDone ? 'collapsed' : ''}">
-      <div class="gw-group-header"><span>${label}</span><span class="chev">▾</span></div>
+      <div class="gw-group-header"><span>${label} <span style="font-weight:400; color:var(--grey); font-size:11px;">(${predCount})</span></span><span class="chev">▾</span></div>
       <div class="gw-group-body">
         ${fxs.map(f => {
           const result = resultByFixture.get(f.id);
@@ -3805,6 +3819,16 @@ async function renderAdminResultsPanel() {
    finger has moved; the browser's own overscroll handles the
    physical bounce.
    ============================================================ */
+let toastTimer = null;
+function showToast(message, isError = false) {
+  const toast = document.getElementById("app-toast");
+  clearTimeout(toastTimer);
+  toast.textContent = message;
+  toast.classList.toggle("error", isError);
+  toast.classList.add("visible");
+  toastTimer = setTimeout(() => toast.classList.remove("visible"), 1800);
+}
+
 (function setupPullToRefresh() {
   const indicator = document.getElementById("pull-indicator");
   const label = document.getElementById("pull-label");
@@ -3848,11 +3872,14 @@ async function renderAdminResultsPanel() {
       refreshing = true;
       indicator.classList.add("spinning");
       label.textContent = "Refreshing…";
-      Promise.resolve(fn()).finally(() => {
-        refreshing = false;
-        indicator.classList.remove("spinning");
-        indicator.style.opacity = 0;
-      });
+      Promise.resolve(fn())
+        .then(() => showToast("Updated!"))
+        .catch(() => showToast("Refresh failed — try again", true))
+        .finally(() => {
+          refreshing = false;
+          indicator.classList.remove("spinning");
+          indicator.style.opacity = 0;
+        });
     } else {
       indicator.style.opacity = 0;
     }
