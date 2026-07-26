@@ -1619,8 +1619,8 @@ function renderPicksGrid(players, predictions, resultByFixture, fixtures) {
   content.innerHTML = [...byGw.entries()].map(([key, fxs]) => {
     const label = labelFor(key, fxs);
     const allDone = fxs.every(f => resultByFixture.has(f.id));
-    const lockedFixtureIds = new Set(fxs.filter(f => new Date(f.kickoff).getTime() <= now).map(f => f.id));
-    const predCount = predictions.filter(p => lockedFixtureIds.has(p.fixture_id) && p.home_score != null).length;
+    const groupFixtureIds = new Set(fxs.map(f => f.id));
+    const predCount = predictions.filter(p => groupFixtureIds.has(p.fixture_id) && p.home_score != null).length;
     return `
     <div class="gw-group ${allDone ? 'collapsed' : ''}">
       <div class="gw-group-header"><span>${label} <span style="font-weight:400; color:var(--grey); font-size:11px;">(${predCount})</span></span><span class="chev">▾</span></div>
