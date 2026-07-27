@@ -1405,7 +1405,7 @@ function openInstructionsModal() {
     </div>
     <div class="modal-section">
       <h4>4. Prize structure</h4>
-      <p id="instructions-prize">Entry is £10 per player. 10% goes to league administration. The remaining pool's split depends on how many people have paid: under 20 paid entries, the winner takes the entire pool; 20 to 59, it's 80% to first and 20% to second; from 60 paid entries, a third place is introduced and grows in from there; from 80 paid entries, it settles at a fixed 70/20/10 across first, second and third. Prizes are only ever paid to entrants who've paid and been verified, whatever your leaderboard position, so please make sure you've paid via the PayPal Pool. No PayPal account? Tap "Contribute as a Guest" on the PayPal page, you don't need to sign up.</p>
+      <p id="instructions-prize">Entry is £10 per player. 10% goes to league administration. The remaining pool's split depends on how many people have paid: under 20 paid entries, the winner takes the entire pool; from 20 paid entries, second place's share gradually grows from 20% towards 25% as more people join, with first place taking the rest; from 60 paid entries, a third place is introduced and grows in from there; from 80 paid entries, it settles at a fixed 70/20/10 across first, second and third. Prizes are only ever paid to entrants who've paid and been verified, whatever your leaderboard position, so please make sure you've paid via the PayPal Pool. No PayPal account? Tap "Contribute as a Guest" on the PayPal page, you don't need to sign up.</p>
     </div>
     <div class="modal-section">
       <h4>5. Quick heads up on how this works</h4>
@@ -2898,18 +2898,36 @@ async function purgeUnverifiedPlayer(playerId) {
 // pool isn't split into a token third-place amount nobody's excited about.
 // Below RAMP_START and from RAMP_END onward, this is a flat percentage of
 // the pool. Between the two, prizeTierSplits() returns null — see the ramp
-// logic in computePrizePool(), which softens the introduction of 3rd place
-// instead of it appearing as a sudden slice out of nowhere at RAMP_START.
+// logic in computePrizeAmountsForCount(), which softens the introduction
+// of 3rd place instead of it appearing as a sudden slice out of nowhere.
 const RAMP_START = 60;          // verified count at which 3rd place is introduced
 const RAMP_END = 80;            // verified count at which the fixed 70/20/10 tier takes over
-const RAMP_TAKE_FROM_EACH = 25; // shaved off 1st and 2nd's naive 80/20 shares at RAMP_START to fund the flat 3rd pot
+const RAMP_TAKE_FROM_EACH = 25; // shaved off 1st and 2nd's naive shares at RAMP_START to fund the flat 3rd pot
 const RAMP_FIRST_SHARE = 0.75;  // how 1st/2nd split any pool growth above RAMP_START, through the ramp
 const RAMP_SECOND_SHARE = 0.25;
 
+// Between 20 and RAMP_START, 1st/2nd isn't a flat 80/20 — second's share
+// tapers up from 20% to 25% as verified count rises, so the gap between
+// 1st and 2nd narrows in the run-up to 60 rather than staying fixed until
+// 3rd place suddenly appears. It ends exactly at RAMP_START matching
+// RAMP_FIRST_SHARE/RAMP_SECOND_SHARE above, so the handoff into the ramp
+// is seamless — no new cliff introduced at 60.
+const TAPER_START = 20;
+const TAPER_SECOND_SHARE_START = 0.20;
+
+function taperedSecondShare(verifiedCount) {
+  const clamped = Math.max(TAPER_START, Math.min(verifiedCount, RAMP_START));
+  const frac = (clamped - TAPER_START) / (RAMP_START - TAPER_START);
+  return TAPER_SECOND_SHARE_START + (RAMP_SECOND_SHARE - TAPER_SECOND_SHARE_START) * frac;
+}
+
 function prizeTierSplits(verifiedCount) {
   if (verifiedCount < 20) return [1.0];              // winner takes all
-  if (verifiedCount < RAMP_START) return [0.8, 0.2]; // two winners
-  if (verifiedCount < RAMP_END) return null;          // ramp — see computePrizePool
+  if (verifiedCount < RAMP_START) {                  // two winners, second's share tapering 20% → 25%
+    const second = taperedSecondShare(verifiedCount);
+    return [1 - second, second];
+  }
+  if (verifiedCount < RAMP_END) return null;          // ramp — see computePrizeAmountsForCount
   return [0.7, 0.2, 0.1];                             // three winners, fixed split
 }
 
@@ -2926,9 +2944,12 @@ function computePrizeAmountsForCount(verifiedCount) {
     // Freeze the picture at the moment 3rd place is introduced, then let
     // 1st/2nd absorb all further growth at a fixed 75/25 ratio while 3rd
     // stays flat — this is what avoids a hard percentage cliff at 60.
+    // The baseline here uses the taper's own endpoint (75/25), the same
+    // ratio the taper has already reached by RAMP_START, so there's no
+    // seam between the taper ending and the ramp beginning.
     const poolAtRampStart = (RAMP_START * ENTRY_FEE) * (1 - ADMIN_FEE_PCT);
-    const baseFirst = (poolAtRampStart * 0.8) - RAMP_TAKE_FROM_EACH;
-    const baseSecond = (poolAtRampStart * 0.2) - RAMP_TAKE_FROM_EACH;
+    const baseFirst = (poolAtRampStart * RAMP_FIRST_SHARE) - RAMP_TAKE_FROM_EACH;
+    const baseSecond = (poolAtRampStart * RAMP_SECOND_SHARE) - RAMP_TAKE_FROM_EACH;
     const baseThird = RAMP_TAKE_FROM_EACH * 2;
     const growth = pool - poolAtRampStart;
     amounts = [
@@ -3028,7 +3049,7 @@ async function renderAdminPaymentDashboard() {
           return `<div class="prize-tile"><div class="label">${label} (~${pct}%)</div><div class="value">${gbp(amt)}</div></div>`;
         }).join("")}
       </div>
-      <div style="font-size:11px; color:var(--grey); margin-top:-4px; margin-bottom:12px;">${prize.winners} winner${prize.winners === 1 ? "" : "s"} at this entry count. Under 20 paid = 1 winner, 20–59 = 2, 60+ = 3 (3rd is introduced gradually from 60, fixed 70/20/10 from 80).</div>
+      <div style="font-size:11px; color:var(--grey); margin-top:-4px; margin-bottom:12px;">${prize.winners} winner${prize.winners === 1 ? "" : "s"} at this entry count. Under 20 paid = 1 winner, 20–59 = 2 (2nd's share tapers 20%→25%), 60+ = 3 (3rd introduced gradually from 60, fixed 70/20/10 from 80).</div>
       ${prize.entries > prize.verifiedCount ? `
       <div style="font-size:11px; color:var(--grey); margin-bottom:12px; padding-top:8px; border-top:1px solid #eee;">
         <strong>If everyone who's joined pays (${prize.entries}):</strong> ${
@@ -3137,7 +3158,7 @@ async function renderAdminPaymentDashboard() {
     const labels = ["1st", "2nd", "3rd"];
     const breakdown = calc.amounts.map((a, i) => `${labels[i]} ${gbp(a)}`).join(" · ");
     const tierNote = n < 20 ? "winner takes all"
-      : n < RAMP_START ? "80/20 tier"
+      : n < RAMP_START ? "20–59 taper tier"
       : n < RAMP_END ? "60–79 ramp tier"
       : "fixed 70/20/10 tier";
     result.innerHTML = `<strong>${n} verified</strong> → pool ${gbp(calc.pool)} (${tierNote}): ${breakdown}`;
@@ -3493,7 +3514,7 @@ async function renderPrizePoolCard() {
     <div class="prize-card">
       <div class="pc-title">💰 PRIZE POOL — ${prize.verifiedCount} PAID IN OUT OF ${prize.entries} ENTRIES</div>
       ${buildPodiumHtml(prize.amounts, gbp)}
-      <div class="pc-note">${prize.winners === 1 ? "Under 20 paid entries — one winner takes it all. " : ""}Based on verified entries so far.</div>
+      ${prize.winners === 1 ? `<div class="pc-note">Under 20 paid entries — one winner takes it all.</div>` : ""}
       ${duplicateNote}
     </div>`;
 }
