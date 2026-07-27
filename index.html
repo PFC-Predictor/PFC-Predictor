@@ -1405,7 +1405,7 @@ function openInstructionsModal() {
     </div>
     <div class="modal-section">
       <h4>4. Prize structure</h4>
-      <p id="instructions-prize">Entry is £10 per player. 10% goes to league administration. The remaining pool's split depends on how many people have paid: under 20 paid entries, the winner takes the entire pool; 20 to 49, it's 80% to first and 20% to second; 50 or more, it's 70/20/10 across first, second and third. No PayPal account? Tap "Contribute as a Guest" on the PayPal page, you don't need to sign up.</p>
+      <p id="instructions-prize">Entry is £10 per player. 10% goes to league administration. The remaining pool's split depends on how many people have paid: under 20 paid entries, the winner takes the entire pool; 20 to 59, it's 80% to first and 20% to second; from 60 paid entries, a third place is introduced and grows in from there; from 80 paid entries, it settles at a fixed 70/20/10 across first, second and third. No PayPal account? Tap "Contribute as a Guest" on the PayPal page, you don't need to sign up.</p>
     </div>
     <div class="modal-section">
       <h4>5. Quick heads up on how this works</h4>
@@ -2896,10 +2896,52 @@ async function purgeUnverifiedPlayer(playerId) {
 
 // Winner count scales with how many people have actually paid, so a small
 // pool isn't split into a token third-place amount nobody's excited about.
+// Below RAMP_START and from RAMP_END onward, this is a flat percentage of
+// the pool. Between the two, prizeTierSplits() returns null — see the ramp
+// logic in computePrizePool(), which softens the introduction of 3rd place
+// instead of it appearing as a sudden slice out of nowhere at RAMP_START.
+const RAMP_START = 60;          // verified count at which 3rd place is introduced
+const RAMP_END = 80;            // verified count at which the fixed 70/20/10 tier takes over
+const RAMP_TAKE_FROM_EACH = 25; // shaved off 1st and 2nd's naive 80/20 shares at RAMP_START to fund the flat 3rd pot
+const RAMP_FIRST_SHARE = 0.75;  // how 1st/2nd split any pool growth above RAMP_START, through the ramp
+const RAMP_SECOND_SHARE = 0.25;
+
 function prizeTierSplits(verifiedCount) {
-  if (verifiedCount < 20) return [1.0];          // winner takes all
-  if (verifiedCount < 50) return [0.8, 0.2];      // two winners
-  return [0.7, 0.2, 0.1];                          // three winners
+  if (verifiedCount < 20) return [1.0];              // winner takes all
+  if (verifiedCount < RAMP_START) return [0.8, 0.2]; // two winners
+  if (verifiedCount < RAMP_END) return null;          // ramp — see computePrizePool
+  return [0.7, 0.2, 0.1];                             // three winners, fixed split
+}
+
+// Pure function of "how many people have verified paid" — used both for the
+// real pool and for the admin-only "if everyone who's joined pays" figure,
+// so the two never risk drifting out of sync with each other.
+function computePrizeAmountsForCount(verifiedCount) {
+  const totalCollected = verifiedCount * ENTRY_FEE;
+  const adminFee = totalCollected * ADMIN_FEE_PCT;
+  const pool = totalCollected - adminFee;
+
+  let amounts;
+  if (verifiedCount >= RAMP_START && verifiedCount < RAMP_END) {
+    // Freeze the picture at the moment 3rd place is introduced, then let
+    // 1st/2nd absorb all further growth at a fixed 75/25 ratio while 3rd
+    // stays flat — this is what avoids a hard percentage cliff at 60.
+    const poolAtRampStart = (RAMP_START * ENTRY_FEE) * (1 - ADMIN_FEE_PCT);
+    const baseFirst = (poolAtRampStart * 0.8) - RAMP_TAKE_FROM_EACH;
+    const baseSecond = (poolAtRampStart * 0.2) - RAMP_TAKE_FROM_EACH;
+    const baseThird = RAMP_TAKE_FROM_EACH * 2;
+    const growth = pool - poolAtRampStart;
+    amounts = [
+      Math.round((baseFirst + growth * RAMP_FIRST_SHARE) / 5) * 5,
+      Math.round((baseSecond + growth * RAMP_SECOND_SHARE) / 5) * 5,
+      baseThird
+    ];
+  } else {
+    const splits = prizeTierSplits(verifiedCount);
+    amounts = splits.map(pct => Math.round((pool * pct) / 5) * 5);
+  }
+
+  return { totalCollected, adminFee, pool, amounts };
 }
 
 function computePrizePool(players) {
@@ -2913,18 +2955,16 @@ function computePrizePool(players) {
   // predictions stay completely normal while the admin sorts it out.
   const countingPlayers = players.filter(p => !p.pool_exempt && p.is_active && !p.display_name.includes("⚠️"));
   const verifiedCount = countingPlayers.filter(p => p.payment_verified).length;
-  const totalCollected = verifiedCount * ENTRY_FEE;
-  const adminFee = totalCollected * ADMIN_FEE_PCT;
-  const pool = totalCollected - adminFee;
-  const splits = prizeTierSplits(verifiedCount);
-  const amounts = splits.map(pct => Math.round((pool * pct) / 5) * 5);
+  const { totalCollected, adminFee, pool, amounts } = computePrizeAmountsForCount(verifiedCount);
+
   return {
     registered: players.length,
     entries: countingPlayers.length,
     verifiedCount,
     totalCollected,
     adminFee,
-    winners: splits.length,
+    pool,
+    winners: amounts.length,
     amounts,
     first: amounts[0] || 0,
     second: amounts[1] || 0,
@@ -2984,11 +3024,19 @@ async function renderAdminPaymentDashboard() {
         <div class="prize-tile"><div class="label">Admin fee (10%)</div><div class="value">${gbp(prize.adminFee)}</div></div>
         ${prize.amounts.map((amt, i) => {
           const label = ["1st place", "2nd place", "3rd place"][i];
-          const pct = prizeTierSplits(prize.verifiedCount)[i];
-          return `<div class="prize-tile"><div class="label">${label} (${Math.round(pct * 100)}%)</div><div class="value">${gbp(amt)}</div></div>`;
+          const pct = prize.pool > 0 ? Math.round((amt / prize.pool) * 100) : 0;
+          return `<div class="prize-tile"><div class="label">${label} (~${pct}%)</div><div class="value">${gbp(amt)}</div></div>`;
         }).join("")}
       </div>
-      <div style="font-size:11px; color:var(--grey); margin-top:-4px; margin-bottom:12px;">${prize.winners} winner${prize.winners === 1 ? "" : "s"} at this entry count. Under 20 paid = 1 winner, 20–49 = 2, 50+ = 3.</div>
+      <div style="font-size:11px; color:var(--grey); margin-top:-4px; margin-bottom:12px;">${prize.winners} winner${prize.winners === 1 ? "" : "s"} at this entry count. Under 20 paid = 1 winner, 20–59 = 2, 60+ = 3 (3rd is introduced gradually from 60, fixed 70/20/10 from 80).</div>
+      ${prize.entries > prize.verifiedCount ? `
+      <div style="font-size:11px; color:var(--grey); margin-bottom:12px; padding-top:8px; border-top:1px solid #eee;">
+        <strong>If everyone who's joined pays (${prize.entries}):</strong> ${
+          computePrizeAmountsForCount(prize.entries).amounts
+            .map((a, i) => `${["1st", "2nd", "3rd"][i]} ${gbp(a)}`)
+            .join(" · ")
+        }
+      </div>` : ""}
       <div class="deadline-row">
         <span>Deadline:</span>
         <input type="date" id="deadline-input" value="${deadline}">
@@ -3394,11 +3442,6 @@ function buildPodiumHtml(amounts, gbp) {
   </div>`;
 }
 
-function potentialLineText(amounts, gbp) {
-  const labels = ["1st", "2nd", "3rd"];
-  return amounts.map((amt, i) => `${labels[i]} ${gbp(amt)}`).join(" · ");
-}
-
 async function renderPrizePoolCard() {
   const slot = document.getElementById("prize-slot");
   const players = await fetchAllPlayersAdmin();
@@ -3410,24 +3453,12 @@ async function renderPrizePoolCard() {
     ? `<div class="pc-note" style="color:#e0a800;">${pendingDuplicates} suspected duplicate${pendingDuplicates === 1 ? "" : "s"} not counted here yet, pending admin review.</div>`
     : "";
 
-  const potentialCollected = prize.entries * ENTRY_FEE;
-  const potentialPool = potentialCollected - (potentialCollected * ADMIN_FEE_PCT);
-  const potentialSplits = prizeTierSplits(prize.entries);
-  const potentialAmounts = potentialSplits.map(pct => Math.round((potentialPool * pct) / 5) * 5);
-  const potentialLine = prize.entries > prize.verifiedCount
-    ? `<div class="pc-potential">
-        <div>If everyone who's joined pays:</div>
-        <div class="pc-potential-amounts">${potentialLineText(potentialAmounts, gbp)}</div>
-      </div>`
-    : "";
-
   if (prize.verifiedCount === 0) {
     slot.innerHTML = `
       <div class="prize-card">
         <div class="pc-title">💰 PRIZE POOL</div>
         <div class="pc-note" style="margin-top:0;">Prize amounts appear here once the first entry is verified. Pay your £10 to get the pool started.</div>
         ${duplicateNote}
-        ${potentialLine}
       </div>`;
     return;
   }
@@ -3438,7 +3469,6 @@ async function renderPrizePoolCard() {
       ${buildPodiumHtml(prize.amounts, gbp)}
       <div class="pc-note">${prize.winners === 1 ? "Under 20 paid entries — one winner takes it all. " : ""}Based on verified entries so far.</div>
       ${duplicateNote}
-      ${potentialLine}
     </div>`;
 }
 
