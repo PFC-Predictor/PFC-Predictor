@@ -1405,7 +1405,7 @@ function openInstructionsModal() {
     </div>
     <div class="modal-section">
       <h4>4. Prize structure</h4>
-      <p id="instructions-prize">Entry is £10 per player. 10% goes to league administration. The remaining pool's split depends on how many people have paid: under 20 paid entries, the winner takes the entire pool; 20 to 59, it's 80% to first and 20% to second; from 60 paid entries, a third place is introduced and grows in from there; from 80 paid entries, it settles at a fixed 70/20/10 across first, second and third. No PayPal account? Tap "Contribute as a Guest" on the PayPal page, you don't need to sign up.</p>
+      <p id="instructions-prize">Entry is £10 per player. 10% goes to league administration. The remaining pool's split depends on how many people have paid: under 20 paid entries, the winner takes the entire pool; 20 to 59, it's 80% to first and 20% to second; from 60 paid entries, a third place is introduced and grows in from there; from 80 paid entries, it settles at a fixed 70/20/10 across first, second and third. Prizes are only ever paid to entrants who've paid and been verified, whatever your leaderboard position, so please make sure you've paid via the PayPal Pool. No PayPal account? Tap "Contribute as a Guest" on the PayPal page, you don't need to sign up.</p>
     </div>
     <div class="modal-section">
       <h4>5. Quick heads up on how this works</h4>
@@ -3046,6 +3046,17 @@ async function renderAdminPaymentDashboard() {
     </div>
 
     <div class="card" style="margin-top:12px;">
+      <div class="admin-header" style="margin-top:0;">🧮 Prize Calculator</div>
+      <div class="placeholder-note" style="margin-top:0;">Enter any verified-payer count to preview its prize breakdown — doesn't touch the real pool, just for planning ahead.</div>
+      <div class="deadline-row">
+        <span>Verified count:</span>
+        <input type="number" id="calc-verified-input" min="0" step="1" placeholder="e.g. 65" style="width:90px;">
+        <button id="btn-calc-prize">Calculate</button>
+      </div>
+      <div id="calc-prize-result" style="font-size:13px; margin-top:8px;"></div>
+    </div>
+
+    <div class="card" style="margin-top:12px;">
       <div class="admin-header" style="margin-top:0;">📋 Unpaid Summary (${unpaid.length})</div>
       ${unpaid.length === 0
         ? `<div class="placeholder-note">Everyone active has paid ✓</div>`
@@ -3115,6 +3126,21 @@ async function renderAdminPaymentDashboard() {
     const panel = e.currentTarget.closest(".collapsible");
     panel.classList.toggle("collapsed");
     paymentPlayersCollapsed = panel.classList.contains("collapsed");
+  });
+
+  document.getElementById("btn-calc-prize").addEventListener("click", () => {
+    const input = document.getElementById("calc-verified-input");
+    const result = document.getElementById("calc-prize-result");
+    const n = parseInt(input.value, 10);
+    if (!Number.isInteger(n) || n < 0) { result.textContent = "Enter a whole number of 0 or more."; return; }
+    const calc = computePrizeAmountsForCount(n);
+    const labels = ["1st", "2nd", "3rd"];
+    const breakdown = calc.amounts.map((a, i) => `${labels[i]} ${gbp(a)}`).join(" · ");
+    const tierNote = n < 20 ? "winner takes all"
+      : n < RAMP_START ? "80/20 tier"
+      : n < RAMP_END ? "60–79 ramp tier"
+      : "fixed 70/20/10 tier";
+    result.innerHTML = `<strong>${n} verified</strong> → pool ${gbp(calc.pool)} (${tierNote}): ${breakdown}`;
   });
 
   document.getElementById("btn-save-deadline").addEventListener("click", async () => {
