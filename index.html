@@ -543,7 +543,7 @@
     <button type="submit" id="btn-create-account">Get started</button>
     <div class="auth-status" id="newplayer-status"></div>
   </form>
-  <div class="auth-note">Your mobile is only visible to Ant James as the league admin, never to other players. Any issues, contact Ant James.</div>
+  <div class="auth-note">Your mobile is only visible to Ant James as the league admin. Any issues, contact Ant James.</div>
 </div>
 <!-- ============ AUTH: SET UP LOCAL PIN (first time on this device, post signup) ============ -->
 <div id="screen-set-pin" class="auth-wrap hidden">
@@ -1394,15 +1394,15 @@ function openInstructionsModal() {
   document.getElementById("instructions-body").innerHTML = `
     <div class="modal-section">
       <h4>1. Making a prediction</h4>
-      <p>Enter a home and away score for each fixture before kickoff and tap Save. Type one digit and the box jumps straight to the other team's score. All 46 Championship fixtures are already loaded, not added week by week, so use the ‹ › arrows above the fixture list to move between months and predict as many as you like in one sitting, or come back bit by bit, whichever suits you. Either way, every prediction locks the moment its match kicks off, so there's no editing after that, get them in early if you're not going to be free nearer the time.</p>
+      <p>Enter a home and away score for each fixture before kick-off and tap Save Prediction. All 46 Championship fixtures are already loaded, not added week by week, so use the ‹ › arrows above the fixture list to move between months and predict as many as you like in one go, or come back anytime, whichever suits you. Either way, every prediction locks the moment its match kicks off, so there's no editing after that; get them in early if you're not going to be free nearer the kick-off.</p>
     </div>
     <div class="modal-section">
       <h4>2. First Pompey goalscorer</h4>
-      <p>Only Portsmouth players are eligible — this is about who scores for Pompey, not the opposition. Pick from the squad dropdown, or leave it as "No Pompey goalscorer" if you're not confident.</p>
+      <p>Only Portsmouth players are eligible — this is about who scores for Pompey, not the opposition. Pick from the squad dropdown or leave it as "No Pompey goalscorer".</p>
     </div>
     <div class="modal-section">
       <h4>3. How points work</h4>
-      <p><span class="badge-pill badge-gold">+3</span> exact score &nbsp; <span class="badge-pill badge-blue">+1</span> correct result &nbsp; <span class="badge-pill badge-green">+2</span> first Pompey goalscorer. Maximum 5 points per match — the exact score point replaces the correct-result point rather than stacking with it. Your leaderboard position is based on total points, and if two players are level, whoever has the most exact scores ranks higher, then whoever's named the most correct first goalscorers if it's still level after that. Cup matches (Carabao Cup, FA Cup) are always judged on the 90-minute score only, extra time and penalties don't affect your prediction either way. Prizes are only paid to verified entrants, regardless of league position.</p>
+      <p><span class="badge-pill badge-gold">+3</span> exact score &nbsp; <span class="badge-pill badge-blue">+1</span> correct result &nbsp; <span class="badge-pill badge-green">+2</span> first Pompey goalscorer. Maximum 5 points per match — the exact score point replaces the correct-result point rather than stacking with it. Your leaderboard position is based on total points, and if two players are level, whoever has the most exact scores ranks higher, then whoever's named the most correct first goalscorers if it's still level after that. Cup matches (Carabao Cup, FA Cup) are always judged on the 90-minute score only; extra time and penalties don't affect your prediction either way. Prizes are only paid to verified entrants, regardless of league position.</p>
     </div>
     <div class="modal-section">
       <h4>4. Prize structure</h4>
@@ -1411,19 +1411,19 @@ function openInstructionsModal() {
     <div class="modal-section">
       <h4>5. Quick heads up on how this works</h4>
       <p>This isn't a proper app from an app store, it's a website that lives on your phone. That means your login only exists on the one device you first signed up on.</p>
-      <p style="margin-top:8px;">If you ever open the link again on a different phone, or lose it and start fresh, it'll look like a brand new signup rather than finding your old account, even though it's still you. Don't worry if this happens, just tell Ant and he'll merge your old and new accounts together so none of your points or predictions are lost.</p>
+      <p style="margin-top:8px;">If you ever open the link again on a different phone, or lose it and start fresh, it'll look like a brand-new signup rather than finding your old account, even though it's still you. Don't worry if this happens; tell Ant, and he'll merge your old and new accounts so none of your points or predictions are lost.</p>
       <p style="margin-top:8px;"><strong>Best way to avoid it altogether:</strong> once you're signed in, add the page to your Home Screen (Share button on iPhone, or the ⋮ menu on Android, then "Add to Home Screen"), and always open it from that icon from now on, not by tapping the original link again.</p>
-      <p style="margin-top:8px;">If something ever looks out of date or not quite right when you open the app, close it fully and open it again, that usually sorts it straight away.</p>
+      <p style="margin-top:8px;">If something ever looks out of date or not quite right when you open the app, close it fully and open it again; that usually sorts it straight away.</p>
     </div>
     <div class="modal-section">
       <h4>6. Your mobile number</h4>
-      <p>Only Ant James, as league admin, can see it, no other player ever can. It's used to reach you if there's a payment or prediction query, for example a nudge if you're close to missing a deadline. Any issues, contact Ant James directly.</p>
+      <p>Only Ant James, as league admin, can see it; no one else. It's used to reach you if there's a query. Any issues, contact Ant James directly.</p>
     </div>
     <div class="modal-section">
       <h4>7. Around the app</h4>
-      <p style="margin-bottom:8px;">🏆 <strong>Leaderboard</strong> shows the live prize pool at the top and the table below, tap any player's row for their full prediction history.</p>
-      <p style="margin-bottom:8px;">👀 <strong>Picks</strong>, its own tab at the bottom, shows what everyone predicted once a match kicks off, grouped by scoreline so you can see who's backing what. Also within Picks is <strong>The Crowd's Verdict</strong>, showing the split of predictions for the very next fixture.</p>
-      <p style="margin-bottom:8px;">💬 <strong>Chat</strong> is in the header, tap the speech bubble icon any time to open it.</p>
+      <p style="margin-bottom:8px;">🏆 <strong>Leaderboard</strong> shows the live prize pool at the top and the table below; tap any player's row for their full prediction history.</p>
+      <p style="margin-bottom:8px;">👀 <strong>Picks</strong>, its own tab at the bottom, shows what everyone predicted once a match kicks off, grouped by scoreline so you can see who's backing what. Also, within Picks is <strong>The Crowd's Verdict</strong>, showing the split of predictions for the very next fixture.</p>
+      <p style="margin-bottom:8px;">💬 <strong>Chat</strong> is in the header; tap the speech bubble icon any time to open it.</p>
       <p style="margin-bottom:8px;">📢 <strong>What's New</strong>, also in the header, flags anything added to the app since you last checked.</p>
       <p style="margin-bottom:8px;">🔗 <strong>Share</strong>, also in the header, gives you a QR code and link if you want to invite someone yourself.</p>
       <p>Forgotten your PIN? There's a link on the unlock screen to reset it without losing your account.</p>
@@ -1491,23 +1491,66 @@ async function checkForUnseenUpdate() {
   } catch (e) { return false; }
 }
 
+function buildShareMessage(prize, appUrl) {
+  let prizeLine;
+  if (prize.verifiedCount === 0) {
+    prizeLine = "the prize pot kicks in as soon as the first entry's verified";
+  } else if (prize.winners === 1) {
+    prizeLine = `the current prize pot is: 🏆 £${prize.amounts[0]} (winner takes all)`;
+  } else if (prize.winners === 2) {
+    prizeLine = `the current prize pot is: 🥇 £${prize.amounts[0]} 🥈 £${prize.amounts[1]}`;
+  } else {
+    prizeLine = `the current prize pot is: 🥇 £${prize.amounts[0]} 🥈 £${prize.amounts[1]} 🥉 £${prize.amounts[2]}`;
+  }
+  return [
+    "🏆 I have created a Pompey Predictor app for the new season.",
+    "",
+    `Have a go at predicting Pompey fixtures and Pompey goalscorers this season: ${appUrl}`,
+    "",
+    `👥 ${prize.entries} signed up so far, with ${prize.verifiedCount} paid and verified. It's a one-off £10 entry, and ${prizeLine}`,
+    "",
+    "You can pay by PayPal through the app once you're in."
+  ].join("\n");
+}
+
 document.getElementById("btn-share").addEventListener("click", async () => {
   const appUrl = GITHUB_PAGES_URL;
   document.getElementById("share-body").innerHTML = `
     <div style="text-align:center;">
       <div id="qr-slot" style="margin:0 auto 16px; width:200px; height:200px;"></div>
       <p style="font-size:13px; word-break:break-all; color:var(--grey); margin-bottom:12px;">${appUrl}</p>
-      <button class="btn-primary" id="btn-copy-link" style="background:var(--navy); margin-bottom:8px;">Copy link</button>
-      <button class="btn-primary" id="btn-native-share" style="background:var(--red);">Share…</button>
+      <div id="share-stats-note" style="font-size:12px; color:var(--grey); margin-bottom:12px;">Loading current numbers…</div>
+      <button class="btn-primary" id="btn-copy-link" style="background:var(--navy); margin-bottom:8px;">Copy link only</button>
+      <button class="btn-primary" id="btn-copy-message" style="background:var(--green, #1f8f4e); margin-bottom:8px;" disabled>Copy WhatsApp message</button>
+      <button class="btn-primary" id="btn-native-share" style="background:var(--red);" disabled>Share…</button>
     </div>`;
   openModal("modal-share");
   loadQrLibraryAndRender(appUrl);
+
+  let shareMessage = `I have created a Pompey Predictor app for the new season. Have a go: ${appUrl}`; // safe fallback, only used if the stats fetch is still pending or fails
+  fetchAllPlayersAdmin().then(players => {
+    const prize = computePrizePool(players);
+    shareMessage = buildShareMessage(prize, appUrl);
+    const note = document.getElementById("share-stats-note");
+    if (note) note.textContent = `Right now: ${prize.entries} signed up, ${prize.verifiedCount} verified`;
+    document.getElementById("btn-copy-message").disabled = false;
+    document.getElementById("btn-native-share").disabled = false;
+  }).catch(() => {
+    const note = document.getElementById("share-stats-note");
+    if (note) note.textContent = "Couldn't load current numbers — link only.";
+    document.getElementById("btn-copy-message").disabled = false;
+    document.getElementById("btn-native-share").disabled = false;
+  });
+
   document.getElementById("btn-copy-link").addEventListener("click", () => {
     navigator.clipboard?.writeText(appUrl).then(() => { document.getElementById("btn-copy-link").textContent = "Copied ✓"; });
   });
+  document.getElementById("btn-copy-message").addEventListener("click", () => {
+    navigator.clipboard?.writeText(shareMessage).then(() => { document.getElementById("btn-copy-message").textContent = "Copied ✓"; });
+  });
   document.getElementById("btn-native-share").addEventListener("click", () => {
-    if (navigator.share) navigator.share({ title: "Pompey Predictor", url: appUrl }).catch(() => {});
-    else { navigator.clipboard?.writeText(appUrl); alert("Link copied — your browser doesn't support the native share sheet."); }
+    if (navigator.share) navigator.share({ title: "Pompey Predictor", text: shareMessage }).catch(() => {});
+    else { navigator.clipboard?.writeText(shareMessage); alert("Message copied — your browser doesn't support the native share sheet."); }
   });
 });
 
@@ -3468,11 +3511,15 @@ function computeStandingsFor(players, predictions, resultsByFixture) {
 function denseRank(standings) {
   // kept the function name to avoid touching every call site, but this is no
   // longer a dense/shared ranking — positions split fully based on the full
-  // tiebreak (points, then exact, then scorer), sequential with no sharing
+  // tiebreak (points, then exact, then scorer, then name), sequential with
+  // no sharing. The alphabetical fallback matters most before any results
+  // are in, when every player ties on every numeric field — without it,
+  // order silently depended on the database's unspecified fetch order.
   const sorted = [...standings].sort((a, b) => {
     if (b.total !== a.total) return b.total - a.total;
     if (b.exact !== a.exact) return b.exact - a.exact; // most exact scores wins a tie on points
-    return b.scorer - a.scorer; // then most correct first-scorer picks
+    if (b.scorer !== a.scorer) return b.scorer - a.scorer; // then most correct first-scorer picks
+    return a.player.display_name.localeCompare(b.player.display_name); // final tiebreak: alphabetical
   });
   return sorted.map((row, i) => ({ ...row, rank: i + 1 }));
 }
@@ -3532,7 +3579,7 @@ async function renderLeaderboard() {
   renderPrizePoolCard();
 
   const [players, allPredictions, allResults, allFixtures] = await Promise.all([
-    sbFetchAll("players?is_active=eq.true&is_participant=eq.true&select=*"),
+    sbFetchAll("players?is_active=eq.true&is_participant=eq.true&select=*&order=display_name.asc"),
     sbFetchAll("predictions?select=*"),
     sbFetchAll("results?select=*&order=created_at.asc"),
     sbFetchAll("fixtures?select=*")
