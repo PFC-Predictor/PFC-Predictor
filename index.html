@@ -1491,109 +1491,6 @@ async function checkForUnseenUpdate() {
   } catch (e) { return false; }
 }
 
-function wrapCanvasText(ctx, text, maxWidth) {
-  const words = text.split(" ");
-  const lines = [];
-  let line = "";
-  words.forEach(word => {
-    const test = line ? `${line} ${word}` : word;
-    if (ctx.measureText(test).width > maxWidth && line) {
-      lines.push(line);
-      line = word;
-    } else {
-      line = test;
-    }
-  });
-  if (line) lines.push(line);
-  return lines;
-}
-
-function storyHeadlineFor(prize) {
-  if (prize.winners === 1) return "Predict each Pompey game and get points. Right now, the winner takes the whole prize pool.";
-  if (prize.winners === 2) return "Predict each Pompey game and get points. Currently the top two in the league take a prize.";
-  return "Predict each Pompey game and get points. Currently the top three in the league take a prize.";
-}
-
-function downloadStoryImage(prize) {
-  const gbp = n => `£${n}`;
-  const W = 1080, H = 1920;
-  const canvas = document.createElement("canvas");
-  canvas.width = W; canvas.height = H;
-  const ctx = canvas.getContext("2d");
-
-  // background
-  ctx.fillStyle = "#002D62";
-  ctx.fillRect(0, 0, W, H);
-
-  const cx = W / 2;
-  let y = 420;
-
-  // crest placeholder ring — deliberately empty; drop the real club crest in here afterwards
-  ctx.beginPath();
-  ctx.arc(cx, y, 90, 0, Math.PI * 2);
-  ctx.lineWidth = 6;
-  ctx.strokeStyle = "#D4AF37";
-  ctx.stroke();
-
-  y += 190;
-
-  // headline, wrapped
-  ctx.fillStyle = "#ffffff";
-  ctx.font = "500 56px sans-serif";
-  ctx.textAlign = "center";
-  const headlineLines = wrapCanvasText(ctx, storyHeadlineFor(prize), 820);
-  headlineLines.forEach(line => { ctx.fillText(line, cx, y); y += 68; });
-
-  y += 40;
-  ctx.strokeStyle = "rgba(212,175,55,0.35)";
-  ctx.lineWidth = 2;
-  ctx.beginPath(); ctx.moveTo(cx - 410, y); ctx.lineTo(cx + 410, y); ctx.stroke();
-  y += 90;
-
-  // players / verified
-  ctx.font = "500 52px sans-serif";
-  ctx.fillStyle = "#ffffff";
-  ctx.fillText(`${prize.entries}`, cx - 150, y);
-  ctx.fillText(`${prize.verifiedCount}`, cx + 150, y);
-  ctx.font = "400 26px sans-serif";
-  ctx.fillStyle = "#D4AF37";
-  ctx.fillText("players", cx - 150, y + 46);
-  ctx.fillText("verified", cx + 150, y + 46);
-
-  y += 150;
-
-  // prize pot card
-  const cardW = 820, cardH = 190;
-  ctx.fillStyle = "rgba(212,175,55,0.12)";
-  ctx.strokeStyle = "rgba(212,175,55,0.4)";
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  if (ctx.roundRect) ctx.roundRect(cx - cardW / 2, y, cardW, cardH, 24);
-  else ctx.rect(cx - cardW / 2, y, cardW, cardH);
-  ctx.fill(); ctx.stroke();
-
-  ctx.font = "400 28px sans-serif";
-  ctx.fillStyle = "#D4AF37";
-  ctx.fillText("current prize pot", cx, y + 60);
-  ctx.font = "500 48px sans-serif";
-  ctx.fillStyle = "#ffffff";
-  ctx.fillText(prize.amounts.map(gbp).join("  ·  "), cx, y + 130);
-
-  y += cardH + 70;
-  ctx.font = "400 30px sans-serif";
-  ctx.fillStyle = "#D4AF37";
-  ctx.fillText("Add the link sticker above ↑", cx, y);
-
-  canvas.toBlob(blob => {
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `pompey-predictor-story-${new Date().toISOString().slice(0, 10)}.png`;
-    a.click();
-    URL.revokeObjectURL(url);
-  }, "image/png");
-}
-
 function buildShareMessage(prize, appUrl) {
   let prizeLine;
   if (prize.verifiedCount === 0) {
@@ -3194,8 +3091,7 @@ async function renderAdminPaymentDashboard() {
         <span>Deadline:</span>
         <input type="date" id="deadline-input" value="${deadline}">
         <button id="btn-save-deadline">Save</button>
-        <button id="btn-whatsapp-recruit" title="Share to WhatsApp" style="background:#25D366; color:var(--white); border:none; border-radius:8px; width:34px; height:34px; font-size:16px; line-height:1; cursor:pointer;">💬</button>
-        <button id="btn-instagram-story" title="Download Instagram Story image" style="background:#002D62; color:var(--white); border:2px solid #D4AF37; border-radius:8px; width:34px; height:34px; font-size:16px; line-height:1; cursor:pointer;">📷</button>
+        <button id="btn-whatsapp-recruit" title="Share to WhatsApp" style="background:#25D366; color:var(--white); border:none; border-radius:8px; padding:0 14px; height:34px; font-size:13px; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:6px;">💬 Share to WhatsApp</button>
       </div>
       <div id="deadline-status" style="font-size:12px; color:var(--grey); margin-top:-8px; margin-bottom:10px;"></div>
     </div>
@@ -3296,10 +3192,6 @@ async function renderAdminPaymentDashboard() {
       : n < RAMP_END ? "60–79 ramp tier"
       : "fixed 70/20/10 tier";
     result.innerHTML = `<strong>${n} verified</strong> → pool ${gbp(calc.pool)} (${tierNote}): ${breakdown}`;
-  });
-
-  document.getElementById("btn-instagram-story").addEventListener("click", () => {
-    downloadStoryImage(prize);
   });
 
   document.getElementById("btn-whatsapp-recruit").addEventListener("click", () => {
