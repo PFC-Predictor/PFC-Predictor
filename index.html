@@ -718,6 +718,7 @@
       <div id="admin-slot"></div>
       <div id="admin-paymentlog-slot"></div>
       <div id="admin-postupdate-slot"></div>
+      <div id="admin-duplicates-slot"></div>
       <div id="admin-relink-slot"></div>
     </section>
   </main>
@@ -3416,6 +3417,89 @@ async function renderAdminPostUpdatePanel() {
   });
 }
 
+function normalizePlayerName(name) {
+  return name.replace(/\s*⚠️\s*/g, "").trim().toLowerCase();
+}
+
+async function renderAdminDuplicatesPanel() {
+  const slot = document.getElementById("admin-duplicates-slot");
+  slot.innerHTML = `<div class="placeholder-note">Loading…</div>`;
+
+  const [players, allPredictions] = await Promise.all([fetchAllPlayersAdmin(), sbFetchAll("predictions?select=player_id")]);
+  const predictionCountByPlayer = new Map();
+  allPredictions.forEach(p => predictionCountByPlayer.set(p.player_id, (predictionCountByPlayer.get(p.player_id) || 0) + 1));
+
+  // Group by normalised name rather than relying only on the ⚠️ marker —
+  // that marker only ever gets set at the moment of signup, so it misses
+  // anything a name was edited into afterwards. Grouping live catches both.
+  const active = players.filter(p => p.is_active);
+  const clusters = new Map();
+  active.forEach(p => {
+    const key = normalizePlayerName(p.display_name);
+    if (!clusters.has(key)) clusters.set(key, []);
+    clusters.get(key).push(p);
+  });
+  const duplicateClusters = [...clusters.values()].filter(c => c.length > 1);
+
+  if (duplicateClusters.length === 0) {
+    slot.innerHTML = `
+      <div class="card">
+        <div class="admin-header" style="margin-top:0;">🧑‍🤝‍🧑 Duplicates</div>
+        <div class="placeholder-note" style="margin-top:0;">No duplicate names among active players right now.</div>
+      </div>`;
+    return;
+  }
+
+  slot.innerHTML = `
+    <div class="card">
+      <div class="admin-header" style="margin-top:0;">🧑‍🤝‍🧑 Duplicates (${duplicateClusters.length})</div>
+      <p style="font-size:12px; color:var(--grey); margin-top:-4px;">
+        Pick which account to keep in each group, then merge — prediction and chat history moves onto the kept account, same as the re-link tool below.
+      </p>
+      ${duplicateClusters.map((cluster, ci) => `
+        <div class="deadline-row" style="flex-direction:column; align-items:stretch; border:1px solid var(--grey-light); border-radius:10px; padding:10px; margin-bottom:10px;">
+          ${cluster.map((p, pi) => `
+            <label style="display:flex; align-items:center; gap:8px; padding:6px 0; ${pi > 0 ? 'border-top:1px solid var(--grey-light);' : ''}">
+              <input type="radio" name="dup-keep-${ci}" value="${p.id}" ${pi === 0 ? "checked" : ""}>
+              <span style="flex:1; font-size:13px;">
+                <strong>${p.display_name.replace(/\s*⚠️\s*/g, "")}</strong>
+                <span style="color:var(--grey); font-size:11px; display:block;">
+                  joined ${new Date(p.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
+                  · ${predictionCountByPlayer.get(p.id) || 0} prediction(s)
+                  · ${p.payment_verified ? "paid ✓" : "not paid"}
+                </span>
+              </span>
+            </label>`).join("")}
+          <button class="btn-merge-cluster" data-cluster="${ci}" style="margin-top:8px; align-self:flex-end;">Merge into selected</button>
+          <div class="dup-cluster-status" data-cluster-status="${ci}" style="font-size:12px; color:var(--grey);"></div>
+        </div>`).join("")}
+    </div>`;
+
+  slot.querySelectorAll(".btn-merge-cluster").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const ci = btn.dataset.cluster;
+      const cluster = duplicateClusters[ci];
+      const status = slot.querySelector(`[data-cluster-status="${ci}"]`);
+      const keepId = slot.querySelector(`input[name="dup-keep-${ci}"]:checked`).value;
+      const othersToMerge = cluster.filter(p => p.id !== keepId);
+      if (!confirm(`Merge ${othersToMerge.length} account(s) into the selected one? This moves their prediction and chat history across.`)) return;
+      btn.disabled = true;
+      status.textContent = "Merging…";
+      try {
+        for (const other of othersToMerge) {
+          await mergePlayerAccounts(other.id, keepId);
+        }
+        status.textContent = "Merged ✓";
+        renderAdminDuplicatesPanel();
+        renderAdminPaymentDashboard();
+      } catch (e) {
+        status.textContent = "Merge failed — try the re-link tool below instead.";
+        btn.disabled = false;
+      }
+    });
+  });
+}
+
 async function renderAdminRelinkPanel() {
   const slot = document.getElementById("admin-relink-slot");
   slot.innerHTML = `<div class="placeholder-note">Loading…</div>`;
@@ -3958,7 +4042,7 @@ function showToast(message, isError = false) {
     if (view === "fixtures") return initFixturesView;
     if (view === "leaderboard") return renderLeaderboard;
     if (view === "picks") return renderPicksOverlay;
-    if (view === "profile" && currentPlayer?.is_admin) return () => { renderAdminAddFixturePanel(); renderAdminEditFixturesPanel(); renderAdminPaymentDashboard(); renderAdminResultsPanel(); renderAdminMissingPanel(); renderAdminSquadPanel(); renderAdminExportPanel(); renderAdminPaymentLogPanel(); renderAdminPostUpdatePanel(); renderAdminRelinkPanel(); };
+    if (view === "profile" && currentPlayer?.is_admin) return () => { renderAdminAddFixturePanel(); renderAdminEditFixturesPanel(); renderAdminPaymentDashboard(); renderAdminResultsPanel(); renderAdminMissingPanel(); renderAdminSquadPanel(); renderAdminExportPanel(); renderAdminPaymentLogPanel(); renderAdminPostUpdatePanel(); renderAdminDuplicatesPanel(); renderAdminRelinkPanel(); };
     return null;
   }
 
