@@ -297,6 +297,11 @@
     font-family:'Bebas Neue', Impact, sans-serif; font-size:18px; letter-spacing:0.5px;
     margin:18px 0 8px;
   }
+  .admin-group-header{
+    font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.6px;
+    color:var(--navy); margin:28px 0 6px; padding-top:16px; border-top:2px solid var(--grey-light);
+  }
+  .admin-group-header:first-of-type{ border-top:none; margin-top:8px; padding-top:0; }
   .prize-grid{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:12px;}
   .prize-tile{background:var(--grey-light); border-radius:12px; padding:10px 12px;}
   .prize-tile .label{font-size:11px; color:var(--grey); text-transform:uppercase; letter-spacing:0.3px;}
@@ -709,17 +714,26 @@
           fees will be refunded by the admin as quickly as possible via the PayPal Pool.
         </p>
       </div>
+      <div class="admin-group-header">📋 This week</div>
       <div id="admin-results-slot"></div>
       <div id="admin-missing-slot"></div>
+
+      <div class="admin-group-header">💰 Money</div>
+      <div id="admin-slot"></div>
+      <div id="admin-paymentlog-slot"></div>
+
+      <div class="admin-group-header">🧑‍🤝‍🧑 Player admin</div>
+      <div id="admin-duplicates-slot"></div>
+      <div id="admin-relink-slot"></div>
+
+      <div class="admin-group-header">⚽ Season setup</div>
       <div id="admin-fixtures-slot"></div>
       <div id="admin-editfixtures-slot"></div>
       <div id="admin-squad-slot"></div>
       <div id="admin-export-slot"></div>
-      <div id="admin-slot"></div>
-      <div id="admin-paymentlog-slot"></div>
+
+      <div class="admin-group-header">📣 Communication</div>
       <div id="admin-postupdate-slot"></div>
-      <div id="admin-duplicates-slot"></div>
-      <div id="admin-relink-slot"></div>
     </section>
   </main>
 
