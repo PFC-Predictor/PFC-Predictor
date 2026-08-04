@@ -348,8 +348,13 @@
   .prize-place.second{background:rgba(255,255,255,0.08);}
   .prize-place.third{background:rgba(255,255,255,0.06);}
   .prize-place .pp-medal{font-size:20px;}
+  .pp-place-label{font-family:'Bebas Neue', Impact, sans-serif; font-size:15px; letter-spacing:1px; margin-bottom:2px;}
+  .prize-place.first .pp-place-label, .prize-place.second .pp-place-label{color:var(--gold);}
+  .prize-place.third .pp-place-label{color:rgba(255,255,255,0.6);}
   .prize-place .pp-amount{font-family:'Bebas Neue', Impact, sans-serif; font-size:22px; color:var(--gold);}
   .prize-place.second .pp-amount, .prize-place.third .pp-amount{color:rgba(255,255,255,0.85); font-size:18px;}
+  tr.lb-inmoney{background:rgba(212,175,55,0.10);}
+  tr.lb-inmoney-cutoff{border-bottom:3px solid var(--gold);}
   .prize-card .pc-note{text-align:center; font-size:11px; color:rgba(255,255,255,0.6); margin-top:12px;}
   .prize-card .pc-potential{
     text-align:center; font-size:11px; color:rgba(255,255,255,0.55);
@@ -1435,7 +1440,7 @@ function openInstructionsModal() {
     </div>
     <div class="modal-section">
       <h4>4. Prize structure</h4>
-      <p id="instructions-prize">Entry is £10 per player. 10% goes to league administration. The remaining pool's split depends on how many people have paid: under 20 paid entries, the winner takes the entire pool; from 20 paid entries, second place's share gradually grows from 20% towards 25% as more people join, with first place taking the rest; from 60 paid entries, a third place is introduced and grows in from there; from 80 paid entries, it settles at a fixed 70/20/10 across first, second and third. Prizes are only ever paid to entrants who've paid and been verified, whatever your leaderboard position, so please make sure you've paid via the PayPal Pool. No PayPal account? Tap "Contribute as a Guest" on the PayPal page, you don't need to sign up.</p>
+      <p id="instructions-prize">Entry is £10 per player. 10% goes to league administration, and the rest forms the prize pool, split between the top finishers, with more of the pool shared out as more people join. You'll always find the current prize amounts live on the Leaderboard tab. Prizes are only ever paid to entrants who've paid and been verified, whatever your leaderboard position, so please make sure you've paid via the PayPal Pool. No PayPal account? Tap "Contribute as a Guest" on the PayPal page, you don't need to sign up.</p>
     </div>
     <div class="modal-section">
       <h4>5. Quick heads up on how this works</h4>
@@ -3507,15 +3512,32 @@ async function renderAdminRecentJoinersPanel() {
   slot.innerHTML = `
     <div class="card">
       <div class="admin-header" style="margin-top:0;">🆕 Recent Joiners (${recent.length})</div>
-      <div class="placeholder-note" style="margin-top:0;">Anyone who signed up in the last 48 hours — worth a quick welcome.</div>
+      <div style="font-size:12px; color:var(--grey); margin:-4px 0 10px;">Joined in the last 48 hours — a good spot to verify them as they pay.</div>
       ${recent.map(p => `
         <div class="player-row">
           <div class="pinfo">
             <div class="pname">${p.display_name.replace(/\s*⚠️\s*/g, "")}</div>
-            <div class="pmeta">Joined ${relativeJoinTime(p.created_at)}${p.payment_verified ? " · paid ✓" : ""}</div>
+            <div class="pmeta">Joined ${relativeJoinTime(p.created_at)}</div>
+          </div>
+          <div class="pactions">
+            <button class="btn-verify" data-verify="${p.id}" data-current="${p.payment_verified}">${p.payment_verified ? "Paid ✓" : "Verify"}</button>
           </div>
         </div>`).join("")}
     </div>`;
+
+  slot.querySelectorAll("[data-verify]").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const currentlyVerified = btn.dataset.current === "true";
+      btn.disabled = true;
+      try {
+        await setPlayerPaymentVerified(btn.dataset.verify, !currentlyVerified);
+        renderAdminRecentJoinersPanel();
+        renderAdminPaymentDashboard();
+      } catch (e) {
+        btn.disabled = false;
+      }
+    });
+  });
 }
 
 function normalizePlayerName(name) {
@@ -3696,21 +3718,14 @@ function denseRank(standings) {
 }
 
 function buildPodiumHtml(amounts, gbp) {
-  const medals = ["🥇", "🥈", "🥉"];
+  const place = (i) => `<div class="prize-place ${["first", "second", "third"][i]}"><div class="pp-place-label">${["1ST", "2ND", "3RD"][i]}</div><div class="pp-amount">${gbp(amounts[i])}</div></div>`;
   if (amounts.length === 1) {
-    return `<div class="prize-podium"><div class="prize-place first" style="flex:none; width:160px;"><div class="pp-medal">💷</div><div class="pp-amount">${gbp(amounts[0])}</div><div style="font-size:10px; color:rgba(255,255,255,0.7); margin-top:2px;">WINNER TAKES ALL</div></div></div>`;
+    return `<div class="prize-podium"><div class="prize-place first" style="flex:none; width:160px;"><div class="pp-place-label">1ST</div><div class="pp-amount">${gbp(amounts[0])}</div><div style="font-size:10px; color:rgba(255,255,255,0.7); margin-top:2px;">WINNER TAKES ALL</div></div></div>`;
   }
   if (amounts.length === 2) {
-    return `<div class="prize-podium">
-      <div class="prize-place first"><div class="pp-medal">💷</div><div class="pp-amount">${gbp(amounts[0])}</div></div>
-      <div class="prize-place second"><div class="pp-medal">💷</div><div class="pp-amount">${gbp(amounts[1])}</div></div>
-    </div>`;
+    return `<div class="prize-podium">${place(0)}${place(1)}</div>`;
   }
-  return `<div class="prize-podium">
-    <div class="prize-place second"><div class="pp-medal">💷</div><div class="pp-amount">${gbp(amounts[1])}</div></div>
-    <div class="prize-place first"><div class="pp-medal">💷</div><div class="pp-amount">${gbp(amounts[0])}</div></div>
-    <div class="prize-place third"><div class="pp-medal">💷</div><div class="pp-amount">${gbp(amounts[2])}</div></div>
-  </div>`;
+  return `<div class="prize-podium">${place(1)}${place(0)}${place(2)}</div>`;
 }
 
 async function renderPrizePoolCard() {
@@ -3749,12 +3764,14 @@ async function renderLeaderboard() {
 
   renderPrizePoolCard();
 
-  const [players, allPredictions, allResults, allFixtures] = await Promise.all([
+  const [players, allPredictions, allResults, allFixtures, prizePlayers] = await Promise.all([
     sbFetchAll("players?is_active=eq.true&is_participant=eq.true&select=*&order=display_name.asc"),
     sbFetchAll("predictions?select=*"),
     sbFetchAll("results?select=*&order=created_at.asc"),
-    sbFetchAll("fixtures?select=*")
+    sbFetchAll("fixtures?select=*"),
+    fetchAllPlayersAdmin()
   ]);
+  const prizeWinners = computePrizePool(prizePlayers).winners;
 
   const fixtureById = new Map(allFixtures.map(f => [f.id, f]));
   const resultsByFixture = new Map(allResults.map(r => [r.fixture_id, r]));
@@ -3786,9 +3803,9 @@ async function renderLeaderboard() {
         ${biggestDown ? `<div class="mover-card down"><div class="arrow">📉</div><div class="name">${biggestDown.player.display_name}</div><div class="delta">Biggest faller, down ${Math.abs(biggestDown.movement)}</div></div>` : "<div></div>"}
       </div>`;
     }
-    renderLbTable(withMovement);
+    renderLbTable(withMovement, prizeWinners);
   } else {
-    renderLbTable(current.map(r => ({ ...r, movement: 0 })));
+    renderLbTable(current.map(r => ({ ...r, movement: 0 })), prizeWinners);
   }
   document.getElementById("mover-slot").innerHTML = moverHtml;
 
@@ -3796,14 +3813,14 @@ async function renderLeaderboard() {
   renderSeasonRecords(players, allPredictions, allResults, resultsByFixture, fixtureById);
 }
 
-function renderLbTable(rows) {
+function renderLbTable(rows, prizeWinners = 0) {
   const tableEl = document.getElementById("lb-table");
   tableEl.innerHTML = `
     <tr>
       <th>Pos</th><th>Player</th><th>Exact</th><th>Correct</th><th>Scorer</th><th>Pts</th>
     </tr>
     ${rows.sort((a, b) => a.rank - b.rank).map(r => `
-      <tr data-player-row="${r.player.id}" data-player-name="${r.player.display_name}" style="cursor:pointer;">
+      <tr data-player-row="${r.player.id}" data-player-name="${r.player.display_name}" style="cursor:pointer;" class="${r.rank <= prizeWinners ? "lb-inmoney" : ""} ${r.rank === prizeWinners ? "lb-inmoney-cutoff" : ""}">
         <td>${r.rank}${r.movement > 0 ? `<div class="lb-move up">▲${r.movement}</div>` : r.movement < 0 ? `<div class="lb-move down">▼${Math.abs(r.movement)}</div>` : ""}</td>
         <td>${r.player.display_name}${r.player.payment_verified ? ` <span class="lb-paid-tick" title="Paid">✓</span>` : ""}</td>
         <td>${r.exact}</td>
