@@ -3161,7 +3161,11 @@ async function renderAdminPaymentDashboard() {
             <button class="btn-verify" style="background:var(--grey-light); color:var(--text);" data-exempt="${p.id}" data-current="${p.pool_exempt}">${p.pool_exempt ? "Un-exempt" : "Exempt"}</button>
             ${!p.payment_verified && !p.pool_exempt && p.phone_number ? `<a href="${whatsappNudgeLink(p.phone_number)}" target="_blank" rel="noopener" class="btn-verify" style="background:#25D366; color:var(--white); text-decoration:none; display:inline-block;">WhatsApp</a>` : ""}
             ${!p.payment_verified ? `<button class="btn-purge" data-purge="${p.id}" data-name="${p.display_name}">Purge</button>` : ""}
-            ${safeToDelete ? `<button class="btn-purge" data-delete-duplicate="${p.id}" data-name="${p.display_name}">Delete duplicate</button>` : (!p.is_active ? `<span style="font-size:10px; color:var(--grey);">Can't delete — ${remainingPreds + remainingMsgs + remainingPayLog} record(s) still attached</span>` : "")}
+            ${safeToDelete
+              ? `<button class="btn-purge" data-delete-duplicate="${p.id}" data-name="${p.display_name}">Delete duplicate</button>`
+              : (!p.is_active
+                  ? `<button class="btn-purge" data-force-delete="${p.id}" data-name="${p.display_name}">Force delete (${remainingPreds + remainingMsgs + remainingPayLog} leftover)</button>`
+                  : "")}
           </div>
         </div>`;
       }).join("")}
@@ -3244,6 +3248,41 @@ async function renderAdminPaymentDashboard() {
       btn.disabled = true; btn.textContent = "Updating…";
       try { await setPlayerPaymentVerified(btn.dataset.verify, !currentlyVerified); renderAdminPaymentDashboard(); }
       catch (err) { alert(err.message); btn.disabled = false; }
+    });
+  });
+
+  slot.querySelectorAll("[data-force-delete]").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const playerId = btn.dataset.forceDelete;
+      btn.disabled = true; btn.textContent = "Checking…";
+      try {
+        const [preds, msgs, payLog, fixtures] = await Promise.all([
+          sbFetchAll(`predictions?player_id=eq.${playerId}&select=fixture_id`),
+          sbFetchAll(`messages?player_id=eq.${playerId}&select=id`),
+          sbFetchAll(`payment_log?or=(player_id.eq.${playerId},added_by.eq.${playerId})&select=id`),
+          sbFetchAll(`fixtures?select=id,home_team,away_team`)
+        ]);
+        const fixtureName = new Map(fixtures.map(f => [f.id, `${f.home_team} v ${f.away_team}`]));
+        const parts = [];
+        if (preds.length) parts.push(`${preds.length} prediction(s) — ${preds.map(p => fixtureName.get(p.fixture_id) || p.fixture_id).join(", ")}`);
+        if (msgs.length) parts.push(`${msgs.length} chat message(s)`);
+        if (payLog.length) parts.push(`${payLog.length} payment log entry(ies)`);
+        const detail = parts.length ? parts.join("; ") : "nothing found — safe to retry Delete duplicate instead";
+        const ok = confirm(`Permanently delete ${btn.dataset.name}, an inactive duplicate, along with everything still attached to it?\n\n${detail}\n\nThis is superseded data left over from a merge, the newer version already lives on the surviving account — but this cannot be undone.`);
+        if (!ok) { btn.disabled = false; btn.textContent = `Force delete (${preds.length + msgs.length + payLog.length} leftover)`; return; }
+
+        btn.textContent = "Deleting…";
+        const headers = { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${getAccessToken()}` };
+        await Promise.all([
+          fetch(`${REST_URL}/predictions?player_id=eq.${playerId}`, { method: "DELETE", headers }),
+          fetch(`${REST_URL}/messages?player_id=eq.${playerId}`, { method: "DELETE", headers }),
+          fetch(`${REST_URL}/payment_log?player_id=eq.${playerId}`, { method: "DELETE", headers }),
+          fetch(`${REST_URL}/payment_log?added_by=eq.${playerId}`, { method: "DELETE", headers })
+        ]);
+        const res = await fetch(`${REST_URL}/players?id=eq.${playerId}`, { method: "DELETE", headers });
+        if (!res.ok) throw new Error("Cleared attached records but couldn't delete the player row — try again.");
+        renderAdminPaymentDashboard();
+      } catch (err) { alert(err.message); btn.disabled = false; }
     });
   });
 
