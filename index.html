@@ -3735,7 +3735,7 @@ async function renderPrizePoolCard() {
   if (prize.verifiedCount === 0) {
     slot.innerHTML = `
       <div class="prize-card">
-        <div class="pc-title">💰 PRIZE POOL</div>
+        <div class="pc-title">💷 PRIZE POOL</div>
         <div class="pc-note" style="margin-top:0;">Prize amounts appear here once the first entry is verified. Pay your £10 to get the pool started.</div>
         ${duplicateNote}
       </div>`;
@@ -3744,7 +3744,7 @@ async function renderPrizePoolCard() {
 
   slot.innerHTML = `
     <div class="prize-card">
-      <div class="pc-title">💰 PRIZE POOL — ${prize.verifiedCount} PAID IN OUT OF ${prize.entries} ENTRIES</div>
+      <div class="pc-title">💷 PRIZE POOL — ${prize.verifiedCount} PAID IN OUT OF ${prize.entries} ENTRIES</div>
       ${buildPodiumHtml(prize.amounts, gbp)}
       ${prize.winners === 1 ? `<div class="pc-note">Under 20 paid entries — one winner takes it all.</div>` : ""}
       ${duplicateNote}
