@@ -1462,13 +1462,6 @@ function openInstructionsModal() {
       <p style="margin-bottom:8px;">🔗 <strong>Share</strong>, also in the header, gives you a QR code and link if you want to invite someone yourself.</p>
       <p>Forgotten your PIN? There's a link on the unlock screen to reset it without losing your account.</p>
     </div>`;
-  fetchAllPlayersAdmin().then(players => {
-    const prize = computePrizePool(players);
-    const gbp = n => `£${n.toFixed(2)}`;
-    const labels = ["1st", "2nd", "3rd"];
-    const figures = prize.amounts.map((amt, i) => `${labels[i]} ${gbp(amt)}`).join(" · ");
-    document.getElementById("instructions-prize").innerHTML += `<br><strong>Current figures (${prize.verifiedCount} paid):</strong> ${figures}`;
-  }).catch(() => {});
   openModal("modal-instructions");
 }
 
@@ -3587,7 +3580,7 @@ async function renderAdminDuplicatesPanel() {
               <span style="flex:1; font-size:13px;">
                 <strong>${p.display_name.replace(/\s*⚠️\s*/g, "")}</strong>
                 <span style="color:var(--grey); font-size:11px; display:block;">
-                  joined ${new Date(p.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
+                  joined ${new Date(p.created_at).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}
                   · ${predictionCountByPlayer.get(p.id) || 0} prediction(s)
                   · ${p.payment_verified ? "paid ✓" : "not paid"}
                 </span>
