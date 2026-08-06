@@ -600,7 +600,6 @@
         <div class="avatar" id="player-pill-avatar">?</div>
         <span class="pill-name" id="player-pill-name"></span>
       </div>
-      <button class="icon-btn" id="btn-instructions" title="Instructions">ℹ️</button>
       <button class="icon-btn" id="btn-chat" title="Chat">💬</button>
       <button class="icon-btn whats-new-badge" id="btn-whats-new" title="What's New">
         📢<span class="dot hidden" id="whats-new-dot"></span>
@@ -692,32 +691,53 @@
         <p style="font-size:11px; color:var(--grey); margin-top:10px; margin-bottom:0;">This button opens the pool — you'll still need to tap Contribute inside PayPal itself to actually send your £10.</p>
         <p style="font-size:11px; color:var(--grey); margin-top:6px; margin-bottom:0;">No PayPal account? Tap "Contribute as a Guest" once you're on the page — you don't need to sign up.</p>
       </div>
-      <div class="card">
-        <h3 style="margin-top:0;">Points system</h3>
-        <p style="font-size:13px; line-height:1.6;">
-          3 points for an exact score. 1 point for a correct result (win, draw or loss called correctly) —
-          this doesn't stack with the exact score point. 2 points for correctly naming the first Pompey
-          goalscorer. Maximum 5 points per match.
-        </p>
-        <p style="font-size:13px; line-height:1.6; margin-top:10px;">
-          <strong>Where it counts:</strong> total points decide your position. If two players are level on
-          points, whoever has the most exact scores ranks higher. Still level after that, it comes down to
-          who's named the most correct first goalscorers.
-        </p>
-        <p style="font-size:13px; line-height:1.6; margin-top:10px;">
-          <strong>Cup matches:</strong> the Carabao Cup and FA Cup can go to extra time or penalties, but
-          your prediction is only ever judged on the score at 90 minutes, whatever happens after that
-          doesn't count either way.
-        </p>
-        <p style="font-size:13px; line-height:1.6; margin-top:10px;">
-          <strong>Prize eligibility:</strong> prizes are only paid to verified entrants, regardless of
-          league position.
-        </p>
-        <p style="font-size:12px; color:var(--grey); line-height:1.6; margin-top:10px;">
-          <strong>App Failure Policy:</strong> in the unlikely event of a system failure
-          halfway through the season, the league will be officially cancelled and 100% of joining
-          fees will be refunded by the admin as quickly as possible via the PayPal Pool.
-        </p>
+      <div class="card collapsible collapsed" style="padding:0;">
+        <div class="collapsible-header" id="profile-instructions-toggle">
+          <span>📖 Instructions</span>
+          <span class="chev">▾</span>
+        </div>
+        <div class="collapsible-body" style="padding:0 14px 14px;">
+          <div class="modal-section">
+            <h4>1. Making a prediction</h4>
+            <p>Enter a home and away score for each fixture before kick-off and tap Save Prediction. All 46 Championship fixtures are already loaded, not added week by week, so use the ‹ › arrows above the fixture list to move between months and predict as many as you like in one go, or come back anytime, whichever suits you. Either way, every prediction locks the moment its match kicks off, so there's no editing after that; get them in early if you're not going to be free nearer the kick-off.</p>
+          </div>
+          <div class="modal-section">
+            <h4>2. First Pompey goalscorer</h4>
+            <p>Only Portsmouth players are eligible — this is about who scores for Pompey, not the opposition. Pick from the squad dropdown or leave it as "No Pompey goalscorer".</p>
+          </div>
+          <div class="modal-section">
+            <h4>3. How points work</h4>
+            <p><span class="badge-pill badge-gold">+3</span> exact score &nbsp; <span class="badge-pill badge-blue">+1</span> correct result &nbsp; <span class="badge-pill badge-green">+2</span> first Pompey goalscorer. Maximum 5 points per match — the exact score point replaces the correct-result point rather than stacking with it. Your leaderboard position is based on total points, and if two players are level, whoever has the most exact scores ranks higher, then whoever's named the most correct first goalscorers if it's still level after that. Cup matches (Carabao Cup, FA Cup) are always judged on the 90-minute score only; extra time and penalties don't affect your prediction either way. Prizes are only paid to verified entrants, regardless of league position.</p>
+          </div>
+          <div class="modal-section">
+            <h4>4. Prize structure</h4>
+            <p id="instructions-prize">Entry is £10 per player. 10% goes to league administration, and the rest forms the prize pool, split between the top finishers, with more of the pool shared out as more people join. You'll always find the current prize amounts live on the Leaderboard tab. Prizes are only ever paid to entrants who've paid and been verified, whatever your leaderboard position, so please make sure you've paid via the PayPal Pool. No PayPal account? Tap "Contribute as a Guest" on the PayPal page, you don't need to sign up.</p>
+          </div>
+          <div class="modal-section">
+            <h4>5. Quick heads up on how this works</h4>
+            <p>This isn't a proper app from an app store, it's a website that lives on your phone. That means your login only exists on the one device you first signed up on.</p>
+            <p style="margin-top:8px;">If you ever open the link again on a different phone, or lose it and start fresh, it'll look like a brand-new signup rather than finding your old account, even though it's still you. Don't worry if this happens; tell Ant, and he'll merge your old and new accounts so none of your points or predictions are lost.</p>
+            <p style="margin-top:8px;"><strong>Best way to avoid it altogether:</strong> once you're signed in, add the page to your Home Screen (Share button on iPhone, or the ⋮ menu on Android, then "Add to Home Screen"), and always open it from that icon from now on, not by tapping the original link again.</p>
+            <p style="margin-top:8px;">If something ever looks out of date or not quite right when you open the app, close it fully and open it again; that usually sorts it straight away.</p>
+          </div>
+          <div class="modal-section">
+            <h4>6. Your mobile number</h4>
+            <p>Only Ant James, as league admin, can see it; no one else. It's used to reach you if there's a query. Any issues, contact Ant James directly.</p>
+          </div>
+          <div class="modal-section">
+            <h4>7. Around the app</h4>
+            <p style="margin-bottom:8px;">🏆 <strong>Leaderboard</strong> shows the live prize pool at the top and the table below; tap any player's row for their full prediction history.</p>
+            <p style="margin-bottom:8px;">👀 <strong>Picks</strong>, its own tab at the bottom, shows what everyone predicted once a match kicks off, grouped by scoreline so you can see who's backing what. Also, within Picks is <strong>The Crowd's Verdict</strong>, showing the split of predictions for the very next fixture.</p>
+            <p style="margin-bottom:8px;">💬 <strong>Chat</strong> is in the header; tap the speech bubble icon any time to open it.</p>
+            <p style="margin-bottom:8px;">📢 <strong>What's New</strong>, also in the header, flags anything added to the app since you last checked.</p>
+            <p style="margin-bottom:8px;">🔗 <strong>Share</strong>, also in the header, gives you a QR code and link if you want to invite someone yourself.</p>
+            <p>Forgotten your PIN? There's a link on the unlock screen to reset it without losing your account.</p>
+          </div>
+          <div class="modal-section">
+            <h4>8. App Failure Policy</h4>
+            <p>In the unlikely event of a system failure halfway through the season, the league will be officially cancelled and 100% of joining fees will be refunded by the admin as quickly as possible via the PayPal Pool.</p>
+          </div>
+        </div>
       </div>
       <div id="admin-panels-wrapper" class="hidden">
       <div class="admin-group-header">📋 This week</div>
@@ -777,17 +797,7 @@
     </div>
   </div>
 
-  <!-- ============ MODALS: Instructions / What's New / Onboarding ============ -->
-  <div id="modal-instructions" class="modal-overlay hidden">
-    <div class="modal-sheet">
-      <div class="modal-header">
-        <h2 style="margin:0;">Instructions</h2>
-        <button class="icon-btn modal-close" style="background:var(--grey-light); color:var(--navy);">✕</button>
-      </div>
-      <div class="modal-body" id="instructions-body"></div>
-    </div>
-  </div>
-
+  <!-- ============ MODALS: What's New / Onboarding ============ -->
   <div id="modal-whats-new" class="modal-overlay hidden">
     <div class="modal-sheet">
       <div class="modal-header">
@@ -1424,49 +1434,6 @@ document.querySelectorAll(".modal-overlay").forEach(overlay => {
   overlay.addEventListener("click", (e) => { if (e.target === overlay) overlay.classList.add("hidden"); });
 });
 
-function openInstructionsModal() {
-  document.getElementById("instructions-body").innerHTML = `
-    <div class="modal-section">
-      <h4>1. Making a prediction</h4>
-      <p>Enter a home and away score for each fixture before kick-off and tap Save Prediction. All 46 Championship fixtures are already loaded, not added week by week, so use the ‹ › arrows above the fixture list to move between months and predict as many as you like in one go, or come back anytime, whichever suits you. Either way, every prediction locks the moment its match kicks off, so there's no editing after that; get them in early if you're not going to be free nearer the kick-off.</p>
-    </div>
-    <div class="modal-section">
-      <h4>2. First Pompey goalscorer</h4>
-      <p>Only Portsmouth players are eligible — this is about who scores for Pompey, not the opposition. Pick from the squad dropdown or leave it as "No Pompey goalscorer".</p>
-    </div>
-    <div class="modal-section">
-      <h4>3. How points work</h4>
-      <p><span class="badge-pill badge-gold">+3</span> exact score &nbsp; <span class="badge-pill badge-blue">+1</span> correct result &nbsp; <span class="badge-pill badge-green">+2</span> first Pompey goalscorer. Maximum 5 points per match — the exact score point replaces the correct-result point rather than stacking with it. Your leaderboard position is based on total points, and if two players are level, whoever has the most exact scores ranks higher, then whoever's named the most correct first goalscorers if it's still level after that. Cup matches (Carabao Cup, FA Cup) are always judged on the 90-minute score only; extra time and penalties don't affect your prediction either way. Prizes are only paid to verified entrants, regardless of league position.</p>
-    </div>
-    <div class="modal-section">
-      <h4>4. Prize structure</h4>
-      <p id="instructions-prize">Entry is £10 per player. 10% goes to league administration, and the rest forms the prize pool, split between the top finishers, with more of the pool shared out as more people join. You'll always find the current prize amounts live on the Leaderboard tab. Prizes are only ever paid to entrants who've paid and been verified, whatever your leaderboard position, so please make sure you've paid via the PayPal Pool. No PayPal account? Tap "Contribute as a Guest" on the PayPal page, you don't need to sign up.</p>
-    </div>
-    <div class="modal-section">
-      <h4>5. Quick heads up on how this works</h4>
-      <p>This isn't a proper app from an app store, it's a website that lives on your phone. That means your login only exists on the one device you first signed up on.</p>
-      <p style="margin-top:8px;">If you ever open the link again on a different phone, or lose it and start fresh, it'll look like a brand-new signup rather than finding your old account, even though it's still you. Don't worry if this happens; tell Ant, and he'll merge your old and new accounts so none of your points or predictions are lost.</p>
-      <p style="margin-top:8px;"><strong>Best way to avoid it altogether:</strong> once you're signed in, add the page to your Home Screen (Share button on iPhone, or the ⋮ menu on Android, then "Add to Home Screen"), and always open it from that icon from now on, not by tapping the original link again.</p>
-      <p style="margin-top:8px;">If something ever looks out of date or not quite right when you open the app, close it fully and open it again; that usually sorts it straight away.</p>
-    </div>
-    <div class="modal-section">
-      <h4>6. Your mobile number</h4>
-      <p>Only Ant James, as league admin, can see it; no one else. It's used to reach you if there's a query. Any issues, contact Ant James directly.</p>
-    </div>
-    <div class="modal-section">
-      <h4>7. Around the app</h4>
-      <p style="margin-bottom:8px;">🏆 <strong>Leaderboard</strong> shows the live prize pool at the top and the table below; tap any player's row for their full prediction history.</p>
-      <p style="margin-bottom:8px;">👀 <strong>Picks</strong>, its own tab at the bottom, shows what everyone predicted once a match kicks off, grouped by scoreline so you can see who's backing what. Also, within Picks is <strong>The Crowd's Verdict</strong>, showing the split of predictions for the very next fixture.</p>
-      <p style="margin-bottom:8px;">💬 <strong>Chat</strong> is in the header; tap the speech bubble icon any time to open it.</p>
-      <p style="margin-bottom:8px;">📢 <strong>What's New</strong>, also in the header, flags anything added to the app since you last checked.</p>
-      <p style="margin-bottom:8px;">🔗 <strong>Share</strong>, also in the header, gives you a QR code and link if you want to invite someone yourself.</p>
-      <p>Forgotten your PIN? There's a link on the unlock screen to reset it without losing your account.</p>
-    </div>`;
-  openModal("modal-instructions");
-}
-
-document.getElementById("btn-instructions").addEventListener("click", openInstructionsModal);
-
 let pendingWhatsNewId = null;
 
 async function renderWhatsNewModal() {
@@ -1539,6 +1506,10 @@ function buildShareMessage(prize, appUrl) {
     "You can pay by PayPal through the app once you're in."
   ].join("\n");
 }
+
+document.getElementById("profile-instructions-toggle").addEventListener("click", (e) => {
+  e.currentTarget.closest(".collapsible").classList.toggle("collapsed");
+});
 
 document.getElementById("btn-weekly-backup").addEventListener("click", () => {
   downloadFullBackupWorkbook(document.getElementById("weekly-backup-status"));
@@ -2338,7 +2309,7 @@ function maybeShowOnboarding() {
 function maybeAutoOpenInstructions() {
   if (localStorage.getItem("pfc_instructions_autoopened")) return;
   localStorage.setItem("pfc_instructions_autoopened", "1");
-  openInstructionsModal();
+  showToast("📖 Instructions have moved — find them in your Profile tab");
 }
 
 /* ---------- hook it all into tab switching / enterApp ---------- */
@@ -2595,12 +2566,8 @@ async function renderReminderBanner(fixtures, myPredictions) {
   slot.innerHTML = `
     <div class="reminder-banner">
       <div class="label">⏰ Missing predictions</div>
-      ${soon.map(f => `<div class="item"><span>${f.home_team} v ${f.away_team}</span><span class="t" data-countdown="${f.kickoff}">${countdownText(f.kickoff)}</span></div>`).join("")}
+      ${soon.map(f => `<div class="item"><span>${f.home_team} v ${f.away_team}</span></div>`).join("")}
     </div>`;
-  const timer = setInterval(() => {
-    slot.querySelectorAll("[data-countdown]").forEach(el => { el.textContent = countdownText(el.dataset.countdown); });
-  }, 30000);
-  countdownTimers.push(timer);
 }
 
 async function renderVerdictPanel(fixture) {
