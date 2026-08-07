@@ -227,6 +227,11 @@
   .reminder-banner .label{font-weight:700; color:var(--red); font-size:12px; margin-bottom:6px;}
   .reminder-banner .item{display:flex; justify-content:center; padding:3px 0; color:var(--text);}
   .reminder-banner .item .t{color:var(--red); font-weight:600; font-variant-numeric:tabular-nums;}
+  .dup-warning-banner{
+    background:#fef6e7; border:1px solid #f0d99a; border-radius:14px; padding:12px 14px;
+    margin-bottom:12px; font-size:13px; text-align:center; color:var(--text); line-height:1.5;
+  }
+  .dup-warning-banner .label{font-weight:700; color:#9c7a1f; font-size:12px; margin-bottom:4px;}
 
   /* ---------- crowd's verdict ---------- */
   .verdict-panel{margin-bottom:12px;}
@@ -613,6 +618,7 @@
       <div id="hero-card-slot"></div>
       <div id="stats-pills-slot"></div>
       <div id="shoutout-slot"></div>
+      <div id="duplicate-warning-slot"></div>
       <div id="reminder-slot"></div>
 
       <div class="gw-nav">
@@ -732,6 +738,7 @@
             <p style="margin-bottom:8px;">📢 <strong>What's New</strong>, also in the header, flags anything added to the app since you last checked.</p>
             <p style="margin-bottom:8px;">🔗 <strong>Share</strong>, also in the header, gives you a QR code and link if you want to invite someone yourself.</p>
             <p>Forgotten your PIN? There's a link on the unlock screen to reset it without losing your account.</p>
+            <p style="margin-top:8px;">⚠️ next to someone's name just means Ant's spotted a possible duplicate signup and will merge it shortly — nothing wrong, no action needed from anyone.</p>
           </div>
           <div class="modal-section">
             <h4>8. App Failure Policy</h4>
@@ -2482,7 +2489,8 @@ async function initFixturesView() {
     renderStatsPills(),
     renderShoutout(),
     renderMonth(currentMonthKey, allFixtures),
-    renderReminderBanner(allFixtures, myPreds)
+    renderReminderBanner(allFixtures, myPreds),
+    renderDuplicateWarningBanner()
   ]);
 }
 
@@ -2552,6 +2560,16 @@ async function renderShoutout() {
       </div>`);
   }
   slot.innerHTML = blocks.join("");
+}
+
+async function renderDuplicateWarningBanner() {
+  const slot = document.getElementById("duplicate-warning-slot");
+  if (!currentPlayer?.display_name?.includes("⚠️")) { slot.innerHTML = ""; return; }
+  slot.innerHTML = `
+    <div class="dup-warning-banner">
+      <div class="label">⚠️ About that symbol next to your name</div>
+      We've spotted another account signed up with the same name as yours — easily done if you've opened the app on a different phone or lost your login. Ant will merge the two shortly, and your points and predictions are completely safe either way. Nothing you need to do.
+    </div>`;
 }
 
 async function renderReminderBanner(fixtures, myPredictions) {
@@ -3033,6 +3051,22 @@ function whatsappNudgeLink(phoneNumber) {
   return `https://wa.me/${intl}?text=${encodeURIComponent(message)}`;
 }
 
+function homeScreenTipLink(phoneNumber) {
+  const digits = phoneNumber.replace(/\D/g, "");
+  const intl = digits.startsWith("0") ? `44${digits.slice(1)}` : digits;
+  const message = [
+    "Hi! Quick one so you don't lose your Pompey Predictor account again 👇",
+    "",
+    "Add the app to your Home Screen so it always opens the same account, rather than starting fresh each time:",
+    "",
+    "📱 iPhone: open it in Safari, tap the Share icon, then \"Add to Home Screen\"",
+    "🤖 Android: open it in Chrome, tap the ⋮ menu, then \"Add to Home Screen\"",
+    "",
+    "Then always open it from that icon from now on, not the original link. Takes about 10 seconds and means your points and predictions never get lost between accounts."
+  ].join("\n");
+  return `https://wa.me/${intl}?text=${encodeURIComponent(message)}`;
+}
+
 let paymentPlayersCollapsed = true;
 
 async function renderAdminPaymentDashboard() {
@@ -3159,6 +3193,7 @@ async function renderAdminPaymentDashboard() {
           </div>
           <div class="pactions" data-more-panel="${p.id}" style="display:none; width:100%; justify-content:flex-end; margin-top:6px;">
             <button class="btn-verify" style="background:var(--grey-light); color:var(--text);" data-exempt="${p.id}" data-current="${p.pool_exempt}">${p.pool_exempt ? "Un-exempt" : "Exempt"}</button>
+            ${p.phone_number ? `<a href="${homeScreenTipLink(p.phone_number)}" target="_blank" rel="noopener" class="btn-verify" style="background:#25D366; color:var(--white); text-decoration:none; display:inline-block;">📱 Home Screen tip</a>` : ""}
             ${!p.payment_verified && !p.pool_exempt && p.phone_number ? `<a href="${whatsappNudgeLink(p.phone_number)}" target="_blank" rel="noopener" class="btn-verify" style="background:#25D366; color:var(--white); text-decoration:none; display:inline-block;">WhatsApp</a>` : ""}
             ${!p.payment_verified ? `<button class="btn-purge" data-purge="${p.id}" data-name="${p.display_name}">Purge</button>` : ""}
             ${safeToDelete
