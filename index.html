@@ -3609,7 +3609,9 @@ async function renderAdminDuplicatesPanel() {
     if (!clusters.has(key)) clusters.set(key, []);
     clusters.get(key).push(p);
   });
-  const duplicateClusters = [...clusters.values()].filter(c => c.length > 1);
+  const duplicateClusters = [...clusters.values()]
+    .filter(c => c.length > 1)
+    .map(c => [...c].sort((a, b) => new Date(b.created_at) - new Date(a.created_at)));
 
   if (duplicateClusters.length === 0) {
     slot.innerHTML = `
@@ -3629,10 +3631,10 @@ async function renderAdminDuplicatesPanel() {
       ${duplicateClusters.map((cluster, ci) => `
         <div class="deadline-row" style="flex-direction:column; align-items:stretch; border:1px solid var(--grey-light); border-radius:10px; padding:10px; margin-bottom:10px;">
           ${cluster.map((p, pi) => `
-            <label style="display:flex; align-items:center; gap:8px; padding:6px 0; ${pi > 0 ? 'border-top:1px solid var(--grey-light);' : ''}">
+            <label style="display:flex; align-items:center; gap:8px; padding:6px 0; ${pi > 0 ? 'border-top:1px solid var(--grey-light);' : ''} ${pi === 0 ? 'background:rgba(212,175,55,0.08); border-radius:6px;' : ''}">
               <input type="radio" name="dup-keep-${ci}" value="${p.id}" ${pi === 0 ? "checked" : ""}>
               <span style="flex:1; font-size:13px;">
-                <strong>${p.display_name.replace(/\s*⚠️\s*/g, "")}</strong>
+                <strong>${p.display_name.replace(/\s*⚠️\s*/g, "")}</strong>${pi === 0 ? ` <span style="color:var(--gold); font-size:11px; font-weight:700;">🆕 most recent</span>` : ""}
                 <span style="color:var(--grey); font-size:11px; display:block;">
                   joined ${new Date(p.created_at).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}
                   · ${predictionCountByPlayer.get(p.id) || 0} prediction(s)
