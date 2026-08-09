@@ -63,13 +63,6 @@
     display:flex; align-items:center; justify-content:center;
     touch-action:manipulation;
   }
-  .whats-new-badge{
-    position:relative;
-  }
-  .whats-new-badge .dot{
-    position:absolute; top:4px; right:4px; width:9px; height:9px; border-radius:50%;
-    background:var(--red); border:2px solid var(--navy);
-  }
   .player-pill{
     display:flex; align-items:center; gap:0;
     background:rgba(255,255,255,0.12);
@@ -129,7 +122,11 @@
     touch-action:manipulation;
     transition:color 0.15s;
   }
-  nav.floating-nav .tab .emoji{font-size:22px; line-height:1;}
+  nav.floating-nav .tab .emoji{font-size:22px; line-height:1; position:relative;}
+  nav.floating-nav .tab .emoji .tab-dot{
+    position:absolute; top:-3px; right:-6px; width:9px; height:9px; border-radius:50%;
+    background:var(--red); border:2px solid var(--white);
+  }
   nav.floating-nav .tab.active{
     color:var(--navy);
   }
@@ -596,9 +593,6 @@
         <span class="pill-name" id="player-pill-name"></span>
       </div>
       <button class="icon-btn" id="btn-chat" title="Chat">💬</button>
-      <button class="icon-btn whats-new-badge" id="btn-whats-new" title="What's New">
-        📢<span class="dot hidden" id="whats-new-dot"></span>
-      </button>
       <button class="icon-btn" id="btn-share" title="Share app">🔗</button>
     </div>
   </header>
@@ -715,7 +709,7 @@
           <div class="modal-section">
             <h4>7. Around the app</h4>
             <p style="margin-bottom:8px;">🏆 <strong>Leaderboard</strong> shows the live prize pool at the top and the table below; tap any player's row for their full prediction history. Further down, <strong>🏅 Season Records</strong> tracks the standout stats for the whole season so far — highest score in a single match, longest correct-result and exact-score streaks, and who's landed the most exact scores overall.</p>
-            <p style="margin-bottom:8px;">👀 <strong>Picks</strong>, its own tab at the bottom, shows what everyone predicted once a match kicks off, grouped by scoreline so you can see who's backing what. Also, within Picks is <strong>The Crowd's Verdict</strong>, showing the split of predictions for the very next fixture, and <strong>🏆 League Awards</strong>, currently leading the pack in three categories: 🎯 <strong>Sharpshooter</strong> (most exact scores), ⚡ <strong>Clinical Finisher</strong> (most correct results and exact scores combined), and 📣 <strong>Best Called Match</strong> (the fixture the most people correctly called).</p>
+            <p style="margin-bottom:8px;">👀 <strong>Picks</strong>, its own tab at the bottom, shows what everyone predicted once a match kicks off, grouped by scoreline so you can see who's backing what. Also, within Picks is <strong>The Crowd's Verdict</strong>, showing the split of predictions for the very next fixture, and <strong>🏆 League Awards</strong>, currently leading the pack in four categories: 🎯 <strong>Exact Score</strong>, ✅ <strong>Correct Result</strong>, ⚽ <strong>Correct First Goalscorer</strong>, and 📣 <strong>Best Called Match</strong> (the fixture the most people correctly called).</p>
             <p style="margin-bottom:8px;">💬 <strong>Chat</strong> is in the header; tap the speech bubble icon any time to open it.</p>
             <p style="margin-bottom:8px;">📢 <strong>What's New</strong>, also in the header, flags anything added to the app since you last checked.</p>
             <p style="margin-bottom:8px;">🔗 <strong>Share</strong>, also in the header, gives you a QR code and link if you want to invite someone yourself.</p>
@@ -757,14 +751,19 @@
       <div id="admin-postupdate-slot"></div>
       </div>
     </section>
+
+    <section id="view-whats-new" class="view">
+      <div id="whats-new-body"></div>
+    </section>
   </main>
 
   <div class="footer-credit">Developed by Ant & Louis James</div>
 
   <nav class="floating-nav">
     <button class="tab active" data-view="fixtures"><span class="emoji">⚽</span>Predictions</button>
-    <button class="tab" data-view="leaderboard"><span class="emoji">🏆</span>Leaderboard</button>
     <button class="tab" data-view="picks"><span class="emoji">👀</span>Picks</button>
+    <button class="tab" data-view="leaderboard"><span class="emoji">🏆</span>Leaderboard</button>
+    <button class="tab" data-view="whats-new"><span class="emoji">📢<span class="tab-dot hidden" id="whats-new-dot"></span></span>What's New</button>
     <button class="tab" data-view="profile"><span class="emoji">👤</span>Profile</button>
   </nav>
 
@@ -786,17 +785,7 @@
     </div>
   </div>
 
-  <!-- ============ MODALS: What's New / Onboarding ============ -->
-  <div id="modal-whats-new" class="modal-overlay hidden">
-    <div class="modal-sheet">
-      <div class="modal-header">
-        <h2 style="margin:0;">What's New</h2>
-        <button class="icon-btn modal-close" style="background:var(--grey-light); color:var(--navy);">✕</button>
-      </div>
-      <div class="modal-body" id="whats-new-body"></div>
-    </div>
-  </div>
-
+  <!-- ============ MODALS: Onboarding ============ -->
   <div id="modal-onboarding" class="modal-overlay hidden">
     <div class="modal-sheet">
       <div class="modal-header">
@@ -1405,6 +1394,7 @@ document.querySelectorAll("nav.floating-nav .tab").forEach(tab => {
     }
     if (tab.dataset.view === "leaderboard") renderLeaderboard();
     if (tab.dataset.view === "picks") renderPicksOverlay();
+    if (tab.dataset.view === "whats-new") renderWhatsNewView();
   }, { passive: true });
 });
 
@@ -1419,13 +1409,10 @@ document.querySelectorAll(".modal-close").forEach(btn => {
   btn.addEventListener("click", (e) => e.target.closest(".modal-overlay").classList.add("hidden"));
 });
 document.querySelectorAll(".modal-overlay").forEach(overlay => {
-  if (overlay.id === "modal-whats-new") return; // forced acknowledgement — no click-outside dismissal
   overlay.addEventListener("click", (e) => { if (e.target === overlay) overlay.classList.add("hidden"); });
 });
 
-let pendingWhatsNewId = null;
-
-async function renderWhatsNewModal() {
+async function renderWhatsNewView() {
   const body = document.getElementById("whats-new-body");
   body.innerHTML = `<div class="placeholder-note">Loading…</div>`;
   const updates = await sbFetchAll("app_updates?select=*&order=id.desc");
@@ -1439,24 +1426,11 @@ async function renderWhatsNewModal() {
       <p style="white-space:pre-line;">${escapeHtml(u.notes || "")}</p>
       <p style="color:var(--grey); font-size:11px; margin-top:4px;">${new Date(u.created_at).toLocaleDateString("en-GB")}</p>
     </div>`).join("");
-  pendingWhatsNewId = updates[0].id;
+  // being on this tab at all is the acknowledgement now — there's no
+  // separate close button to defer marking-as-seen to like the old modal had
+  localStorage.setItem(LS_KEYS.lastSeenUpdateId, String(updates[0].id));
   document.getElementById("whats-new-dot").classList.add("hidden");
 }
-document.getElementById("btn-whats-new").addEventListener("click", () => {
-  renderWhatsNewModal();
-  openModal("modal-whats-new");
-});
-
-// Marking as seen only happens when the person actually dismisses the
-// modal — via the close button here, since the shared overlay-click
-// handler is deliberately skipped for this one modal so a new update
-// can't be swiped away without being acknowledged.
-document.querySelector('#modal-whats-new .modal-close').addEventListener("click", () => {
-  if (pendingWhatsNewId != null) {
-    localStorage.setItem(LS_KEYS.lastSeenUpdateId, String(pendingWhatsNewId));
-    pendingWhatsNewId = null;
-  }
-});
 
 async function checkForUnseenUpdate() {
   try {
@@ -1465,9 +1439,9 @@ async function checkForUnseenUpdate() {
     const latestId = updates[0].id;
     const lastSeen = localStorage.getItem(LS_KEYS.lastSeenUpdateId);
     if (String(latestId) !== lastSeen) {
+      // just a badge on the tab now, not a forced pop-up — the person
+      // finds it in their own time rather than it interrupting them
       document.getElementById("whats-new-dot").classList.remove("hidden");
-      renderWhatsNewModal();
-      openModal("modal-whats-new");
       return true;
     }
     return false;
@@ -1590,10 +1564,12 @@ function renderAwardsPanel(players, predictions, resultByFixture, fixtures) {
     slot.innerHTML = `<div class="awards-panel"><div class="ap-title">🏆 League Awards</div><div class="award-item"><span class="al">No results yet</span></div></div>`;
     return;
   }
-  const topSharp = [...standings].filter(s => s.exact > 0).sort((a, b) => b.exact - a.exact);
-  const topFinisher = [...standings].filter(s => s.correct + s.exact > 0).sort((a, b) => (b.correct + b.exact) - (a.correct + a.exact));
-  const sharpMax = topSharp[0]?.exact;
-  const finisherMax = topFinisher[0] ? (topFinisher[0].correct + topFinisher[0].exact) : 0;
+  const topExact = [...standings].filter(s => s.exact > 0).sort((a, b) => b.exact - a.exact);
+  const topCorrect = [...standings].filter(s => s.correct > 0).sort((a, b) => b.correct - a.correct);
+  const topScorer = [...standings].filter(s => s.scorer > 0).sort((a, b) => b.scorer - a.scorer);
+  const exactMax = topExact[0]?.exact;
+  const correctMax = topCorrect[0]?.correct;
+  const scorerMax = topScorer[0]?.scorer;
 
   // best called match — fixtures with 5+ predictions, most correct-result outcomes
   let bestMatch = null;
@@ -1609,8 +1585,9 @@ function renderAwardsPanel(players, predictions, resultByFixture, fixtures) {
   slot.innerHTML = `
     <div class="awards-panel">
       <div class="ap-title">🏆 League Awards</div>
-      ${sharpMax ? `<div class="award-item"><span class="al">🎯 Sharpshooter</span><span class="av">${topSharp.filter(s => s.exact === sharpMax).map(s => s.player.display_name).join(", ")}</span></div>` : ""}
-      ${finisherMax ? `<div class="award-item"><span class="al">⚡ Clinical Finisher</span><span class="av">${topFinisher.filter(s => (s.correct + s.exact) === finisherMax).map(s => s.player.display_name).join(", ")}</span></div>` : ""}
+      ${exactMax ? `<div class="award-item"><span class="al">🎯 Exact Score</span><span class="av">${topExact.filter(s => s.exact === exactMax).map(s => s.player.display_name).join(", ")}</span></div>` : ""}
+      ${correctMax ? `<div class="award-item"><span class="al">✅ Correct Result</span><span class="av">${topCorrect.filter(s => s.correct === correctMax).map(s => s.player.display_name).join(", ")}</span></div>` : ""}
+      ${scorerMax ? `<div class="award-item"><span class="al">⚽ Correct First Goalscorer</span><span class="av">${topScorer.filter(s => s.scorer === scorerMax).map(s => s.player.display_name).join(", ")}</span></div>` : ""}
       ${bestMatch ? `<div class="award-item"><span class="al">📣 Best Called Match</span><span class="av">${bestMatch.fixture.home_team} v ${bestMatch.fixture.away_team} (${bestMatch.correctCount}/${bestMatch.total})</span></div>` : ""}
     </div>`;
 }
@@ -4117,6 +4094,7 @@ function showToast(message, isError = false) {
     if (view === "fixtures") return initFixturesView;
     if (view === "leaderboard") return renderLeaderboard;
     if (view === "picks") return renderPicksOverlay;
+    if (view === "whats-new") return renderWhatsNewView;
     if (view === "profile" && currentPlayer?.is_admin) return () => { renderAdminAddFixturePanel(); renderAdminEditFixturesPanel(); renderAdminPaymentDashboard(); renderAdminResultsPanel(); renderAdminMissingPanel(); renderAdminSquadPanel(); renderAdminExportPanel(); renderAdminPaymentLogPanel(); renderAdminPostUpdatePanel(); renderAdminRecentJoinersPanel(); renderAdminDuplicatesPanel(); renderAdminRelinkPanel(); };
     return null;
   }
