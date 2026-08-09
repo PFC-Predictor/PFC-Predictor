@@ -212,13 +212,6 @@
   .stats-pill .sp-count{font-family:'Bebas Neue', Impact, sans-serif; font-size:24px; color:var(--navy);}
   .stats-pill .sp-label{font-size:10.5px; color:var(--grey); text-transform:uppercase; letter-spacing:0.3px;}
 
-  /* ---------- shout-out ---------- */
-  .shoutout-card{
-    background:#fff7dc; border:1px solid #f0dd9c; border-radius:14px; padding:14px 16px;
-    margin-bottom:12px; font-size:14px; line-height:1.5;
-  }
-  .shoutout-card .label{font-weight:700; color:#8a6d00; font-size:11px; letter-spacing:0.5px; text-transform:uppercase; margin-bottom:4px;}
-
   /* ---------- reminder banner ---------- */
   .reminder-banner{
     background:#fdecec; border:1px solid #f5b8b8; border-radius:14px; padding:12px 14px;
@@ -396,9 +389,6 @@
   .collapsible.collapsed .collapsible-body{display:none;}
   .fixture-form-body{display:flex; flex-direction:column; gap:10px;}
   .collapsible.collapsed .chev{transform:rotate(-90deg);}
-  .rate-row{display:flex; justify-content:space-between; padding:8px 14px; font-size:12.5px; border-top:1px solid var(--grey-light);}
-  .rate-row .rname{font-weight:600;}
-  .rate-row .rval{color:var(--navy); font-weight:700;}
   .record-row{padding:10px 14px; border-top:1px solid var(--grey-light); font-size:12.5px;}
   .record-row .rlabel{color:var(--grey); font-size:11px; text-transform:uppercase;}
   .record-row .rdetail{font-weight:600;}
@@ -617,7 +607,6 @@
     <section id="view-fixtures" class="view active">
       <div id="hero-card-slot"></div>
       <div id="stats-pills-slot"></div>
-      <div id="shoutout-slot"></div>
       <div id="duplicate-warning-slot"></div>
       <div id="reminder-slot"></div>
 
@@ -639,13 +628,6 @@
       </div>
       <div class="card" style="padding:0; overflow-x:auto;">
         <table class="lb-table" id="lb-table"></table>
-      </div>
-      <div class="card collapsible collapsed" id="rate-panel" style="padding:0; margin-top:12px;">
-        <div class="collapsible-header" id="rate-toggle">
-          <span>📈 Performance Rate</span>
-          <span class="chev">▾</span>
-        </div>
-        <div class="collapsible-body" id="rate-body"></div>
       </div>
       <div class="card collapsible collapsed" id="records-panel" style="padding:0; margin-top:12px;">
         <div class="collapsible-header" id="records-toggle">
@@ -2369,13 +2351,6 @@ async function fetchNextFixture() {
   const rows = await res.json();
   return rows[0] || null;
 }
-async function fetchLatestResults(n = 2) {
-  const res = await fetch(`${REST_URL}/results?select=*,fixtures(*)&order=id.desc&limit=${n}`, {
-    headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${getAccessToken() || SUPABASE_ANON_KEY}` }
-  });
-  if (!res.ok) return [];
-  return res.json();
-}
 async function fetchActiveSquad() {
   const res = await fetch(`${REST_URL}/squad?active=eq.true&select=*&order=player_name.asc`, {
     headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${getAccessToken() || SUPABASE_ANON_KEY}` }
@@ -2487,7 +2462,6 @@ async function initFixturesView() {
   await Promise.all([
     renderHeroCard(next),
     renderStatsPills(),
-    renderShoutout(),
     renderMonth(currentMonthKey, allFixtures),
     renderReminderBanner(allFixtures, myPreds),
     renderDuplicateWarningBanner()
@@ -2505,10 +2479,13 @@ function countdownText(iso) {
   const diffMs = new Date(iso).getTime() - Date.now();
   if (diffMs <= 0) return "KICKED OFF";
   const totalMins = Math.floor(diffMs / 60000);
-  const days = Math.floor(totalMins / 1440);
+  const totalHours = totalMins / 60;
   const hours = Math.floor((totalMins % 1440) / 60);
   const mins = totalMins % 60;
-  if (days > 0) return `KICKS OFF IN ${days} DAY${days === 1 ? "" : "S"} ${hours} HOUR${hours === 1 ? "" : "S"}`;
+  if (totalHours > 12) {
+    const days = Math.max(1, Math.round(totalMins / 1440));
+    return `KICKS OFF IN ${days} DAY${days === 1 ? "" : "S"}`;
+  }
   if (hours > 0) return `KICKS OFF IN ${hours} HOUR${hours === 1 ? "" : "S"} ${mins} MIN${mins === 1 ? "" : "S"}`;
   return `KICKS OFF IN ${mins} MIN${mins === 1 ? "" : "S"}`;
 }
@@ -2537,29 +2514,6 @@ function renderStatsPills() {
       <div class="stats-pill"><div class="sp-count">${POINTS.SCORER}</div><div class="sp-label">Scorer picked</div></div>
     </div>
     <div style="text-align:center; font-size:10.5px; color:var(--grey); margin-top:-6px; margin-bottom:12px;">Max 5 per match — exact and correct don't stack</div>`;
-}
-
-async function renderShoutout() {
-  const slot = document.getElementById("shoutout-slot");
-  const latest = await fetchLatestResults(2);
-  const finished = latest.filter(r => r.fixtures);
-  if (finished.length === 0) { slot.innerHTML = ""; return; }
-
-  const blocks = [];
-  for (const r of finished) {
-    const preds = await fetchAllPredictionsForFixtures([r.fixture_id]);
-    const exactPlayers = preds.filter(p => p.home_score === r.home_score && p.away_score === r.away_score);
-    if (exactPlayers.length === 0) continue;
-    const players = await sbFetchAll(`players?id=in.(${exactPlayers.map(p => p.player_id).join(",")})&select=id,display_name`);
-    const names = players.map(p => p.display_name);
-    const nameStr = names.length === 1 ? names[0] : `${names.slice(0, -1).join(", ")} & ${names[names.length - 1]}`;
-    blocks.push(`
-      <div class="shoutout-card">
-        <div class="label">🎯 Nailed it</div>
-        ${nameStr} nailed the scoreline after 90 mins — ${r.fixtures.home_team} ${r.home_score}-${r.away_score} ${r.fixtures.away_team}.
-      </div>`);
-  }
-  slot.innerHTML = blocks.join("");
 }
 
 async function renderDuplicateWarningBanner() {
@@ -3858,7 +3812,6 @@ async function renderLeaderboard() {
   }
   document.getElementById("mover-slot").innerHTML = moverHtml;
 
-  renderPerformanceRate(current, allPredictions, resultsByFixture, allFixtures);
   renderSeasonRecords(players, allPredictions, allResults, resultsByFixture, fixtureById);
 }
 
@@ -3930,48 +3883,6 @@ async function openPlayerCard(playerId, playerName) {
         </div>
       </div>`;
     }).join("")}`;
-}
-
-function renderPerformanceRate(standings, predictions, resultsByFixture, fixtures) {
-  const body = document.getElementById("rate-body");
-  // overall rate — bonus (scorer) points excluded per spec
-  const eligible = standings
-    .filter(r => r.scoredCount >= 10)
-    .map(r => ({ name: r.player.display_name, rate: (r.exact * POINTS.EXACT + r.correct * POINTS.CORRECT) / r.scoredCount }))
-    .sort((a, b) => b.rate - a.rate);
-
-  // gameweek (recent form) rate — last 5 fixtures with a result, by kickoff
-  const scoredFixtureIds = [...resultsByFixture.keys()];
-  const recentFixtureIds = new Set(
-    fixtures.filter(f => scoredFixtureIds.includes(f.id))
-      .sort((a, b) => new Date(b.kickoff) - new Date(a.kickoff))
-      .slice(0, 5)
-      .map(f => f.id)
-  );
-  const recentByPlayer = new Map();
-  predictions.forEach(pred => {
-    if (!recentFixtureIds.has(pred.fixture_id)) return;
-    const result = resultsByFixture.get(pred.fixture_id);
-    if (!result) return;
-    const bd = calcPoints(pred, result);
-    const row = recentByPlayer.get(pred.player_id) || { points: 0, count: 0 };
-    row.points += (bd.exact ? POINTS.EXACT : 0) + (bd.correct ? POINTS.CORRECT : 0);
-    row.count++;
-    recentByPlayer.set(pred.player_id, row);
-  });
-  const recentRows = standings
-    .filter(r => recentByPlayer.has(r.player.id))
-    .map(r => ({ name: r.player.display_name, rate: recentByPlayer.get(r.player.id).points / recentByPlayer.get(r.player.id).count }))
-    .sort((a, b) => b.rate - a.rate);
-
-  body.innerHTML = `
-    <div class="rate-row" style="border-top:none; font-weight:700; color:var(--grey); font-size:11px;">SEASON RATE (min 10 scored)</div>
-    ${eligible.length ? eligible.map(r => `<div class="rate-row"><span class="rname">${r.name}</span><span class="rval">${r.rate.toFixed(2)}</span></div>`).join("")
-      : `<div class="rate-row" style="color:var(--grey);">Rates unlock once you've had 10 scored predictions — keep going!</div>`}
-    <div class="rate-row" style="font-weight:700; color:var(--grey); font-size:11px;">RECENT FORM (last 5 gameweeks scored)</div>
-    ${recentRows.length ? recentRows.map(r => `<div class="rate-row"><span class="rname">${r.name}</span><span class="rval">${r.rate.toFixed(2)}</span></div>`).join("")
-      : `<div class="rate-row" style="color:var(--grey);">Recent form appears here once results start coming in.</div>`}
-  `;
 }
 
 function renderSeasonRecords(players, predictions, allResults, resultsByFixture, fixtureById) {
@@ -4069,9 +3980,6 @@ function renderSeasonRecords(players, predictions, allResults, resultsByFixture,
   });
 }
 
-document.getElementById("rate-toggle").addEventListener("click", () => {
-  document.getElementById("rate-panel").classList.toggle("collapsed");
-});
 document.getElementById("records-toggle").addEventListener("click", () => {
   document.getElementById("records-panel").classList.toggle("collapsed");
 });
