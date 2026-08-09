@@ -63,6 +63,14 @@
     display:flex; align-items:center; justify-content:center;
     touch-action:manipulation;
   }
+  .icon-btn-labeled{
+    background:rgba(255,255,255,0.12); border:none; color:var(--white);
+    min-width:42px; height:44px; border-radius:9px; padding:0 6px;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px;
+    touch-action:manipulation;
+  }
+  .icon-btn-labeled .ibl-icon{font-size:15px; line-height:1;}
+  .icon-btn-labeled .ibl-label{font-size:8.5px; font-weight:600; letter-spacing:0.2px; line-height:1; color:rgba(255,255,255,0.85);}
   .player-pill{
     display:flex; align-items:center; gap:0;
     background:rgba(255,255,255,0.12);
@@ -592,8 +600,12 @@
         <div class="avatar" id="player-pill-avatar">?</div>
         <span class="pill-name" id="player-pill-name"></span>
       </div>
-      <button class="icon-btn" id="btn-chat" title="Chat">💬</button>
-      <button class="icon-btn" id="btn-share" title="Share app">🔗</button>
+      <button class="icon-btn-labeled" id="btn-chat" title="Chat">
+        <span class="ibl-icon">💬</span><span class="ibl-label">Chat</span>
+      </button>
+      <button class="icon-btn-labeled" id="btn-share" title="Share app">
+        <span class="ibl-icon">🔗</span><span class="ibl-label">Share</span>
+      </button>
     </div>
   </header>
 
