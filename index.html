@@ -294,6 +294,14 @@
   .mc-save:disabled{opacity:0.5;}
   .mc-save-status{font-size:12px; text-align:center; margin-top:6px; min-height:16px;}
   .mc-locked-note{font-size:12px; color:var(--grey); text-align:center; padding:6px 0;}
+  .mc-badge.finished{background:var(--grey-light); color:var(--navy); font-weight:700;}
+  .mc-finished-summary{padding:10px 0 2px; text-align:center; font-size:13px;}
+  .mc-finished-summary .mfs-yours{color:var(--text); margin-bottom:4px;}
+  .mc-finished-summary .mfs-outcome{font-weight:700;}
+  .mc-finished-summary .mfs-outcome.exact{color:#8a6d00;}
+  .mc-finished-summary .mfs-outcome.correct{color:var(--navy);}
+  .mc-finished-summary .mfs-outcome.miss{color:var(--grey); font-weight:400;}
+  .mc-finished-summary .mfs-scorer{color:var(--grey); font-size:12px; margin-top:2px;}
 
   /* ---------- admin: payment dashboard ---------- */
   .admin-header{
@@ -465,7 +473,12 @@
   .gw-group.collapsed .gw-group-body{display:none;}
   .gw-group.collapsed .chev{transform:rotate(-90deg);}
   .pick-card{padding:12px 14px; border-top:1px solid var(--grey-light);}
-  .pick-card .pc-teams{font-weight:700; font-size:13px; margin-bottom:8px;}
+  .pick-card .pc-teams{font-weight:700; font-size:13px; margin-bottom:8px; display:flex; align-items:center; justify-content:space-between; gap:8px;}
+  .pc-ft-badge{
+    font-family:'Bebas Neue', Impact, sans-serif; font-size:18px; letter-spacing:0.5px;
+    background:var(--navy); color:var(--white); border-radius:8px; padding:3px 10px; white-space:nowrap;
+  }
+  .pc-ft-badge .pc-ft-label{font-size:9px; font-weight:400; font-family:-apple-system,BlinkMacSystemFont,sans-serif; letter-spacing:0.5px; opacity:0.75; display:block; text-align:center; margin-bottom:-2px;}
   .pick-score-group{margin-bottom:8px;}
   .pick-score-label{
     font-family:'Bebas Neue', Impact, sans-serif; font-size:15px; color:var(--navy);
@@ -485,24 +498,6 @@
   .badge-grey{background:var(--grey-light); color:var(--grey);}
   .history-row{padding:10px 14px; border-top:1px solid var(--grey-light); font-size:12.5px;}
   .history-row .hr-top{display:flex; justify-content:space-between;}
-
-  /* ---------- chat bubbles ---------- */
-  .chat-row{display:flex; margin-bottom:10px;}
-  .chat-row.mine{justify-content:flex-end;}
-  .chat-row.theirs{justify-content:flex-start;}
-  .chat-bubble{max-width:75%; padding:8px 12px; border-radius:16px; position:relative;}
-  .chat-row.mine .chat-bubble{background:var(--navy); color:var(--white); border-bottom-right-radius:4px;}
-  .chat-row.theirs .chat-bubble{background:var(--white); color:var(--text); border:1px solid var(--grey-light); border-bottom-left-radius:4px;}
-  .chat-bubble .cb-name{font-size:11px; font-weight:700; margin-bottom:2px; color:var(--red);}
-  .chat-row.mine .chat-bubble .cb-name{display:none;}
-  .chat-bubble .cb-text{font-size:13.5px; line-height:1.4; word-break:break-word;}
-  .chat-bubble .cb-time{font-size:10px; margin-top:3px; text-align:right;}
-  .chat-row.mine .chat-bubble .cb-time{color:rgba(255,255,255,0.65);}
-  .chat-row.theirs .chat-bubble .cb-time{color:var(--grey);}
-  .chat-bubble .cb-delete{
-    background:none; border:none; color:inherit; opacity:0.6; font-size:12px;
-    margin-left:6px; vertical-align:middle;
-  }
 
   /* ---------- pull to refresh ---------- */
   #pull-indicator{
@@ -600,9 +595,7 @@
         <div class="avatar" id="player-pill-avatar">?</div>
         <span class="pill-name" id="player-pill-name"></span>
       </div>
-      <button class="icon-btn-labeled" id="btn-chat" title="Chat">
-        <span class="ibl-icon">💬</span><span class="ibl-label">Chat</span>
-      </button>
+      <button class="icon-btn hidden" id="btn-admin-cog" title="Admin">⚙️</button>
       <button class="icon-btn-labeled" id="btn-share" title="Share app">
         <span class="ibl-icon">🔗</span><span class="ibl-label">Share</span>
       </button>
@@ -722,8 +715,7 @@
             <h4>7. Around the app</h4>
             <p style="margin-bottom:8px;">🏆 <strong>Leaderboard</strong> shows the live prize pool at the top and the table below; tap any player's row for their full prediction history. Further down, <strong>🏅 Season Records</strong> tracks the standout stats for the whole season so far — highest score in a single match, longest correct-result and exact-score streaks, and who's landed the most exact scores overall.</p>
             <p style="margin-bottom:8px;">👀 <strong>Picks</strong>, its own tab at the bottom, shows what everyone predicted once a match kicks off, grouped by scoreline so you can see who's backing what. Also, within Picks is <strong>The Crowd's Verdict</strong>, showing the split of predictions for the very next fixture, and <strong>🏆 League Awards</strong>, currently leading the pack in four categories: 🎯 <strong>Exact Score</strong>, ✅ <strong>Correct Result</strong>, ⚽ <strong>Correct First Goalscorer</strong>, and 📣 <strong>Best Called Match</strong> (the fixture the most people correctly called).</p>
-            <p style="margin-bottom:8px;">💬 <strong>Chat</strong> is in the header; tap the speech bubble icon any time to open it.</p>
-            <p style="margin-bottom:8px;">📢 <strong>What's New</strong>, also in the header, flags anything added to the app since you last checked.</p>
+            <p style="margin-bottom:8px;">📢 <strong>Updates</strong>, also in the header, flags anything added to the app since you last checked, and is also where you can suggest a feature.</p>
             <p style="margin-bottom:8px;">🔗 <strong>Share</strong>, also in the header, gives you a QR code and link if you want to invite someone yourself.</p>
             <p>Forgotten your PIN? There's a link on the unlock screen to reset it without losing your account.</p>
             <p style="margin-top:8px;">⚠️ next to someone's name just means Ant's spotted a possible duplicate signup and will merge it shortly — nothing wrong, no action needed from anyone.</p>
@@ -734,8 +726,11 @@
           </div>
         </div>
       </div>
-      <div id="admin-panels-wrapper" class="hidden">
-      <div class="admin-group-header">📋 This week</div>
+    </section>
+
+    <section id="view-admin" class="view">
+      <button class="btn-primary" id="btn-admin-back" style="background:var(--grey-light); color:var(--navy); width:auto; padding:0 14px; height:36px; margin-bottom:14px;">← Back to app</button>
+      <div class="admin-group-header" style="margin-top:0;">📋 This week</div>
       <div class="card" style="margin-bottom:12px;">
         <div class="admin-header" style="margin-top:0;">📦 Weekly Backup</div>
         <button class="mc-save" id="btn-weekly-backup" style="background:var(--red);">Export All (One Workbook, 6 Sheets)</button>
@@ -761,7 +756,6 @@
 
       <div class="admin-group-header">📣 Communication</div>
       <div id="admin-postupdate-slot"></div>
-      </div>
     </section>
 
     <section id="view-whats-new" class="view">
@@ -775,27 +769,9 @@
     <button class="tab active" data-view="fixtures"><span class="emoji">⚽</span>Predictions</button>
     <button class="tab" data-view="picks"><span class="emoji">👀</span>Picks</button>
     <button class="tab" data-view="leaderboard"><span class="emoji">🏆</span>Leaderboard</button>
-    <button class="tab" data-view="whats-new"><span class="emoji">📢<span class="tab-dot hidden" id="whats-new-dot"></span></span>What's New</button>
+    <button class="tab" data-view="whats-new"><span class="emoji">📢<span class="tab-dot hidden" id="whats-new-dot"></span></span>Updates</button>
     <button class="tab" data-view="profile"><span class="emoji">👤</span>Profile</button>
   </nav>
-
-  <!-- ============ CHAT (header modal, since the tab now goes to Everyone's Picks) ============ -->
-  <div id="modal-chat" class="modal-overlay hidden">
-    <div class="modal-sheet" style="max-width:640px; margin:0 auto; height:85%; border-radius:20px 20px 0 0;">
-      <div class="modal-header">
-        <h2 style="margin:0;">💬 Chat</h2>
-        <button class="icon-btn modal-close" style="background:var(--grey-light); color:var(--navy);">✕</button>
-      </div>
-      <div style="flex:1; display:flex; flex-direction:column; min-height:0;">
-        <div id="chat-feed" style="flex:1; overflow-y:auto; padding:14px;"></div>
-        <form id="chat-form" style="display:flex; gap:8px; padding:10px; border-top:1px solid var(--grey-light);">
-          <input type="text" id="chat-input" placeholder="Say something…" maxlength="500"
-            style="flex:1; height:44px; border-radius:10px; border:1px solid var(--grey-light); padding:0 12px; font-size:14px;">
-          <button type="submit" style="width:60px; height:44px; border-radius:10px; border:none; background:var(--navy); color:var(--white); font-weight:700;">Send</button>
-        </form>
-      </div>
-    </div>
-  </div>
 
   <!-- ============ MODALS: Onboarding ============ -->
   <div id="modal-onboarding" class="modal-overlay hidden">
@@ -1143,6 +1119,7 @@ function enterApp() {
   document.getElementById("player-pill").classList.remove("hidden");
   document.getElementById("profile-name").textContent = currentPlayer.display_name;
   document.getElementById("profile-mobile").textContent = currentPlayer.phone_number || "";
+  document.getElementById("btn-admin-cog").classList.toggle("hidden", !currentPlayer.is_admin);
   showScreen("app");
   initFixturesView();
   maybeShowOnboarding();
@@ -1385,24 +1362,6 @@ document.querySelectorAll("nav.floating-nav .tab").forEach(tab => {
     document.getElementById(`view-${tab.dataset.view}`).classList.add("active");
     if (tab.dataset.view === "profile" && currentPlayer) {
       refreshPayEntryCard();
-      const adminWrapper = document.getElementById("admin-panels-wrapper");
-      if (currentPlayer.is_admin) {
-        adminWrapper.classList.remove("hidden");
-        renderAdminAddFixturePanel();
-        renderAdminEditFixturesPanel();
-        renderAdminPaymentDashboard();
-        renderAdminResultsPanel();
-        renderAdminMissingPanel();
-        renderAdminSquadPanel();
-        renderAdminExportPanel();
-        renderAdminPaymentLogPanel();
-        renderAdminPostUpdatePanel();
-        renderAdminRecentJoinersPanel();
-        renderAdminDuplicatesPanel();
-        renderAdminRelinkPanel();
-      } else {
-        adminWrapper.classList.add("hidden");
-      }
     }
     if (tab.dataset.view === "leaderboard") renderLeaderboard();
     if (tab.dataset.view === "picks") renderPicksOverlay();
@@ -1410,9 +1369,34 @@ document.querySelectorAll("nav.floating-nav .tab").forEach(tab => {
   }, { passive: true });
 });
 
-document.getElementById("btn-chat").addEventListener("click", () => {
-  openModal("modal-chat");
-  renderChat();
+function renderAdminPanels() {
+  renderAdminAddFixturePanel();
+  renderAdminEditFixturesPanel();
+  renderAdminPaymentDashboard();
+  renderAdminResultsPanel();
+  renderAdminMissingPanel();
+  renderAdminSquadPanel();
+  renderAdminExportPanel();
+  renderAdminPaymentLogPanel();
+  renderAdminPostUpdatePanel();
+  renderAdminRecentJoinersPanel();
+  renderAdminDuplicatesPanel();
+  renderAdminRelinkPanel();
+}
+
+// The admin view isn't tied to a bottom-nav tab — reached only via the
+// cog icon, which is itself only ever visible to an admin — so it needs
+// its own show/hide pair rather than the generic tab-click handler above.
+document.getElementById("btn-admin-cog").addEventListener("click", () => {
+  document.querySelectorAll("nav.floating-nav .tab").forEach(t => t.classList.remove("active"));
+  document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
+  document.getElementById("view-admin").classList.add("active");
+  renderAdminPanels();
+});
+document.getElementById("btn-admin-back").addEventListener("click", () => {
+  document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
+  document.getElementById("view-profile").classList.add("active");
+  document.querySelector('nav.floating-nav .tab[data-view="profile"]').classList.add("active");
 });
 
 function openModal(id) { document.getElementById(id).classList.remove("hidden"); }
@@ -1427,12 +1411,23 @@ document.querySelectorAll(".modal-overlay").forEach(overlay => {
 async function renderWhatsNewView() {
   const body = document.getElementById("whats-new-body");
   body.innerHTML = `<div class="placeholder-note">Loading…</div>`;
-  const updates = await sbFetchAll("app_updates?select=*&order=id.desc");
+  const [updates, admins] = await Promise.all([
+    sbFetchAll("app_updates?select=*&order=id.desc"),
+    sbFetchAll("players?is_admin=eq.true&is_active=eq.true&select=phone_number&limit=1")
+  ]);
+
+  const suggestCard = admins[0]?.phone_number ? `
+    <div class="card" style="text-align:center; margin-bottom:14px;">
+      <div style="font-weight:700; margin-bottom:6px;">💡 Got an idea for the app?</div>
+      <p style="font-size:12px; color:var(--grey); margin-bottom:10px;">Suggest a feature and it goes straight to Ant.</p>
+      <a href="${suggestFeatureLink(admins[0].phone_number)}" target="_blank" rel="noopener" class="btn-primary" style="display:block; text-decoration:none; line-height:44px; background:#25D366;">💬 Suggest a feature</a>
+    </div>` : "";
+
   if (updates.length === 0) {
-    body.innerHTML = `<div class="placeholder-note">No updates posted yet.</div>`;
+    body.innerHTML = suggestCard + `<div class="placeholder-note">No updates posted yet.</div>`;
     return;
   }
-  body.innerHTML = updates.map(u => `
+  body.innerHTML = suggestCard + updates.map(u => `
     <div class="modal-section">
       <h4>${u.version}</h4>
       <p style="white-space:pre-line;">${escapeHtml(u.notes || "")}</p>
@@ -1655,7 +1650,7 @@ function renderPicksGrid(players, predictions, resultByFixture, fixtures) {
 
           return `
           <div class="pick-card">
-            <div class="pc-teams">${f.home_team} v ${f.away_team} ${result ? `<span style="color:var(--grey); font-weight:400;">— ${result.home_score}-${result.away_score}</span>` : ""}</div>
+            <div class="pc-teams"><span>${f.home_team} v ${f.away_team}</span>${result ? `<span class="pc-ft-badge"><span class="pc-ft-label">FULL-TIME</span>${result.home_score}-${result.away_score}</span>` : ""}</div>
             ${scoreGroups.map(([scoreKey, entries]) => `
               <div class="pick-score-group">
                 <div class="pick-score-label">${scoreKey} <span class="pick-score-count">(${entries.length})</span></div>
@@ -1709,63 +1704,12 @@ function renderPicksHistoryFor(playerId, playerById, predictions, resultByFixtur
     }).join("")}`;
 }
 
-/* ---------- Chat / Social Banter Wall ---------- */
-async function renderChat() {
-  const feed = document.getElementById("chat-feed");
-  const messages = await sbFetchAll("messages?select=*,players(display_name)&order=created_at.asc");
-  if (messages.length === 0) {
-    feed.innerHTML = `<div style="text-align:center; color:var(--grey); font-size:13px; margin-top:40px;">No messages yet — be the first to say something.</div>`;
-    return;
-  }
-  feed.innerHTML = messages.map(m => {
-    const mine = m.player_id === currentPlayer?.id;
-    const time = new Date(m.created_at).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
-    const deleteBtn = currentPlayer?.is_admin ? `<button data-delete-message="${m.id}" class="cb-delete">🗑️</button>` : "";
-    return `
-    <div class="chat-row ${mine ? 'mine' : 'theirs'}">
-      <div class="chat-bubble">
-        <div class="cb-name">${m.players?.display_name || "Unknown"}</div>
-        <div class="cb-text">${escapeHtml(m.message_text)}</div>
-        <div class="cb-time">${time}${deleteBtn}</div>
-      </div>
-    </div>`;
-  }).join("");
-  feed.scrollTop = feed.scrollHeight;
-
-  feed.querySelectorAll("[data-delete-message]").forEach(btn => {
-    btn.addEventListener("click", async () => {
-      if (!confirm("Delete this message?")) return;
-      await fetch(`${REST_URL}/messages?id=eq.${btn.dataset.deleteMessage}`, {
-        method: "DELETE",
-        headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${getAccessToken()}` }
-      });
-      renderChat();
-    });
-  });
-}
+/* ---------- shared helpers ---------- */
 function escapeHtml(str) {
   const div = document.createElement("div");
   div.textContent = str;
   return div.innerHTML;
 }
-document.getElementById("chat-form").addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const input = document.getElementById("chat-input");
-  const text = input.value.trim();
-  if (!text) return;
-  input.value = "";
-  await fetch(`${REST_URL}/messages`, {
-    method: "POST",
-    headers: {
-      apikey: SUPABASE_ANON_KEY,
-      Authorization: `Bearer ${getAccessToken()}`,
-      "Content-Type": "application/json",
-      Prefer: "return=minimal"
-    },
-    body: JSON.stringify({ player_id: currentPlayer.id, message_text: text })
-  });
-  renderChat();
-});
 
 /* ---------- Admin: Squad management ---------- */
 let fixturePanelCollapsed = true;
@@ -2624,39 +2568,60 @@ function buildMatchCard(fixture, squad, existingPred, result) {
   const locked = new Date(fixture.kickoff).getTime() <= Date.now();
 
   const badge = locked
-    ? `<span class="mc-badge locked">Locked</span>`
+    ? (result
+        ? `<span class="mc-badge finished">FT ${result.home_score}-${result.away_score}</span>`
+        : `<span class="mc-badge locked">Locked</span>`)
     : `<span class="mc-badge active">${fmtKickoff(fixture.kickoff)}</span>`;
 
   const isCup = fixture.competition && fixture.competition !== "Championship";
-
-  wrap.innerHTML = `
+  const header = `
     <div class="mc-top">
       <div>
         ${isCup ? `<div style="font-size:10px; font-weight:700; color:var(--red); letter-spacing:0.5px; text-transform:uppercase; margin-bottom:2px;">🏆 ${fixture.competition}</div>` : ""}
         <div class="mc-teams">${fixture.home_team} v ${fixture.away_team}</div>
       </div>
       ${badge}
-    </div>
+    </div>`;
+
+  // Once a match is locked, predictions can no longer change, so the full
+  // input grid (score boxes, goalscorer dropdown) has nothing left to do —
+  // Predictions stays forward-looking; the full breakdown lives in Picks.
+  if (locked) {
+    let summaryHtml;
+    if (!existingPred) {
+      summaryHtml = `<div class="mc-finished-summary mfs-outcome miss">You didn't predict this one</div>`;
+    } else if (!result) {
+      summaryHtml = `<div class="mc-finished-summary"><div class="mfs-yours">Your prediction: ${existingPred.home_score}-${existingPred.away_score}${existingPred.first_scorer ? ` · ⚽ ${existingPred.first_scorer}` : ""}</div><div style="color:var(--grey); font-size:12px;">Kicked off — waiting for the full-time result</div></div>`;
+    } else {
+      const bd = calcPoints(existingPred, result);
+      summaryHtml = `
+        <div class="mc-finished-summary">
+          <div class="mfs-yours">You predicted ${existingPred.home_score}-${existingPred.away_score}</div>
+          ${badgeFor(existingPred, result) || ""}
+        </div>`;
+    }
+    wrap.innerHTML = header + summaryHtml;
+    return wrap;
+  }
+
+  wrap.innerHTML = header + `
     <div class="mc-scores">
-      <input type="tel" inputmode="numeric" maxlength="1" class="mc-home" ${locked ? "disabled" : ""}
+      <input type="tel" inputmode="numeric" maxlength="1" class="mc-home"
         value="${existingPred?.home_score ?? ""}">
       <span class="sep">–</span>
-      <input type="tel" inputmode="numeric" maxlength="1" class="mc-away" ${locked ? "disabled" : ""}
+      <input type="tel" inputmode="numeric" maxlength="1" class="mc-away"
         value="${existingPred?.away_score ?? ""}">
     </div>
     <div class="mc-scorer">
       <label>First Pompey goalscorer</label>
-      <select class="mc-scorer-select" ${locked ? "disabled" : ""}>
+      <select class="mc-scorer-select">
         <option value="">No Pompey goalscorer</option>
         ${sortSquadByPosition(squad).filter(s => s.position !== "GK").map(s => `<option value="${s.player_name}" ${existingPred?.first_scorer === s.player_name ? "selected" : ""}>${s.player_name}${s.position ? ` (${positionLabel(s.position)})` : ""}</option>`).join("")}
       </select>
     </div>
-    ${locked
-      ? `<div class="mc-locked-note">${result ? `Final score: ${result.home_score}-${result.away_score}` : "Kicked off — predictions closed"}</div>`
-      : `<button class="mc-save">Save prediction</button><div class="mc-save-status"></div>`}
+    <button class="mc-save">Save prediction</button><div class="mc-save-status"></div>
   `;
-
-  if (!locked) {
+  {
     const homeInput = wrap.querySelector(".mc-home");
     const awayInput = wrap.querySelector(".mc-away");
     homeInput.addEventListener("input", () => { if (homeInput.value.length >= 1) awayInput.focus(); }, { passive: true });
@@ -2991,6 +2956,13 @@ function whatsappNudgeLink(phoneNumber) {
   // international form with the leading 0 dropped and 44 in its place.
   const intl = digits.startsWith("0") ? `44${digits.slice(1)}` : digits;
   const message = "Hi! Thanks for joining. Please don't forget to pay your £10 entry via https://www.paypal.com/pool/9q61PGoEEs?sr=ancr . No PayPal account? Tap \"Contribute as a Guest\" on that page, you don't need to sign up. If you no longer want to be part of the league, just let me know and I'll remove you.";
+  return `https://wa.me/${intl}?text=${encodeURIComponent(message)}`;
+}
+
+function suggestFeatureLink(adminPhoneNumber) {
+  const digits = adminPhoneNumber.replace(/\D/g, "");
+  const intl = digits.startsWith("0") ? `44${digits.slice(1)}` : digits;
+  const message = `Hi! I've got an idea for Pompey Predictor: `;
   return `https://wa.me/${intl}?text=${encodeURIComponent(message)}`;
 }
 
@@ -3402,7 +3374,7 @@ async function renderAdminPostUpdatePanel() {
   slot.innerHTML = `
     <div class="card collapsible ${postUpdateCollapsed ? 'collapsed' : ''}" style="padding:0;">
       <div class="collapsible-header" id="postupdate-toggle">
-        <span>📢 Post What's New Update</span>
+        <span>📢 Post an Update</span>
         <span class="chev">▾</span>
       </div>
       <div class="collapsible-body" style="padding:0 14px 14px;">
@@ -3412,7 +3384,7 @@ async function renderAdminPostUpdatePanel() {
           e.g. "🆕 Picks now has its own tab" not "We have decided to move Everyone's Picks into its own dedicated tab."
         </p>
         <input type="text" id="update-version" placeholder="Heading, e.g. 📱 App Update — New Tab, New Look" style="width:100%; height:38px; border-radius:8px; border:1px solid var(--grey-light); padding:0 10px; font-size:13px; margin-bottom:8px;">
-        <textarea id="update-notes" placeholder="One punchy emoji-led line per change, e.g.&#10;🆕 Picks now has its own tab&#10;💬 Chat moved to the header icon" rows="5" style="width:100%; border-radius:8px; border:1px solid var(--grey-light); padding:8px 10px; font-size:13px; margin-bottom:8px; font-family:inherit;"></textarea>
+        <textarea id="update-notes" placeholder="One punchy emoji-led line per change, e.g.&#10;🆕 Picks now has its own tab&#10;🧭 What's New moved to the header icon" rows="5" style="width:100%; border-radius:8px; border:1px solid var(--grey-light); padding:8px 10px; font-size:13px; margin-bottom:8px; font-family:inherit;"></textarea>
         <button id="btn-post-update" class="mc-save">Post update</button>
         <div id="postupdate-status" style="font-size:12px; color:var(--grey); margin-top:6px;"></div>
         ${updates.length ? updates.map(u => `
@@ -4101,13 +4073,13 @@ function showToast(message, isError = false) {
   let refreshing = false;
 
   function currentRefreshFn() {
+    if (document.getElementById("view-admin").classList.contains("active")) return renderAdminPanels;
     const activeTab = document.querySelector("nav.floating-nav .tab.active");
     const view = activeTab ? activeTab.dataset.view : "fixtures";
     if (view === "fixtures") return initFixturesView;
     if (view === "leaderboard") return renderLeaderboard;
     if (view === "picks") return renderPicksOverlay;
     if (view === "whats-new") return renderWhatsNewView;
-    if (view === "profile" && currentPlayer?.is_admin) return () => { renderAdminAddFixturePanel(); renderAdminEditFixturesPanel(); renderAdminPaymentDashboard(); renderAdminResultsPanel(); renderAdminMissingPanel(); renderAdminSquadPanel(); renderAdminExportPanel(); renderAdminPaymentLogPanel(); renderAdminPostUpdatePanel(); renderAdminRecentJoinersPanel(); renderAdminDuplicatesPanel(); renderAdminRelinkPanel(); };
     return null;
   }
 
