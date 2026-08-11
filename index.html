@@ -257,11 +257,11 @@
     margin-bottom:12px;
   }
   .gw-nav button{
-    width:44px; height:44px; border-radius:12px; border:none; background:var(--white);
-    box-shadow:0 1px 3px rgba(11,27,51,0.08); font-size:18px; color:var(--navy);
+    width:44px; height:44px; border-radius:12px; border:none; background:var(--navy);
+    box-shadow:0 1px 3px rgba(11,27,51,0.2); font-size:18px; font-weight:700; color:var(--gold);
     touch-action:manipulation;
   }
-  .gw-nav button:disabled{opacity:0.35;}
+  .gw-nav button:disabled{opacity:0.3;}
   .gw-nav .gw-label{font-family:'Bebas Neue', Impact, sans-serif; font-size:20px; letter-spacing:0.5px;}
 
   /* ---------- match card ---------- */
@@ -314,6 +314,11 @@
   }
   .admin-group-header:first-of-type{ border-top:none; margin-top:8px; padding-top:0; }
   .prize-grid{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:12px;}
+  .season-summary-grid{display:grid; grid-template-columns:1fr 1fr; gap:8px;}
+  .season-summary-grid .ss-tile{background:var(--grey-light); border-radius:12px; padding:10px 12px;}
+  .season-summary-grid .ss-tile .label{font-size:11px; color:var(--grey); text-transform:uppercase; letter-spacing:0.3px;}
+  .season-summary-grid .ss-tile .value{font-family:'Bebas Neue', Impact, sans-serif; font-size:24px; color:var(--navy);}
+  .season-summary-grid .ss-tile.rank .value{color:var(--gold);}
   .prize-tile{background:var(--grey-light); border-radius:12px; padding:10px 12px;}
   .prize-tile .label{font-size:11px; color:var(--grey); text-transform:uppercase; letter-spacing:0.3px;}
   .prize-tile .value{font-family:'Bebas Neue', Impact, sans-serif; font-size:20px; color:var(--navy);}
@@ -650,6 +655,7 @@
     </section>
 
     <section id="view-profile" class="view">
+      <div id="season-summary-slot"></div>
       <div class="card">
         <div style="display:flex; justify-content:space-between; align-items:center; gap:10px;">
           <div style="min-width:0;">
@@ -1376,6 +1382,7 @@ document.querySelectorAll("nav.floating-nav .tab").forEach(tab => {
     document.getElementById(`view-${tab.dataset.view}`).classList.add("active");
     if (tab.dataset.view === "profile" && currentPlayer) {
       refreshPayEntryCard();
+      renderSeasonSummary();
     }
     if (tab.dataset.view === "leaderboard") renderLeaderboard();
     if (tab.dataset.view === "picks") renderPicksOverlay();
@@ -1603,6 +1610,22 @@ function renderAwardsPanel(players, predictions, resultByFixture, fixtures) {
     if (!bestMatch || correctCount > bestMatch.correctCount) bestMatch = { fixture: f, correctCount, total: preds.length };
   });
 
+  // most predicted first goalscorer — tallied across every fixture that's
+  // actually finished, so it only reflects matches with a result in, and
+  // grows as each new result gets entered rather than counting picks for
+  // games that haven't kicked off yet
+  const scorerPickCounts = new Map();
+  fixtures.forEach(f => {
+    if (!resultByFixture.get(f.id)) return;
+    predictions.filter(p => p.fixture_id === f.id && p.first_scorer).forEach(p => {
+      scorerPickCounts.set(p.first_scorer, (scorerPickCounts.get(p.first_scorer) || 0) + 1);
+    });
+  });
+  let topPickedScorer = null, topPickedScorerCount = 0;
+  scorerPickCounts.forEach((count, name) => {
+    if (count > topPickedScorerCount) { topPickedScorer = name; topPickedScorerCount = count; }
+  });
+
   slot.innerHTML = `
     <div class="awards-panel">
       <div class="ap-title">🏆 League Awards</div>
@@ -1610,6 +1633,7 @@ function renderAwardsPanel(players, predictions, resultByFixture, fixtures) {
       ${correctMax ? `<div class="award-item"><span class="al">✅ Correct Result</span><span class="av">${topCorrect.filter(s => s.correct === correctMax).map(s => s.player.display_name).join(", ")}</span></div>` : ""}
       ${scorerMax ? `<div class="award-item"><span class="al">⚽ Correct First Goalscorer</span><span class="av">${topScorer.filter(s => s.scorer === scorerMax).map(s => s.player.display_name).join(", ")}</span></div>` : ""}
       ${bestMatch ? `<div class="award-item"><span class="al">📣 Best Called Match</span><span class="av">${bestMatch.fixture.home_team} v ${bestMatch.fixture.away_team} (${bestMatch.correctCount}/${bestMatch.total})</span></div>` : ""}
+      ${topPickedScorer ? `<div class="award-item"><span class="al">🔮 Most Predicted Scorer</span><span class="av">${topPickedScorer} (${topPickedScorerCount} picks)</span></div>` : ""}
     </div>`;
 }
 
@@ -3716,6 +3740,50 @@ function denseRank(standings) {
   return sorted.map((row, i) => ({ ...row, rank: i + 1 }));
 }
 
+async function renderSeasonSummary() {
+  const slot = document.getElementById("season-summary-slot");
+  if (!currentPlayer) { slot.innerHTML = ""; return; }
+  slot.innerHTML = `<div class="placeholder-note">Loading…</div>`;
+
+  const [players, allPredictions, allResults] = await Promise.all([
+    sbFetchAll("players?is_active=eq.true&is_participant=eq.true&select=*"),
+    sbFetchAll("predictions?select=*"),
+    sbFetchAll("results?select=*")
+  ]);
+  const resultsByFixture = new Map(allResults.map(r => [r.fixture_id, r]));
+  const standings = denseRank(computeStandingsFor(players, allPredictions, resultsByFixture));
+  const mine = standings.find(r => r.player.id === currentPlayer.id);
+
+  if (!mine || mine.scoredCount === 0) {
+    slot.innerHTML = `
+      <div class="card">
+        <div class="admin-header" style="margin-top:0;">📊 Your Season So Far</div>
+        <div class="placeholder-note" style="margin-top:0;">Your stats appear here once the first result's in.</div>
+      </div>`;
+    return;
+  }
+
+  slot.innerHTML = `
+    <div class="card">
+      <div class="admin-header" style="margin-top:0;">📊 Your Season So Far</div>
+      <div class="season-summary-grid">
+        <div class="ss-tile rank"><div class="label">Current Rank</div><div class="value">${mine.rank}${ordinalSuffix(mine.rank)} / ${standings.length}</div></div>
+        <div class="ss-tile"><div class="label">Total Points</div><div class="value">${mine.total}</div></div>
+        <div class="ss-tile"><div class="label">Exact Scores</div><div class="value">${mine.exact}</div></div>
+        <div class="ss-tile"><div class="label">Correct Results</div><div class="value">${mine.correct}</div></div>
+        <div class="ss-tile"><div class="label">Correct First GS</div><div class="value">${mine.scorer}</div></div>
+      </div>
+    </div>`;
+}
+function ordinalSuffix(n) {
+  const j = n % 10, k = n % 100;
+  if (j === 1 && k !== 11) return "st";
+  if (j === 2 && k !== 12) return "nd";
+  if (j === 3 && k !== 13) return "rd";
+  return "th";
+}
+
+
 function buildPodiumHtml(amounts, gbp) {
   const place = (i) => `<div class="prize-place ${["first", "second", "third"][i]}"><div class="pp-place-label">${["1ST", "2ND", "3RD"][i]}</div><div class="pp-amount">${gbp(amounts[i])}</div></div>`;
   if (amounts.length === 1) {
@@ -4115,6 +4183,7 @@ function showToast(message, isError = false) {
     if (view === "leaderboard") return renderLeaderboard;
     if (view === "picks") return renderPicksOverlay;
     if (view === "whats-new") return renderWhatsNewView;
+    if (view === "profile") return () => { refreshPayEntryCard(); renderSeasonSummary(); };
     return null;
   }
 
