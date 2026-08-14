@@ -3035,9 +3035,15 @@ async function renderAdminPaymentDashboard() {
   const slot = document.getElementById("admin-slot");
   slot.innerHTML = `<div class="placeholder-note">Loading payment dashboard…</div>`;
 
-  const [players, settings, allPredictions, allMessages, allPaymentLog] = await Promise.all([fetchAllPlayersAdmin(), fetchLeagueSettings(), sbFetchAll("predictions?select=player_id"), sbFetchAll("messages?select=player_id"), sbFetchAll("payment_log?select=player_id,added_by")]);
+  const [players, settings, allPredictions, allMessages, allPaymentLog, allFixtures] = await Promise.all([fetchAllPlayersAdmin(), fetchLeagueSettings(), sbFetchAll("predictions?select=player_id,fixture_id,created_at"), sbFetchAll("messages?select=player_id"), sbFetchAll("payment_log?select=player_id,added_by"), sbFetchAll("fixtures?select=id,home_team,away_team")]);
   const predictionCountByPlayer = new Map();
   allPredictions.forEach(p => predictionCountByPlayer.set(p.player_id, (predictionCountByPlayer.get(p.player_id) || 0) + 1));
+  const fixtureById = new Map(allFixtures.map(f => [f.id, f]));
+  const lastPredictionByPlayer = new Map();
+  allPredictions.forEach(p => {
+    const existing = lastPredictionByPlayer.get(p.player_id);
+    if (!existing || new Date(p.created_at) > new Date(existing.created_at)) lastPredictionByPlayer.set(p.player_id, p);
+  });
   const messageCountByPlayer = new Map();
   allMessages.forEach(m => messageCountByPlayer.set(m.player_id, (messageCountByPlayer.get(m.player_id) || 0) + 1));
   const paymentLogCountByPlayer = new Map();
@@ -3148,6 +3154,13 @@ async function renderAdminPaymentDashboard() {
           <div class="pinfo">
             <div class="pname">${p.display_name}${overdue ? " ⚠️" : ""}${p.pool_exempt ? " <span style=\"color:var(--grey); font-weight:400;\">(exempt)</span>" : ""}${!p.is_active ? " <span style=\"color:var(--grey); font-weight:400;\">(inactive)</span>" : ""}</div>
             <div class="pmeta">${p.phone_number || "no mobile on file"} · joined ${new Date(p.created_at).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}</div>
+            <div class="pmeta">${(() => {
+              const last = lastPredictionByPlayer.get(p.id);
+              if (!last) return "No predictions yet";
+              const f = fixtureById.get(last.fixture_id);
+              const when = new Date(last.created_at).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
+              return `Last predicted ${f ? `${f.home_team} v ${f.away_team}` : "a fixture"} · ${when}`;
+            })()}</div>
           </div>
           <div class="pactions">
             <button class="btn-verify" data-verify="${p.id}" data-current="${p.payment_verified}">${p.payment_verified ? "Paid ✓" : "Verify"}</button>
