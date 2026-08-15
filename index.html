@@ -546,6 +546,7 @@
     <input type="text" id="input-surname" placeholder="Surname" autocomplete="family-name" required>
     <input type="tel" id="input-mobile" placeholder="Mobile number" autocomplete="tel" required>
     <button type="button" id="btn-toggle-reclaim" style="background:rgba(255,212,121,0.15); border:2px solid #ffd479; color:#ffd479; border-radius:12px; height:48px; font-size:14px; font-weight:700;">🔑 I've played before</button>
+    <div id="name-match-note" class="hidden" style="background:rgba(255,212,121,0.15); border:2px solid #ffd479; border-radius:12px; padding:10px 12px; font-size:13px; color:#ffd479; font-weight:600;"></div>
     <div id="reclaim-section" class="hidden">
       <div style="font-size:12px; color:#ffd479; font-weight:600; margin-bottom:6px;">Enter your original PIN — this gets your points and history back, not a fresh start.</div>
       <input type="tel" inputmode="numeric" maxlength="4" id="input-reclaim-pin" placeholder="Original PIN">
@@ -1184,6 +1185,41 @@ document.getElementById("btn-toggle-reclaim").addEventListener("click", () => {
   const section = document.getElementById("reclaim-section");
   const nowHidden = section.classList.toggle("hidden");
   if (!nowHidden) document.getElementById("input-reclaim-pin").focus();
+});
+
+// Catches the duplicate at the one moment it's actually created, rather
+// than relying on someone remembering to tap "I've played before" —
+// checks as soon as both name fields are filled, not on submit, so
+// there's time to notice and react before they've committed to anything.
+let nameMatchCheckTimer = null;
+async function checkForNameMatch() {
+  const firstName = document.getElementById("input-firstname").value.trim();
+  const surname = document.getElementById("input-surname").value.trim();
+  const note = document.getElementById("name-match-note");
+  const reclaimSection = document.getElementById("reclaim-section");
+  if (!firstName || !surname) { note.classList.add("hidden"); return; }
+  const fullName = `${firstName} ${surname}`.toLowerCase();
+  try {
+    const res = await fetch(`${REST_URL}/players?is_active=eq.true&select=display_name`, {
+      headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` }
+    });
+    if (!res.ok) return;
+    const existing = await res.json();
+    const isMatch = existing.some(p => p.display_name.replace(/\s*⚠️\s*/g, "").trim().toLowerCase() === fullName);
+    if (isMatch) {
+      note.textContent = `We already have a ${firstName} ${surname} on file. If that's you, enter your original PIN below to get your points and history back. If it's someone else with the same name, just carry on.`;
+      note.classList.remove("hidden");
+      reclaimSection.classList.remove("hidden");
+    } else {
+      note.classList.add("hidden");
+    }
+  } catch (e) { /* non-critical — signup still works normally either way */ }
+}
+["input-firstname", "input-surname"].forEach(id => {
+  document.getElementById(id).addEventListener("input", () => {
+    clearTimeout(nameMatchCheckTimer);
+    nameMatchCheckTimer = setTimeout(checkForNameMatch, 500);
+  });
 });
 
 document.getElementById("form-newplayer").addEventListener("submit", async (e) => {
