@@ -2883,6 +2883,25 @@ async function togglePoolExempt(playerId, exempt) {
   return res.json();
 }
 
+// Hides a player from the Leaderboard, Missing Predictions, and League
+// Awards — all three already filter on is_participant — while leaving
+// them fully counted for payment and prize pool purposes, and leaving
+// their account intact if they ever come back and start predicting again.
+async function toggleParticipant(playerId, participant) {
+  const res = await fetch(`${REST_URL}/players?id=eq.${playerId}`, {
+    method: "PATCH",
+    headers: {
+      apikey: SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${getAccessToken()}`,
+      "Content-Type": "application/json",
+      Prefer: "return=representation"
+    },
+    body: JSON.stringify({ is_participant: participant })
+  });
+  if (!res.ok) throw new Error("Could not update league visibility.");
+  return res.json();
+}
+
 /* The only hard delete permitted anywhere in this app, and only
    for a player who has never paid — everyone else is soft-deleted
    via is_active per the spec. */
@@ -3013,21 +3032,6 @@ function suggestFeatureLink(adminPhoneNumber) {
   return `https://wa.me/${intl}?text=${encodeURIComponent(message)}`;
 }
 
-function homeScreenTipLink(phoneNumber) {
-  const digits = phoneNumber.replace(/\D/g, "");
-  const intl = digits.startsWith("0") ? `44${digits.slice(1)}` : digits;
-  const message = [
-    "Hi! Quick one so you don't lose your Pompey Predictor account again 👇",
-    "",
-    "Add the app to your Home Screen so it always opens the same account, rather than starting fresh each time:",
-    "",
-    "📱 iPhone: open it in Safari, tap the Share icon, then \"Add to Home Screen\"",
-    "🤖 Android: open it in Chrome, tap the ⋮ menu, then \"Add to Home Screen\"",
-    "",
-    "Then always open it from that icon from now on, not the original link. Takes about 10 seconds and means your points and predictions never get lost between accounts."
-  ].join("\n");
-  return `https://wa.me/${intl}?text=${encodeURIComponent(message)}`;
-}
 
 let paymentPlayersCollapsed = true;
 
@@ -3152,7 +3156,7 @@ async function renderAdminPaymentDashboard() {
         return `
         <div class="player-row ${overdue ? 'overdue' : ''}" data-search-name="${p.display_name.toLowerCase()}">
           <div class="pinfo">
-            <div class="pname">${p.display_name}${overdue ? " ⚠️" : ""}${p.pool_exempt ? " <span style=\"color:var(--grey); font-weight:400;\">(exempt)</span>" : ""}${!p.is_active ? " <span style=\"color:var(--grey); font-weight:400;\">(inactive)</span>" : ""}</div>
+            <div class="pname">${p.display_name}${overdue ? " ⚠️" : ""}${p.pool_exempt ? " <span style=\"color:var(--grey); font-weight:400;\">(exempt)</span>" : ""}${!p.is_active ? " <span style=\"color:var(--grey); font-weight:400;\">(inactive)</span>" : ""}${p.is_participant === false ? " <span style=\"color:var(--gold); font-weight:700;\">(hidden)</span>" : ""}</div>
             <div class="pmeta">${p.phone_number || "no mobile on file"} · joined ${new Date(p.created_at).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}</div>
             <div class="pmeta">${(() => {
               const last = lastPredictionByPlayer.get(p.id);
@@ -3168,7 +3172,7 @@ async function renderAdminPaymentDashboard() {
           </div>
           <div class="pactions" data-more-panel="${p.id}" style="display:none; width:100%; justify-content:flex-end; margin-top:6px;">
             <button class="btn-verify" style="background:var(--grey-light); color:var(--text);" data-exempt="${p.id}" data-current="${p.pool_exempt}">${p.pool_exempt ? "Un-exempt" : "Exempt"}</button>
-            ${p.phone_number ? `<a href="${homeScreenTipLink(p.phone_number)}" target="_blank" rel="noopener" class="btn-verify" style="background:#25D366; color:var(--white); text-decoration:none; display:inline-block;">📱 Home Screen tip</a>` : ""}
+            <button class="btn-verify" style="background:${p.is_participant === false ? 'var(--gold)' : 'var(--grey-light)'}; color:${p.is_participant === false ? 'var(--navy)' : 'var(--text)'};" data-toggle-participant="${p.id}" data-current="${p.is_participant !== false}">${p.is_participant === false ? "Hidden — Un-hide" : "Hide from league"}</button>
             ${!p.payment_verified && !p.pool_exempt && p.phone_number ? `<a href="${whatsappNudgeLink(p.phone_number)}" target="_blank" rel="noopener" class="btn-verify" style="background:#25D366; color:var(--white); text-decoration:none; display:inline-block;">WhatsApp</a>` : ""}
             ${!p.payment_verified ? `<button class="btn-purge" data-purge="${p.id}" data-name="${p.display_name}">Purge</button>` : ""}
             ${safeToDelete
@@ -3317,6 +3321,15 @@ async function renderAdminPaymentDashboard() {
       const currentlyExempt = btn.dataset.current === "true";
       btn.disabled = true;
       try { await togglePoolExempt(btn.dataset.exempt, !currentlyExempt); renderAdminPaymentDashboard(); }
+      catch (err) { alert(err.message); btn.disabled = false; }
+    });
+  });
+
+  slot.querySelectorAll("[data-toggle-participant]").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const currentlyShown = btn.dataset.current === "true";
+      btn.disabled = true;
+      try { await toggleParticipant(btn.dataset.toggleParticipant, !currentlyShown); renderAdminPaymentDashboard(); }
       catch (err) { alert(err.message); btn.disabled = false; }
     });
   });
