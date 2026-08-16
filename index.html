@@ -803,6 +803,7 @@
       <div class="admin-group-header">🧑‍🤝‍🧑 Player admin</div>
       <div id="admin-recentjoiners-slot"></div>
       <div id="admin-duplicates-slot"></div>
+      <div id="admin-mergetracker-slot"></div>
       <div id="admin-relink-slot"></div>
 
       <div class="admin-group-header">⚽ Season setup</div>
@@ -1574,6 +1575,7 @@ function renderAdminPanels() {
   renderAdminPostUpdatePanel();
   renderAdminRecentJoinersPanel();
   renderAdminDuplicatesPanel();
+  renderAdminMergeTrackerPanel();
   renderAdminRelinkPanel();
 }
 
@@ -3052,15 +3054,62 @@ async function mergePlayerAccounts(oldId, newId) {
   const newRes = await fetch(`${REST_URL}/players?id=eq.${newId}&select=display_name`, { headers });
   const newRows = await newRes.json().catch(() => []);
   let markerCleared = false;
+  const cleanName = (newRows[0]?.display_name || "").replace(/\s*⚠️\s*/g, "").trim();
   if (newRows[0]?.display_name?.includes("⚠️")) {
     await fetch(`${REST_URL}/players?id=eq.${newId}`, {
       method: "PATCH", headers,
-      body: JSON.stringify({ display_name: newRows[0].display_name.replace(/\s*⚠️\s*/g, "").trim() })
+      body: JSON.stringify({ display_name: cleanName })
     });
     markerCleared = true;
   }
 
+  // Non-critical — this admin merge already succeeded regardless of whether
+  // the log write itself works, so failures here are swallowed rather than
+  // surfaced as an error about the merge.
+  fetch(`${REST_URL}/merge_log`, {
+    method: "POST", headers,
+    body: JSON.stringify({ merged_name: cleanName || "Unknown", merge_type: "admin_merge" })
+  }).catch(() => {});
+
   return { moved, replaced, skipped, messagesMoved: oldMsgs.length, markerCleared };
+}
+
+let mergeTrackerCollapsed = true;
+async function renderAdminMergeTrackerPanel() {
+  const slot = document.getElementById("admin-mergetracker-slot");
+  slot.innerHTML = `<div class="placeholder-note">Loading…</div>`;
+  const entries = await sbFetchAll("merge_log?select=*&order=created_at.desc");
+  const selfCount = entries.filter(e => e.merge_type === "self_reclaim").length;
+  const adminCount = entries.filter(e => e.merge_type === "admin_merge").length;
+
+  slot.innerHTML = `
+    <div class="card collapsible ${mergeTrackerCollapsed ? 'collapsed' : ''}" style="padding:0;">
+      <div class="collapsible-header" id="mergetracker-toggle">
+        <span>🔬 Duplicate Tracker (since this was added)</span>
+        <span class="chev">▾</span>
+      </div>
+      <div class="collapsible-body" style="padding:0 14px 14px;">
+        <div class="prize-grid">
+          <div class="prize-tile"><div class="label">Self-reclaimed (free)</div><div class="value">${selfCount}</div></div>
+          <div class="prize-tile"><div class="label">You had to merge</div><div class="value">${adminCount}</div></div>
+        </div>
+        ${entries.length === 0
+          ? `<div class="placeholder-note">Nothing logged yet — this only counts merges from today onward.</div>`
+          : entries.slice(0, 30).map(e => `
+            <div class="player-row">
+              <div class="pinfo">
+                <div class="pname">${e.merged_name}${e.merge_type === "self_reclaim" ? " ✅" : " 🛠️"}</div>
+                <div class="pmeta">${e.merge_type === "self_reclaim" ? "Self-reclaimed" : "Admin merge"} · ${new Date(e.created_at).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}</div>
+              </div>
+            </div>`).join("")}
+      </div>
+    </div>`;
+
+  document.getElementById("mergetracker-toggle").addEventListener("click", (e) => {
+    const panel = e.currentTarget.closest(".collapsible");
+    panel.classList.toggle("collapsed");
+    mergeTrackerCollapsed = panel.classList.contains("collapsed");
+  });
 }
 const ENTRY_FEE = 10;
 const ADMIN_FEE_PCT = 0.10;
