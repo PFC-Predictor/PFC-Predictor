@@ -3078,7 +3078,13 @@ let mergeTrackerCollapsed = true;
 async function renderAdminMergeTrackerPanel() {
   const slot = document.getElementById("admin-mergetracker-slot");
   slot.innerHTML = `<div class="placeholder-note">Loading…</div>`;
-  const entries = await sbFetchAll("merge_log?select=*&order=created_at.desc");
+  let entries;
+  try {
+    entries = await sbFetchAll("merge_log?select=*&order=created_at.desc");
+  } catch (err) {
+    slot.innerHTML = `<div class="card"><div class="admin-header" style="margin-top:0;">🔬 Duplicate Tracker</div><div class="placeholder-note">Couldn't load this — ${escapeHtml(err.message || "unknown error")}. Most likely the merge_log table hasn't been created in Supabase yet.</div></div>`;
+    return;
+  }
   const selfCount = entries.filter(e => e.merge_type === "self_reclaim").length;
   const adminCount = entries.filter(e => e.merge_type === "admin_merge").length;
 
