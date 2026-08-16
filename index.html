@@ -36,7 +36,7 @@
     src:local('Bebas Neue');
     font-display:swap;
   }
-  .display{font-family:'Bebas Neue', Impact, sans-serif; letter-spacing:0.5px;}
+  .display{font-family:'Bebas Neue', Impact, sans-serif; letter-spacing:0.5px; font-weight:400;}
 
   #app{min-height:100vh; min-height:100dvh; display:flex; flex-direction:column;}
 
@@ -541,8 +541,8 @@
   <h1 class="display">POMPEY PREDICTOR</h1>
 
   <div id="gate-panel">
+    <p style="color:#ffd479; font-weight:600; font-size:13px; max-width:320px; margin:0 0 14px;">Add this page to your Home Screen first, then answer below. On iPhone: Share button → Add to Home Screen. On Android: ⋮ menu → Add to Home screen (or Install app).</p>
     <p>Have you played Pompey Predictor before?</p>
-    <p style="color:#ffd479; font-weight:600; font-size:13px; max-width:320px; margin:-8px 0 18px;">Add this page to your Home Screen first, then answer below. On iPhone: Share button → Add to Home Screen. On Android: ⋮ menu → Add to Home screen (or Install app).</p>
     <div class="auth-form">
       <button type="button" id="btn-gate-yes" style="background:rgba(255,212,121,0.15); border:2px solid #ffd479; color:#ffd479; border-radius:12px; height:52px; font-size:15px; font-weight:700;">Yes, I've played before</button>
       <button type="button" id="btn-gate-no" style="background:var(--red); border:none; color:var(--white); border-radius:12px; height:52px; font-size:15px; font-weight:700;">No, I'm a new player</button>
@@ -2155,11 +2155,17 @@ async function renderAdminSquadPanel() {
       ${squad.map(s => `
         <div class="player-row">
           <div class="pinfo">
-            <div class="pname">${s.player_name}</div>
+            <div class="pname" data-squad-name-display="${s.id}">${s.player_name}</div>
             <select data-set-position="${s.id}" style="margin-top:4px; height:32px; border-radius:6px; border:1px solid var(--grey-light); font-size:12px; max-width:160px;">${posOptions(s.position)}</select>
           </div>
-          <div class="pactions">
+          <div class="pactions" data-squad-actions="${s.id}">
+            <button class="btn-verify" style="background:var(--grey-light); color:var(--text);" data-edit-squad-name="${s.id}">Edit name</button>
             <button class="btn-verify" style="background:${s.active ? '#fdecec' : '#e7f6ec'}; color:${s.active ? 'var(--red)' : '#1c8a45'};" data-toggle-squad="${s.id}" data-current="${s.active}">${s.active ? "Set inactive" : "Set active"}</button>
+          </div>
+          <div class="pactions" data-squad-name-edit="${s.id}" style="display:none; width:100%; gap:6px; margin-top:6px;">
+            <input type="text" data-squad-name-input="${s.id}" data-old-name="${escapeHtml(s.player_name)}" value="${escapeHtml(s.player_name)}" style="flex:1; height:36px; border-radius:8px; border:1px solid var(--grey-light); padding:0 8px; font-size:13px;">
+            <button class="btn-verify" data-squad-name-save="${s.id}">Save</button>
+            <button class="btn-verify" style="background:var(--grey-light); color:var(--text);" data-squad-name-cancel="${s.id}">Cancel</button>
           </div>
         </div>`).join("")}
       </div>
@@ -2169,6 +2175,55 @@ async function renderAdminSquadPanel() {
     const panel = e.currentTarget.closest(".collapsible");
     panel.classList.toggle("collapsed");
     squadPanelCollapsed = panel.classList.contains("collapsed");
+  });
+
+  slot.querySelectorAll("[data-edit-squad-name]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const id = btn.dataset.editSquadName;
+      slot.querySelector(`[data-squad-actions="${id}"]`).style.display = "none";
+      const editRow = slot.querySelector(`[data-squad-name-edit="${id}"]`);
+      editRow.style.display = "flex";
+      slot.querySelector(`[data-squad-name-input="${id}"]`).focus();
+    });
+  });
+  slot.querySelectorAll("[data-squad-name-cancel]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const id = btn.dataset.squadNameCancel;
+      slot.querySelector(`[data-squad-name-edit="${id}"]`).style.display = "none";
+      slot.querySelector(`[data-squad-actions="${id}"]`).style.display = "flex";
+    });
+  });
+  slot.querySelectorAll("[data-squad-name-save]").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const id = btn.dataset.squadNameSave;
+      const input = slot.querySelector(`[data-squad-name-input="${id}"]`);
+      const newName = input.value.trim();
+      const oldName = input.dataset.oldName;
+      if (!newName) { alert("Name can't be empty."); return; }
+      if (newName === oldName) {
+        slot.querySelector(`[data-squad-name-edit="${id}"]`).style.display = "none";
+        slot.querySelector(`[data-squad-actions="${id}"]`).style.display = "flex";
+        return;
+      }
+      btn.disabled = true; btn.textContent = "Saving…";
+      const headers = { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${getAccessToken()}`, "Content-Type": "application/json" };
+      try {
+        const res = await fetch(`${REST_URL}/squad?id=eq.${id}`, {
+          method: "PATCH", headers,
+          body: JSON.stringify({ player_name: newName })
+        });
+        if (!res.ok) throw new Error("Could not save the new name.");
+        // The old name is the literal value stored on every prediction that
+        // picked this player — update those too, or their pick would silently
+        // point at a name that no longer exists anywhere in the dropdown.
+        await fetch(`${REST_URL}/predictions?first_scorer=eq.${encodeURIComponent(oldName)}`, {
+          method: "PATCH", headers,
+          body: JSON.stringify({ first_scorer: newName })
+        });
+        squadPanelCollapsed = false;
+        renderAdminSquadPanel();
+      } catch (err) { alert(err.message); btn.disabled = false; btn.textContent = "Save"; }
+    });
   });
 
   document.getElementById("btn-add-squad").addEventListener("click", async () => {
