@@ -539,22 +539,47 @@
 <div id="screen-newplayer" class="auth-wrap hidden">
   <div class="crest-big">⚽</div>
   <h1 class="display">POMPEY PREDICTOR</h1>
-  <p>Enter your name to get started. Next time, your PIN gets you straight in.</p>
-  <p style="color:#ffd479; font-weight:600; font-size:13px; max-width:320px; margin:-8px 0 18px;">Add this page to your Home Screen first, then add your details. On iPhone: Share button → Add to Home Screen. On Android: ⋮ menu → Add to Home screen (or Install app).</p>
-  <form class="auth-form" id="form-newplayer">
-    <input type="text" id="input-firstname" placeholder="First name" autocomplete="given-name" required>
-    <input type="text" id="input-surname" placeholder="Surname" autocomplete="family-name" required>
-    <input type="tel" id="input-mobile" placeholder="Mobile number" autocomplete="tel" required>
-    <button type="button" id="btn-toggle-reclaim" style="background:rgba(255,212,121,0.15); border:2px solid #ffd479; color:#ffd479; border-radius:12px; height:48px; font-size:14px; font-weight:700;">🔑 I've played before</button>
-    <div id="name-match-note" class="hidden" style="background:rgba(255,212,121,0.15); border:2px solid #ffd479; border-radius:12px; padding:10px 12px; font-size:13px; color:#ffd479; font-weight:600;"></div>
-    <div id="reclaim-section" class="hidden">
-      <div style="font-size:12px; color:#ffd479; font-weight:600; margin-bottom:6px;">Enter your original PIN — this gets your points and history back, not a fresh start.</div>
-      <input type="tel" inputmode="numeric" maxlength="4" id="input-reclaim-pin" placeholder="Original PIN">
+
+  <div id="gate-panel">
+    <p>Have you played Pompey Predictor before?</p>
+    <p style="color:#ffd479; font-weight:600; font-size:13px; max-width:320px; margin:-8px 0 18px;">Add this page to your Home Screen first, then answer below. On iPhone: Share button → Add to Home Screen. On Android: ⋮ menu → Add to Home screen (or Install app).</p>
+    <div class="auth-form">
+      <button type="button" id="btn-gate-yes" style="background:rgba(255,212,121,0.15); border:2px solid #ffd479; color:#ffd479; border-radius:12px; height:52px; font-size:15px; font-weight:700;">Yes, I've played before</button>
+      <button type="button" id="btn-gate-no" style="background:var(--red); border:none; color:var(--white); border-radius:12px; height:52px; font-size:15px; font-weight:700;">No, I'm a new player</button>
     </div>
-    <button type="submit" id="btn-create-account">Get started</button>
-    <div class="auth-status" id="newplayer-status"></div>
-  </form>
-  <div class="auth-note">Your mobile number is only visible to Ant James as the league admin.</div>
+  </div>
+
+  <div id="returning-panel" class="hidden">
+    <p>What name did you sign up with, and what's your PIN?</p>
+    <form class="auth-form" id="form-returning">
+      <input type="text" id="input-return-firstname" placeholder="First name" autocomplete="given-name" required>
+      <input type="text" id="input-return-surname" placeholder="Surname" autocomplete="family-name" required>
+      <input type="tel" id="input-return-mobile" placeholder="Mobile number" autocomplete="tel" required>
+      <input type="tel" inputmode="numeric" maxlength="4" id="input-return-pin" placeholder="Your PIN" required>
+      <button type="submit" id="btn-return-login">Log me in</button>
+      <div class="auth-status" id="returning-status"></div>
+    </form>
+    <button type="button" id="btn-returning-back" style="background:none; border:none; color:var(--grey); font-size:13px; margin-top:10px;">← Back</button>
+  </div>
+
+  <div id="new-panel" class="hidden">
+    <p>Enter your name to get started. Next time, your PIN gets you straight in.</p>
+    <form class="auth-form" id="form-newplayer">
+      <input type="text" id="input-firstname" placeholder="First name" autocomplete="given-name" required>
+      <input type="text" id="input-surname" placeholder="Surname" autocomplete="family-name" required>
+      <input type="tel" id="input-mobile" placeholder="Mobile number" autocomplete="tel" required>
+      <button type="button" id="btn-toggle-reclaim" style="background:rgba(255,212,121,0.15); border:2px solid #ffd479; color:#ffd479; border-radius:12px; height:48px; font-size:14px; font-weight:700;">🔑 Actually, I've played before</button>
+      <div id="name-match-note" class="hidden" style="background:rgba(255,212,121,0.15); border:2px solid #ffd479; border-radius:12px; padding:10px 12px; font-size:13px; color:#ffd479; font-weight:600;"></div>
+      <div id="reclaim-section" class="hidden">
+        <div style="font-size:12px; color:#ffd479; font-weight:600; margin-bottom:6px;">Enter your original PIN — this gets your points and history back, not a fresh start.</div>
+        <input type="tel" inputmode="numeric" maxlength="4" id="input-reclaim-pin" placeholder="Original PIN">
+      </div>
+      <button type="submit" id="btn-create-account">Get started</button>
+      <div class="auth-status" id="newplayer-status"></div>
+    </form>
+    <button type="button" id="btn-new-back" style="background:none; border:none; color:var(--grey); font-size:13px; margin-top:4px;">← Back</button>
+    <div class="auth-note">Your mobile number is only visible to Ant James as the league admin.</div>
+  </div>
 </div>
 <!-- ============ AUTH: SET UP LOCAL PIN (first time on this device, post signup) ============ -->
 <div id="screen-set-pin" class="auth-wrap hidden">
@@ -741,7 +766,7 @@
               <source src="./picks-updates-intro.mp4" type="video/mp4">
             </video>
             <p style="margin-bottom:6px;">📊 <strong>The Crowd's Verdict</strong> — inside Picks, shows how everyone's split on the next fixture</p>
-            <p style="margin-bottom:6px;">🥇 <strong>League Awards</strong> — also inside Picks: Exact Score, Correct Result, Correct First Goalscorer, Best Called Match</p>
+            <p style="margin-bottom:6px;">🥇 <strong>League Awards</strong> — also inside Picks: Most Exact Scores, Most Correct Results (includes exact scores, since those are correct too), Most Correct First Goalscorers, and Best Called Match</p>
             <p style="margin-bottom:6px;">📢 <strong>Updates</strong> — up top, flags anything new, and it's where you can suggest a feature too</p>
             <video controls playsinline preload="none" poster="./whats-new-tour-poster.jpg" style="width:100%; max-width:280px; display:block; margin:4px auto 6px; border-radius:12px;">
               <source src="./whats-new-tour.mp4" type="video/mp4">
@@ -1103,7 +1128,7 @@ let currentPlayer = null;
 async function boot() {
   let session = getSession();
 
-  if (!session) { showScreen("newplayer"); return; }
+  if (!session) { showScreen("newplayer"); resetToGate(); return; }
 
   if (!sessionIsValid(session)) {
     session = await refreshSessionIfNeeded();
@@ -1181,11 +1206,103 @@ function showScreen(name) {
 }
 
 /* ---------- new player signup form ---------- */
+function resetToGate() {
+  document.getElementById("gate-panel").classList.remove("hidden");
+  document.getElementById("returning-panel").classList.add("hidden");
+  document.getElementById("new-panel").classList.add("hidden");
+  document.getElementById("returning-status").textContent = "";
+  document.getElementById("newplayer-status").textContent = "";
+}
+document.getElementById("btn-gate-yes").addEventListener("click", () => {
+  document.getElementById("gate-panel").classList.add("hidden");
+  document.getElementById("returning-panel").classList.remove("hidden");
+  document.getElementById("input-return-firstname").focus();
+});
+document.getElementById("btn-gate-no").addEventListener("click", () => {
+  document.getElementById("gate-panel").classList.add("hidden");
+  document.getElementById("new-panel").classList.remove("hidden");
+  document.getElementById("input-firstname").focus();
+});
+document.getElementById("btn-returning-back").addEventListener("click", resetToGate);
+document.getElementById("btn-new-back").addEventListener("click", resetToGate);
+
 document.getElementById("btn-toggle-reclaim").addEventListener("click", () => {
   const section = document.getElementById("reclaim-section");
   const nowHidden = section.classList.toggle("hidden");
   if (!nowHidden) document.getElementById("input-reclaim-pin").focus();
 });
+
+document.getElementById("form-returning").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const firstName = document.getElementById("input-return-firstname").value.trim();
+  const surname = document.getElementById("input-return-surname").value.trim();
+  const mobile = document.getElementById("input-return-mobile").value.trim();
+  const pin = document.getElementById("input-return-pin").value.trim();
+  const btn = document.getElementById("btn-return-login");
+  const status = document.getElementById("returning-status");
+  if (!firstName || !surname || !mobile || pin.length !== 4) { status.textContent = "Fill in your name, mobile, and 4-digit PIN."; return; }
+  btn.disabled = true; status.textContent = "Checking…";
+
+  const fullName = `${firstName} ${surname}`.trim().toLowerCase();
+  try {
+    // Read-only check first — no session, no row, nothing created yet.
+    // Only proceed to actually log someone in if a genuine match exists.
+    const res = await fetch(`${REST_URL}/players?is_active=eq.true&select=display_name`, {
+      headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` }
+    });
+    const existing = res.ok ? await res.json() : [];
+    const isMatch = existing.some(p => p.display_name.replace(/\s*⚠️\s*/g, "").trim().toLowerCase() === fullName);
+
+    if (!isMatch) {
+      status.textContent = `We couldn't find a ${firstName} ${surname} on file — let's get you set up as new instead.`;
+      setTimeout(() => {
+        document.getElementById("returning-panel").classList.add("hidden");
+        document.getElementById("new-panel").classList.remove("hidden");
+        document.getElementById("input-firstname").value = firstName;
+        document.getElementById("input-surname").value = surname;
+        document.getElementById("input-mobile").value = mobile;
+        document.getElementById("newplayer-status").textContent = "";
+      }, 1800);
+      return;
+    }
+
+    status.textContent = "Found you — logging in…";
+    const user = await createAnonymousSession();
+    session_user_id = user.id;
+    currentPlayer = await createPlayerRow(firstName, surname, mobile);
+    currentUser = user;
+
+    const pinHash = await hashPin(pin);
+    const claimRes = await fetch(`${REST_URL}/rpc/claim_account`, {
+      method: "POST",
+      headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${getAccessToken()}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ p_display_name: `${firstName} ${surname}`, p_pin_hash: pinHash })
+    });
+    const claimResult = await claimRes.json().catch(() => ({}));
+
+    if (claimResult.success) {
+      localStorage.setItem(LS_KEYS.pinHash, pinHash);
+      await fetch(`${REST_URL}/players?id=eq.${currentPlayer.id}`, {
+        method: "PATCH",
+        headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${getAccessToken()}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ pin_hash: pinHash })
+      });
+      status.textContent = "Welcome back! Your history has been restored.";
+      setTimeout(enterApp, 900);
+      return;
+    }
+
+    // Claim didn't verify — a fresh account now exists under this name.
+    // Be upfront about that immediately, same wording as the in-app banner,
+    // rather than silently continuing as if nothing happened.
+    status.innerHTML = DUPLICATE_EXPLAINER_HTML.replace(/\n/g, "<br>");
+    setTimeout(() => { showScreen("set-pin"); }, 4500);
+  } catch (err) {
+    status.textContent = err.message || "Something went wrong — try again.";
+    btn.disabled = false;
+  }
+});
+
 
 // Catches the duplicate at the one moment it's actually created, rather
 // than relying on someone remembering to tap "I've played before" —
@@ -1258,12 +1375,8 @@ document.getElementById("form-newplayer").addEventListener("submit", async (e) =
           status.textContent = "Welcome back! Your history has been restored.";
           setTimeout(enterApp, 900);
           return;
-        } else if (claimResult.message === "no_pin_on_file") {
-          status.textContent = "Found an account with that name, but it was set up before this feature existed, so there's no PIN saved to check against — continuing as a fresh account. Ask Ant to merge you manually this once.";
-        } else if (claimResult.message === "wrong_pin") {
-          status.textContent = "Found an account with that name but the PIN didn't match — continuing as a fresh account. Ask Ant to merge if you had one before.";
-        } else if (claimResult.message === "locked") {
-          status.textContent = "Too many PIN attempts on that name recently — continuing as a fresh account. Try again later or ask Ant to merge.";
+        } else if (claimResult.message === "no_pin_on_file" || claimResult.message === "wrong_pin" || claimResult.message === "locked") {
+          status.innerHTML = DUPLICATE_EXPLAINER_HTML.replace(/\n/g, "<br>");
         }
         // no_match falls through silently — most people leave this field blank anyway
       } catch (e) { /* non-critical — proceed as a normal new signup below */ }
@@ -1279,6 +1392,7 @@ document.getElementById("form-newplayer").addEventListener("submit", async (e) =
 document.getElementById("btn-lost-continue").addEventListener("click", () => {
   clearSession();
   showScreen("newplayer");
+  resetToGate();
 });
 
 /* ---------- PIN pads ---------- */
@@ -1638,10 +1752,10 @@ function renderAwardsPanel(players, predictions, resultByFixture, fixtures) {
     return;
   }
   const topExact = [...standings].filter(s => s.exact > 0).sort((a, b) => b.exact - a.exact);
-  const topCorrect = [...standings].filter(s => s.correct > 0).sort((a, b) => b.correct - a.correct);
+  const topCorrect = [...standings].map(s => ({ ...s, correctTotal: s.exact + s.correct })).filter(s => s.correctTotal > 0).sort((a, b) => b.correctTotal - a.correctTotal);
   const topScorer = [...standings].filter(s => s.scorer > 0).sort((a, b) => b.scorer - a.scorer);
   const exactMax = topExact[0]?.exact;
-  const correctMax = topCorrect[0]?.correct;
+  const correctMax = topCorrect[0]?.correctTotal;
   const scorerMax = topScorer[0]?.scorer;
 
   // best called match — fixtures with 5+ predictions, most correct-result outcomes
@@ -1674,9 +1788,9 @@ function renderAwardsPanel(players, predictions, resultByFixture, fixtures) {
   slot.innerHTML = `
     <div class="awards-panel">
       <div class="ap-title">🏆 League Awards</div>
-      ${exactMax ? `<div class="award-item"><span class="al">🎯 Exact Score</span><span class="av">${topExact.filter(s => s.exact === exactMax).map(s => s.player.display_name).join(", ")}</span></div>` : ""}
-      ${correctMax ? `<div class="award-item"><span class="al">✅ Correct Result</span><span class="av">${topCorrect.filter(s => s.correct === correctMax).map(s => s.player.display_name).join(", ")}</span></div>` : ""}
-      ${scorerMax ? `<div class="award-item"><span class="al">⚽ Correct First Goalscorer</span><span class="av">${topScorer.filter(s => s.scorer === scorerMax).map(s => s.player.display_name).join(", ")}</span></div>` : ""}
+      ${exactMax ? `<div class="award-item"><span class="al">🎯 Most Exact Scores</span><span class="av">${topExact.filter(s => s.exact === exactMax).map(s => s.player.display_name).join(", ")}</span></div>` : ""}
+      ${correctMax ? `<div class="award-item"><span class="al">✅ Most Correct Results</span><span class="av">${topCorrect.filter(s => s.correctTotal === correctMax).map(s => s.player.display_name).join(", ")}</span></div>` : ""}
+      ${scorerMax ? `<div class="award-item"><span class="al">⚽ Most Correct First Goalscorers</span><span class="av">${topScorer.filter(s => s.scorer === scorerMax).map(s => s.player.display_name).join(", ")}</span></div>` : ""}
       ${bestMatch ? `<div class="award-item"><span class="al">📣 Best Called Match</span><span class="av">${bestMatch.fixture.home_team} v ${bestMatch.fixture.away_team} (${bestMatch.correctCount}/${bestMatch.total})</span></div>` : ""}
       ${topPickedScorer ? `<div class="award-item"><span class="al">🔮 Most Predicted Scorer</span><span class="av">${topPickedScorer} (${topPickedScorerCount} picks)</span></div>` : ""}
     </div>`;
@@ -2532,15 +2646,17 @@ function renderStatsPills() {
     <div style="text-align:center; font-size:10.5px; color:var(--grey); margin-top:-6px; margin-bottom:12px;">Max 5 per match — exact and correct don't stack</div>`;
 }
 
+const DUPLICATE_EXPLAINER_HTML = `You’ve opened the app with a different link, so a duplicate account has been created - easy to do! Don’t worry, your points and predictions are completely safe. Ant will merge the accounts next time he logs in. If you can’t wait, you can still make predictions on this account. They’ll be moved across when the accounts are merged.
+Nothing you need to do! ⚽`;
+
 async function renderDuplicateWarningBanner() {
   const slot = document.getElementById("duplicate-warning-slot");
   if (!currentPlayer?.display_name?.includes("⚠️")) { slot.innerHTML = ""; return; }
   slot.innerHTML = `
     <div class="dup-warning-banner">
       <div class="label">⚠️ About that symbol next to your name</div>
-     You’ve opened the app with a different link, so a duplicate account has been created - easy to do! Don’t worry, your points and predictions are completely safe. Ant will merge the accounts next time he logs in. If you can’t wait, you can still make predictions on this account. They’ll be moved across when the accounts are merged. 
-Nothing you need to do! ⚽
-     </div>`;
+      ${DUPLICATE_EXPLAINER_HTML}
+    </div>`;
 }
 
 async function renderReminderBanner(fixtures, myPredictions) {
@@ -3890,7 +4006,7 @@ async function renderPrizePoolCard() {
 
   slot.innerHTML = `
     <div class="prize-card">
-      <div class="pc-title">💷 PRIZE POOL — ${prize.verifiedCount} PAID IN OUT OF ${prize.entries} ENTRIES</div>
+      <div class="pc-title">💷 PRIZE POOL</div>
       ${buildPodiumHtml(prize.amounts, gbp)}
       ${prize.winners === 1 ? `<div class="pc-note">Under 20 paid entries — one winner takes it all.</div>` : ""}
       ${duplicateNote}
