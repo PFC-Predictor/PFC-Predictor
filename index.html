@@ -1278,7 +1278,9 @@ document.getElementById("form-returning").addEventListener("submit", async (e) =
       headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${getAccessToken()}`, "Content-Type": "application/json" },
       body: JSON.stringify({ p_display_name: `${firstName} ${surname}`, p_pin_hash: pinHash })
     });
-    const claimResult = await claimRes.json().catch(() => ({}));
+    const rawClaimText = await claimRes.text();
+    let claimResult = {};
+    try { claimResult = JSON.parse(rawClaimText); } catch (e) { /* leave claimResult empty — handled below */ }
 
     if (claimResult.success) {
       localStorage.setItem(LS_KEYS.pinHash, pinHash);
@@ -1295,11 +1297,16 @@ document.getElementById("form-returning").addEventListener("submit", async (e) =
     // Claim didn't verify — a fresh account now exists under this name.
     // Be upfront about that immediately, same wording as the in-app banner,
     // rather than silently continuing as if nothing happened.
-    const unexpectedNoMatch = claimResult.message === "no_match"
-      ? `<div style="font-size:10px; color:rgba(255,212,121,0.6); margin-top:6px;">(No match found at the final check — unexpected, since a match was just confirmed moments earlier. Worth telling Ant exactly this happened.)</div>`
-      : claimFailureReasonNote(claimResult.message);
-    status.innerHTML = DUPLICATE_EXPLAINER_HTML.replace(/\n/g, "<br>") + unexpectedNoMatch;
-    setTimeout(() => { showScreen("set-pin"); }, 4500);
+    let diagnosticNote;
+    if (["no_pin_on_file", "wrong_pin", "locked"].includes(claimResult.message)) {
+      diagnosticNote = claimFailureReasonNote(claimResult.message);
+    } else {
+      // Genuinely unrecognised outcome — show exactly what the server sent
+      // back rather than swallowing it, since guessing hasn't found this.
+      diagnosticNote = `<div style="font-size:10px; color:rgba(255,212,121,0.6); margin-top:6px; word-break:break-all;">(Unexpected response — HTTP ${claimRes.status}: ${escapeHtml(rawClaimText).slice(0, 300)})</div>`;
+    }
+    status.innerHTML = DUPLICATE_EXPLAINER_HTML.replace(/\n/g, "<br>") + diagnosticNote;
+    setTimeout(() => { showScreen("set-pin"); }, 9000);
   } catch (err) {
     status.textContent = err.message || "Something went wrong — try again.";
     btn.disabled = false;
