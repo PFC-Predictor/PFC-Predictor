@@ -463,7 +463,7 @@
 
   /* ---------- everyone's picks ---------- */
   .awards-panel{background:var(--navy); color:var(--white); border-radius:16px; padding:14px; margin-bottom:14px;}
-  .awards-panel .ap-title{font-family:'Bebas Neue', Impact, sans-serif; font-size:16px; margin-bottom:8px;}
+  .awards-panel .ap-title{font-family:'Bebas Neue', Impact, sans-serif; font-size:16px; margin-bottom:8px; text-align:center;}
   .award-item{display:flex; justify-content:space-between; font-size:12px; padding:5px 0; border-top:1px solid rgba(255,255,255,0.15);}
   .award-item .al{color:rgba(255,255,255,0.7);}
   .award-item .av{font-weight:700; color:var(--gold); text-align:right;}
@@ -759,6 +759,7 @@
           </div>
           <div class="modal-section">
             <h4>7. Around the app</h4>
+            <p style="margin-bottom:6px;">📊 <strong>Your Season So Far</strong> — top of your Profile, shows your current rank, points, exact scores, correct results and correct goalscorers at a glance</p>
             <p style="margin-bottom:6px;">🏆 <strong>Leaderboard</strong> — live prize pool up top, full table below, tap any name for their full history</p>
             <p style="margin-bottom:6px;">🏅 <strong>Season Records</strong> — sits under the Leaderboard, tracks the best streaks and scores of the season</p>
             <p style="margin-bottom:6px;">👀 <strong>Picks</strong> — its own tab, shows what everyone called once a match kicks off, grouped by scoreline</p>
@@ -766,7 +767,7 @@
               <source src="./picks-updates-intro.mp4" type="video/mp4">
             </video>
             <p style="margin-bottom:6px;">📊 <strong>The Crowd's Verdict</strong> — inside Picks, shows how everyone's split on the next fixture</p>
-            <p style="margin-bottom:6px;">🥇 <strong>League Awards</strong> — also inside Picks: Most Exact Scores, Most Correct Results (includes exact scores, since those are correct too), Most Correct First Goalscorers, and Best Called Match</p>
+            <p style="margin-bottom:6px;">🥇 <strong>League Awards</strong> — also inside Picks: Most Exact Scores, Most Correct Results (includes exact scores, since those are correct too), Most Correct First Goalscorers, Best Called Match, and Most Predicted Scorer</p>
             <p style="margin-bottom:6px;">📢 <strong>Updates</strong> — up top, flags anything new, and it's where you can suggest a feature too</p>
             <video controls playsinline preload="none" poster="./whats-new-tour-poster.jpg" style="width:100%; max-width:280px; display:block; margin:4px auto 6px; border-radius:12px;">
               <source src="./whats-new-tour.mp4" type="video/mp4">
@@ -793,6 +794,7 @@
       </div>
       <div id="admin-results-slot"></div>
       <div id="admin-missing-slot"></div>
+      <div id="admin-recentpreds-slot"></div>
 
       <div class="admin-group-header">💰 Money</div>
       <div id="admin-slot"></div>
@@ -1565,6 +1567,7 @@ function renderAdminPanels() {
   renderAdminPaymentDashboard();
   renderAdminResultsPanel();
   renderAdminMissingPanel();
+  renderAdminRecentPredictionsPanel();
   renderAdminSquadPanel();
   renderAdminExportPanel();
   renderAdminPaymentLogPanel();
@@ -2205,6 +2208,7 @@ async function renderAdminSquadPanel() {
 
 /* ---------- Admin: Missing Predictions (next 7 days) ---------- */
 let missingPanelCollapsed = true;
+let recentPredsPanelCollapsed = true;
 let prizeCalcCollapsed = true;
 let paymentLogCollapsed = true;
 
@@ -2268,6 +2272,56 @@ async function renderAdminMissingPanel() {
       const text = `⚽ Reminder for ${btn.dataset.teams} — still waiting on predictions from: ${btn.dataset.names}. Get them in before kickoff!`;
       navigator.clipboard?.writeText(text).then(() => { btn.textContent = "Copied ✓"; setTimeout(() => btn.textContent = "Copy WhatsApp nudge", 1500); });
     });
+  });
+}
+
+/* ---------- Admin: Recent Predictions for the next fixture ---------- */
+async function renderAdminRecentPredictionsPanel() {
+  const slot = document.getElementById("admin-recentpreds-slot");
+  slot.innerHTML = `<div class="placeholder-note">Loading…</div>`;
+  const now = Date.now();
+  const fixtures = await sbFetchAll("fixtures?select=*");
+  const upcoming = fixtures.filter(f => new Date(f.kickoff).getTime() > now).sort((a, b) => new Date(a.kickoff) - new Date(b.kickoff));
+  const next = upcoming[0];
+
+  if (!next) {
+    slot.innerHTML = `<div class="card"><div class="admin-header" style="margin-top:0;">🕐 Recent Predictions</div><div class="placeholder-note">No upcoming fixture.</div></div>`;
+    return;
+  }
+
+  const dayAgo = now - 24 * 3600 * 1000;
+  const [preds, players] = await Promise.all([
+    sbFetchAll(`predictions?fixture_id=eq.${next.id}&select=player_id,created_at`),
+    sbFetchAll("players?is_active=eq.true&select=id,display_name")
+  ]);
+  const playerById = new Map(players.map(p => [p.id, p.display_name]));
+  const recent = preds
+    .filter(p => new Date(p.created_at).getTime() >= dayAgo)
+    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+  slot.innerHTML = `
+    <div class="card collapsible ${recentPredsPanelCollapsed ? 'collapsed' : ''}" style="padding:0;">
+      <div class="collapsible-header" id="recentpreds-toggle">
+        <span>🕐 Recent Predictions — ${next.home_team} v ${next.away_team} (last 24h)</span>
+        <span class="chev">▾</span>
+      </div>
+      <div class="collapsible-body" style="padding:0 14px 14px;">
+        ${recent.length === 0
+          ? `<div class="placeholder-note">Nobody's predicted this one in the last 24 hours.</div>`
+          : recent.map(p => `
+            <div class="player-row">
+              <div class="pinfo">
+                <div class="pname">${playerById.get(p.player_id) || "Unknown player"}</div>
+                <div class="pmeta">${new Date(p.created_at).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}</div>
+              </div>
+            </div>`).join("")}
+      </div>
+    </div>`;
+
+  document.getElementById("recentpreds-toggle").addEventListener("click", (e) => {
+    const panel = e.currentTarget.closest(".collapsible");
+    panel.classList.toggle("collapsed");
+    recentPredsPanelCollapsed = panel.classList.contains("collapsed");
   });
 }
 
@@ -2857,11 +2911,19 @@ function buildMatchCard(fixture, squad, existingPred, result) {
       const h = homeInput.value === "" ? null : parseInt(homeInput.value, 10);
       const a = awayInput.value === "" ? null : parseInt(awayInput.value, 10);
       if (h == null || a == null) { statusEl.textContent = "Enter both scores first."; return; }
+      const scorerValue = wrap.querySelector(".mc-scorer-select").value;
+      const homeIsPompey = /pompey|portsmouth/i.test(fixture.home_team);
+      const awayIsPompey = /pompey|portsmouth/i.test(fixture.away_team);
+      const pompeyScore = homeIsPompey ? h : (awayIsPompey ? a : null);
+      if (pompeyScore !== null && pompeyScore >= 1 && !scorerValue) {
+        statusEl.textContent = "You've got Pompey scoring — pick a first goalscorer before saving.";
+        return;
+      }
       saveBtn.disabled = true; statusEl.textContent = "Saving…";
       try {
         await savePrediction({
           fixture_id: fixture.id, home_score: h, away_score: a,
-          first_scorer: wrap.querySelector(".mc-scorer-select").value
+          first_scorer: scorerValue
         });
         statusEl.textContent = "Saved ✓";
         maybeShowPaymentNudge();
@@ -3349,6 +3411,7 @@ async function renderAdminPaymentDashboard() {
             <button class="btn-verify" style="background:var(--grey-light); color:var(--text); width:32px; flex:none;" data-more-toggle="${p.id}">⋯</button>
           </div>
           <div class="pactions" data-more-panel="${p.id}" style="display:none; width:100%; justify-content:flex-end; margin-top:6px;">
+            <button class="btn-verify" style="background:var(--grey-light); color:var(--text);" data-edit-name="${p.id}">Edit name</button>
             <button class="btn-verify" style="background:var(--grey-light); color:var(--text);" data-exempt="${p.id}" data-current="${p.pool_exempt}">${p.pool_exempt ? "Un-exempt" : "Exempt"}</button>
             <button class="btn-verify" style="background:${p.is_participant === false ? 'var(--gold)' : 'var(--grey-light)'}; color:${p.is_participant === false ? 'var(--navy)' : 'var(--text)'};" data-toggle-participant="${p.id}" data-current="${p.is_participant !== false}">${p.is_participant === false ? "Hidden — Un-hide" : "Hide from league"}</button>
             ${!p.payment_verified && !p.pool_exempt && p.phone_number ? `<a href="${whatsappNudgeLink(p.phone_number)}" target="_blank" rel="noopener" class="btn-verify" style="background:#25D366; color:var(--white); text-decoration:none; display:inline-block;">WhatsApp</a>` : ""}
@@ -3358,6 +3421,11 @@ async function renderAdminPaymentDashboard() {
               : (!p.is_active
                   ? `<button class="btn-purge" data-force-delete="${p.id}" data-name="${p.display_name}">Force delete (${remainingPreds + remainingMsgs + remainingPayLog} leftover)</button>`
                   : "")}
+          </div>
+          <div class="pactions" data-name-edit-row="${p.id}" style="display:none; width:100%; gap:6px; margin-top:6px;">
+            <input type="text" data-name-edit-input="${p.id}" value="${escapeHtml(p.display_name.replace(/\s*⚠️\s*/g, "").trim())}" style="flex:1; height:36px; border-radius:8px; border:1px solid var(--grey-light); padding:0 8px; font-size:13px;">
+            <button class="btn-verify" data-name-save="${p.id}">Save</button>
+            <button class="btn-verify" style="background:var(--grey-light); color:var(--text);" data-name-cancel="${p.id}">Cancel</button>
           </div>
         </div>`;
       }).join("")}
@@ -3500,6 +3568,41 @@ async function renderAdminPaymentDashboard() {
       btn.disabled = true;
       try { await togglePoolExempt(btn.dataset.exempt, !currentlyExempt); renderAdminPaymentDashboard(); }
       catch (err) { alert(err.message); btn.disabled = false; }
+    });
+  });
+
+  slot.querySelectorAll("[data-edit-name]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const id = btn.dataset.editName;
+      slot.querySelector(`[data-more-panel="${id}"]`).style.display = "none";
+      const editRow = slot.querySelector(`[data-name-edit-row="${id}"]`);
+      editRow.style.display = "flex";
+      slot.querySelector(`[data-name-edit-input="${id}"]`).focus();
+    });
+  });
+  slot.querySelectorAll("[data-name-cancel]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const id = btn.dataset.nameCancel;
+      slot.querySelector(`[data-name-edit-row="${id}"]`).style.display = "none";
+    });
+  });
+  slot.querySelectorAll("[data-name-save]").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const id = btn.dataset.nameSave;
+      const newName = slot.querySelector(`[data-name-edit-input="${id}"]`).value.trim();
+      if (!newName) { alert("Name can't be empty."); return; }
+      const hadMarker = slot.querySelector(`[data-name-save="${id}"]`).closest(".player-row").querySelector(".pname").textContent.includes("⚠️");
+      const finalName = hadMarker ? `${newName} ⚠️` : newName;
+      btn.disabled = true; btn.textContent = "Saving…";
+      try {
+        const res = await fetch(`${REST_URL}/players?id=eq.${id}`, {
+          method: "PATCH",
+          headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${getAccessToken()}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ display_name: finalName })
+        });
+        if (!res.ok) throw new Error("Could not save the new name.");
+        renderAdminPaymentDashboard();
+      } catch (err) { alert(err.message); btn.disabled = false; btn.textContent = "Save"; }
     });
   });
 
