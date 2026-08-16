@@ -466,7 +466,7 @@
   .awards-panel .ap-title{font-family:'Bebas Neue', Impact, sans-serif; font-size:16px; margin-bottom:8px;}
   .award-item{display:flex; justify-content:space-between; font-size:12px; padding:5px 0; border-top:1px solid rgba(255,255,255,0.15);}
   .award-item .al{color:rgba(255,255,255,0.7);}
-  .award-item .av{font-weight:700; color:var(--gold);}
+  .award-item .av{font-weight:700; color:var(--gold); text-align:right;}
   .picks-filter{margin-bottom:12px;}
   .picks-filter select{
     width:100%; height:42px; border-radius:10px; border:1px solid var(--grey-light); padding:0 12px; font-size:13px; background:var(--white);
@@ -1295,7 +1295,10 @@ document.getElementById("form-returning").addEventListener("submit", async (e) =
     // Claim didn't verify — a fresh account now exists under this name.
     // Be upfront about that immediately, same wording as the in-app banner,
     // rather than silently continuing as if nothing happened.
-    status.innerHTML = DUPLICATE_EXPLAINER_HTML.replace(/\n/g, "<br>");
+    const unexpectedNoMatch = claimResult.message === "no_match"
+      ? `<div style="font-size:10px; color:rgba(255,212,121,0.6); margin-top:6px;">(No match found at the final check — unexpected, since a match was just confirmed moments earlier. Worth telling Ant exactly this happened.)</div>`
+      : claimFailureReasonNote(claimResult.message);
+    status.innerHTML = DUPLICATE_EXPLAINER_HTML.replace(/\n/g, "<br>") + unexpectedNoMatch;
     setTimeout(() => { showScreen("set-pin"); }, 4500);
   } catch (err) {
     status.textContent = err.message || "Something went wrong — try again.";
@@ -1376,7 +1379,7 @@ document.getElementById("form-newplayer").addEventListener("submit", async (e) =
           setTimeout(enterApp, 900);
           return;
         } else if (claimResult.message === "no_pin_on_file" || claimResult.message === "wrong_pin" || claimResult.message === "locked") {
-          status.innerHTML = DUPLICATE_EXPLAINER_HTML.replace(/\n/g, "<br>");
+          status.innerHTML = DUPLICATE_EXPLAINER_HTML.replace(/\n/g, "<br>") + claimFailureReasonNote(claimResult.message);
         }
         // no_match falls through silently — most people leave this field blank anyway
       } catch (e) { /* non-critical — proceed as a normal new signup below */ }
@@ -1788,11 +1791,11 @@ function renderAwardsPanel(players, predictions, resultByFixture, fixtures) {
   slot.innerHTML = `
     <div class="awards-panel">
       <div class="ap-title">🏆 League Awards</div>
-      ${exactMax ? `<div class="award-item"><span class="al">🎯 Most Exact Scores</span><span class="av">${topExact.filter(s => s.exact === exactMax).map(s => s.player.display_name).join(", ")}</span></div>` : ""}
-      ${correctMax ? `<div class="award-item"><span class="al">✅ Most Correct Results</span><span class="av">${topCorrect.filter(s => s.correctTotal === correctMax).map(s => s.player.display_name).join(", ")}</span></div>` : ""}
-      ${scorerMax ? `<div class="award-item"><span class="al">⚽ Most Correct First Goalscorers</span><span class="av">${topScorer.filter(s => s.scorer === scorerMax).map(s => s.player.display_name).join(", ")}</span></div>` : ""}
-      ${bestMatch ? `<div class="award-item"><span class="al">📣 Best Called Match</span><span class="av">${bestMatch.fixture.home_team} v ${bestMatch.fixture.away_team} (${bestMatch.correctCount}/${bestMatch.total})</span></div>` : ""}
-      ${topPickedScorer ? `<div class="award-item"><span class="al">🔮 Most Predicted Scorer</span><span class="av">${topPickedScorer} (${topPickedScorerCount} picks)</span></div>` : ""}
+      ${exactMax ? `<div class="award-item"><span class="al">Most Exact Scores</span><span class="av">${topExact.filter(s => s.exact === exactMax).map(s => s.player.display_name).join(", ")}</span></div>` : ""}
+      ${correctMax ? `<div class="award-item"><span class="al">Most Correct Results</span><span class="av">${topCorrect.filter(s => s.correctTotal === correctMax).map(s => s.player.display_name).join(", ")}</span></div>` : ""}
+      ${scorerMax ? `<div class="award-item"><span class="al">Most Correct First Goalscorers</span><span class="av">${topScorer.filter(s => s.scorer === scorerMax).map(s => s.player.display_name).join(", ")}</span></div>` : ""}
+      ${bestMatch ? `<div class="award-item"><span class="al">Best Called Match</span><span class="av">${bestMatch.fixture.home_team} v ${bestMatch.fixture.away_team} (${bestMatch.correctCount}/${bestMatch.total})</span></div>` : ""}
+      ${topPickedScorer ? `<div class="award-item"><span class="al">Most Predicted Scorer</span><span class="av">${topPickedScorer} (${topPickedScorerCount} picks)</span></div>` : ""}
     </div>`;
 }
 
@@ -2648,6 +2651,21 @@ function renderStatsPills() {
 
 const DUPLICATE_EXPLAINER_HTML = `You’ve opened the app with a different link, so a duplicate account has been created - easy to do! Don’t worry, your points and predictions are completely safe. Ant will merge the accounts next time he logs in. If you can’t wait, you can still make predictions on this account. They’ll be moved across when the accounts are merged.
 Nothing you need to do! ⚽`;
+
+// Player-facing wording stays the same regardless of cause, on purpose —
+// nobody needs "no_pin_on_file" explained to them. But collapsing all
+// three failure reasons into one identical message made a real bug
+// undiagnosable from the outside, so this small line surfaces which one
+// actually happened, for whoever's looking at the screen when it does.
+function claimFailureReasonNote(message) {
+  const reasons = {
+    no_pin_on_file: "That older account predates the PIN system, so there was nothing to check against.",
+    wrong_pin: "The PIN entered didn't match what's on file for that account.",
+    locked: "Too many recent PIN attempts on that name — try again shortly."
+  };
+  const reason = reasons[message];
+  return reason ? `<div style="font-size:10px; color:rgba(255,212,121,0.6); margin-top:6px;">(${reason})</div>` : "";
+}
 
 async function renderDuplicateWarningBanner() {
   const slot = document.getElementById("duplicate-warning-slot");
