@@ -2302,16 +2302,24 @@ async function renderAdminMissingPanel() {
         const predictedIds = new Set(fixturePreds.map(p => p.player_id));
         const missing = players.filter(p => !predictedIds.has(p.id)).sort((a, b) => a.display_name.localeCompare(b.display_name));
         const scorerCount = fixturePreds.filter(p => p.first_scorer).length;
+        const hoursToKickoff = (new Date(f.kickoff).getTime() - now) / 3600000;
+        const urgent = hoursToKickoff <= 24;
         return `
         <div class="result-row">
           <div class="rr-top">
-            <span class="rr-teams">${f.home_team} v ${f.away_team}</span>
+            <span class="rr-teams">${f.home_team} v ${f.away_team}${urgent ? ' <span style="color:var(--red); font-size:11px; font-weight:700;">⏰ within 24h</span>' : ''}</span>
             <span class="rr-badge ${missing.length === 0 ? 'done' : ''}">${fixturePreds.length}/${players.length} predicted</span>
           </div>
           <div style="font-size:11px; color:var(--grey); margin-bottom:6px;">${scorerCount}/${fixturePreds.length} also picked a first Pompey goalscorer</div>
           ${missing.length > 0 ? `
-            <div style="font-size:12px; margin-bottom:8px;">Missing: ${missing.map(m => m.display_name).join(", ")}</div>
-            <button class="rr-save" style="background:var(--grey-light); color:var(--navy);" data-copy-missing="${f.id}" data-teams="${f.home_team} v ${f.away_team}" data-names="${missing.map(m => m.display_name).join(', ')}">Copy WhatsApp nudge</button>
+            <button class="rr-save" style="background:var(--grey-light); color:var(--navy); margin-bottom:8px;" data-copy-missing="${f.id}" data-teams="${f.home_team} v ${f.away_team}" data-names="${missing.map(m => m.display_name).join(', ')}">Copy WhatsApp nudge (all names, for a group)</button>
+            ${missing.map(m => `
+              <div class="player-row" style="padding:6px 0;">
+                <div class="pinfo"><div class="pname" style="font-size:13px;">${m.display_name}</div></div>
+                ${m.phone_number
+                  ? `<a href="${fixtureNudgeLink(m.phone_number, m.display_name, f.home_team, f.away_team, f.kickoff)}" target="_blank" rel="noopener" class="btn-verify" style="background:#25D366; color:var(--white); text-decoration:none; display:inline-block;">WhatsApp</a>`
+                  : `<span style="font-size:11px; color:var(--grey);">No number</span>`}
+              </div>`).join("")}
           ` : `<div style="font-size:12px; color:#1c8a45;">Everyone's in ✓</div>`}
         </div>`;
       }).join("")}
@@ -3372,6 +3380,15 @@ function whatsappNudgeLink(phoneNumber) {
   // international form with the leading 0 dropped and 44 in its place.
   const intl = digits.startsWith("0") ? `44${digits.slice(1)}` : digits;
   const message = "Hi! Thanks for joining. Please don't forget to pay your £10 entry via https://www.paypal.com/pool/9q61PGoEEs?sr=ancr . No PayPal account? Tap \"Contribute as a Guest\" on that page, you don't need to sign up. If you no longer want to be part of the league, just let me know and I'll remove you.";
+  return `https://wa.me/${intl}?text=${encodeURIComponent(message)}`;
+}
+
+function fixtureNudgeLink(phoneNumber, displayName, homeTeam, awayTeam, kickoff) {
+  const digits = phoneNumber.replace(/\D/g, "");
+  const intl = digits.startsWith("0") ? `44${digits.slice(1)}` : digits;
+  const firstName = displayName.split(" ")[0];
+  const when = new Date(kickoff).toLocaleString("en-GB", { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
+  const message = `Hi ${firstName}, don't forget to predict ${homeTeam} v ${awayTeam}, ${when}.`;
   return `https://wa.me/${intl}?text=${encodeURIComponent(message)}`;
 }
 
