@@ -3282,7 +3282,7 @@ async function purgeUnverifiedPlayer(playerId) {
 // logic in computePrizeAmountsForCount(), which softens the introduction
 // of 3rd place instead of it appearing as a sudden slice out of nowhere.
 const RAMP_START = 60;          // verified count at which 3rd place is introduced
-const RAMP_END = 80;            // verified count at which the fixed 70/20/10 tier takes over
+const RAMP_END = 80;            // verified count at which the fixed 6:2:1 (£600/£200/£100 at 100 players) tier takes over
 const RAMP_TAKE_FROM_EACH = 25; // shaved off 1st and 2nd's naive shares at RAMP_START to fund the flat 3rd pot
 const RAMP_FIRST_SHARE = 0.75;  // how 1st/2nd split any pool growth above RAMP_START, through the ramp
 const RAMP_SECOND_SHARE = 0.25;
@@ -3309,7 +3309,7 @@ function prizeTierSplits(verifiedCount) {
     return [1 - second, second];
   }
   if (verifiedCount < RAMP_END) return null;          // ramp — see computePrizeAmountsForCount
-  return [0.7, 0.2, 0.1];                             // three winners, fixed split
+  return [2/3, 2/9, 1/9];                             // three winners, fixed split — 6:2:1 ratio, £600/£200/£100 at 100 players
 }
 
 // Pure function of "how many people have verified paid" — used both for the
@@ -3453,7 +3453,7 @@ async function renderAdminPaymentDashboard() {
           return `<div class="prize-tile"><div class="label">${label} (~${pct}%)</div><div class="value">${gbp(amt)}</div></div>`;
         }).join("")}
       </div>
-      <div style="font-size:11px; color:var(--grey); margin-top:-4px; margin-bottom:12px;">${prize.winners} winner${prize.winners === 1 ? "" : "s"} at this entry count. Under 20 paid = 1 winner, 20–59 = 2 (2nd's share tapers 20%→25%), 60+ = 3 (3rd introduced gradually from 60, fixed 70/20/10 from 80).</div>
+      <div style="font-size:11px; color:var(--grey); margin-top:-4px; margin-bottom:12px;">${prize.winners} winner${prize.winners === 1 ? "" : "s"} at this entry count. Under 20 paid = 1 winner, 20–59 = 2 (2nd's share tapers 20%→25%), 60+ = 3 (3rd introduced gradually from 60, fixed 2/3–2/9–1/9 split from 80, £600/£200/£100 at 100 players).</div>
       ${prize.entries > prize.verifiedCount ? `
       <div style="font-size:11px; color:var(--grey); margin-bottom:12px; padding-top:8px; border-top:1px solid #eee;">
         <strong>If everyone who's joined pays (${prize.entries}):</strong> ${
@@ -3597,7 +3597,7 @@ async function renderAdminPaymentDashboard() {
     const tierNote = n < 20 ? "winner takes all"
       : n < RAMP_START ? "20–59 taper tier"
       : n < RAMP_END ? "60–79 ramp tier"
-      : "fixed 70/20/10 tier";
+      : "fixed 6:2:1 tier";
     result.innerHTML = `<strong>${n} verified</strong> → pool ${gbp(calc.pool)} (${tierNote}): ${breakdown}`;
   });
 
