@@ -3302,6 +3302,25 @@ function taperedSecondShare(verifiedCount) {
   return TAPER_SECOND_SHARE_START + (RAMP_SECOND_SHARE - TAPER_SECOND_SHARE_START) * frac;
 }
 
+// A hand-tuned, verified transition for exactly 75-79 players — 74 and
+// below still uses the general ramp formula unmodified (it already lands
+// on £475/£140/£50 at 74 naturally, no override needed), and 80+ already
+// uses the fixed 6:2:1 tier. Without this, the general ramp formula lets
+// 1st place climb to £510 at 79 then drop to £480 the moment the 80th
+// player joins — this table redistributes that same growth into 2nd and
+// 3rd instead, so 1st stays flat until the final step and then rises
+// straight into the 80-player tier rather than dropping into it. Every
+// row here is checked against the real pool at that count and sits
+// within a couple of pounds either side, the same rounding tolerance the
+// rest of the formula already runs at.
+const PRIZE_TRANSITION_TABLE = {
+  75: [475, 145, 55],
+  76: [475, 150, 60],
+  77: [475, 155, 65],
+  78: [475, 155, 70],
+  79: [475, 160, 75]
+};
+
 function prizeTierSplits(verifiedCount) {
   if (verifiedCount < 20) return [1.0];              // winner takes all
   if (verifiedCount < RAMP_START) {                  // two winners, second's share tapering 20% → 25%
@@ -3321,7 +3340,9 @@ function computePrizeAmountsForCount(verifiedCount) {
   const pool = totalCollected - adminFee;
 
   let amounts;
-  if (verifiedCount >= RAMP_START && verifiedCount < RAMP_END) {
+  if (PRIZE_TRANSITION_TABLE[verifiedCount]) {
+    amounts = PRIZE_TRANSITION_TABLE[verifiedCount];
+  } else if (verifiedCount >= RAMP_START && verifiedCount < RAMP_END) {
     // Freeze the picture at the moment 3rd place is introduced, then let
     // 1st/2nd absorb all further growth at a fixed 75/25 ratio while 3rd
     // stays flat — this is what avoids a hard percentage cliff at 60.
@@ -3453,7 +3474,7 @@ async function renderAdminPaymentDashboard() {
           return `<div class="prize-tile"><div class="label">${label} (~${pct}%)</div><div class="value">${gbp(amt)}</div></div>`;
         }).join("")}
       </div>
-      <div style="font-size:11px; color:var(--grey); margin-top:-4px; margin-bottom:12px;">${prize.winners} winner${prize.winners === 1 ? "" : "s"} at this entry count. Under 20 paid = 1 winner, 20–59 = 2 (2nd's share tapers 20%→25%), 60+ = 3 (3rd introduced gradually from 60, fixed 2/3–2/9–1/9 split from 80, £600/£200/£100 at 100 players).</div>
+      <div style="font-size:11px; color:var(--grey); margin-top:-4px; margin-bottom:12px;">${prize.winners} winner${prize.winners === 1 ? "" : "s"} at this entry count. Under 20 paid = 1 winner, 20–59 = 2 (2nd's share tapers 20%→25%), 60+ = 3 (3rd introduced gradually from 60; 75–79 use a hand-tuned transition so 1st place doesn't drop at 80; fixed 2/3–2/9–1/9 split from 80, £600/£200/£100 at 100 players).</div>
       ${prize.entries > prize.verifiedCount ? `
       <div style="font-size:11px; color:var(--grey); margin-bottom:12px; padding-top:8px; border-top:1px solid #eee;">
         <strong>If everyone who's joined pays (${prize.entries}):</strong> ${
