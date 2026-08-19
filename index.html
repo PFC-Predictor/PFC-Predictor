@@ -2453,7 +2453,7 @@ async function downloadFullBackupWorkbook(status) {
     addSheet("Fixtures", fixtures);
     addSheet("Squad", squad);
 
-    XLSX.writeFile(wb, `pompey_predictor_backup_${new Date().toISOString().slice(0,10)}.xlsx`);
+    XLSX.writeFile(wb, `${new Date().toISOString().slice(0,10).replace(/-/g, "")}-PFC.xlsx`);
     status.textContent = "Workbook downloaded ✓";
   } catch (err) {
     status.textContent = "Could not build the workbook: " + err.message;
