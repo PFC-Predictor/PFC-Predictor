@@ -652,7 +652,8 @@
     <section id="view-leaderboard" class="view">
       <div id="prize-slot"></div>
       <div id="mover-slot"></div>
-      <div style="display:flex; justify-content:flex-end; font-size:11px; color:var(--grey); margin-bottom:6px;">
+      <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--grey); margin-bottom:6px;">
+        <span>💡 Tap a name for their full history</span>
         <span id="lb-player-count"></span>
       </div>
       <div class="card" style="padding:0; overflow-x:auto;">
@@ -748,7 +749,7 @@
           </div>
           <div class="modal-section">
             <h4>5. Prize structure</h4>
-            <p id="instructions-prize" style="margin-bottom:6px;">💷 £10 to enter, 10% covers admin, the rest is the prize pool — more winners and bigger prizes as more people join, see the Leaderboard for the live numbers</p>
+            <p id="instructions-prize" style="margin-bottom:6px;">💷 £10 to enter, 10% covers admin, the rest is the prize pool — more winners and bigger prizes as more people join, see the League for the live numbers</p>
             <p style="margin-bottom:6px;">✅ Only paid, verified entrants get paid out — make sure you've paid via the PayPal Pool</p>
             <p>🅿️ No PayPal account? Tap "Contribute as a Guest" on the PayPal page, no sign up needed</p>
           </div>
@@ -760,8 +761,8 @@
           <div class="modal-section">
             <h4>7. Around the app</h4>
             <p style="margin-bottom:6px;">📊 <strong>Your Season So Far</strong> — top of your Profile, shows your current rank, points, exact scores, correct results and correct goalscorers at a glance</p>
-            <p style="margin-bottom:6px;">🏆 <strong>Leaderboard</strong> — live prize pool up top, full table below, tap any name for their full history</p>
-            <p style="margin-bottom:6px;">🏅 <strong>Season Records</strong> — sits under the Leaderboard, tracks the best streaks and scores of the season</p>
+            <p style="margin-bottom:6px;">🏆 <strong>League</strong> — live prize pool up top, full table below, tap any name for their full history</p>
+            <p style="margin-bottom:6px;">🏅 <strong>Season Records</strong> — sits under the League, tracks the best streaks and scores of the season</p>
             <p style="margin-bottom:6px;">👀 <strong>Picks</strong> — its own tab, shows what everyone called once a match kicks off, grouped by scoreline</p>
             <video controls playsinline preload="none" poster="./picks-updates-intro-poster.jpg" style="width:100%; max-width:280px; display:block; margin:4px auto 6px; border-radius:12px;">
               <source src="./picks-updates-intro.mp4" type="video/mp4">
@@ -825,7 +826,7 @@
   <nav class="floating-nav">
     <button class="tab active" data-view="fixtures"><span class="emoji">⚽</span>Predictions</button>
     <button class="tab" data-view="picks"><span class="emoji">👀</span>Picks</button>
-    <button class="tab" data-view="leaderboard"><span class="emoji">🏆</span>Leaderboard</button>
+    <button class="tab" data-view="leaderboard"><span class="emoji">🏆</span>League</button>
     <button class="tab" data-view="whats-new"><span class="emoji">📢<span class="tab-dot hidden" id="whats-new-dot"></span></span>Updates</button>
     <button class="tab" data-view="profile"><span class="emoji">👤</span>Profile</button>
   </nav>
@@ -2277,7 +2278,8 @@ async function renderAdminMissingPanel() {
       </div>
       <div class="collapsible-body" style="padding:0 14px 14px;">
       ${upcoming.map(f => {
-        const fixturePreds = preds.filter(p => p.fixture_id === f.id);
+        const activeIds = new Set(players.map(p => p.id));
+        const fixturePreds = preds.filter(p => p.fixture_id === f.id && activeIds.has(p.player_id));
         const predictedIds = new Set(fixturePreds.map(p => p.player_id));
         const missing = players.filter(p => !predictedIds.has(p.id)).sort((a, b) => a.display_name.localeCompare(b.display_name));
         const scorerCount = fixturePreds.filter(p => p.first_scorer).length;
@@ -2445,7 +2447,7 @@ function maybeShowOnboarding() {
   document.getElementById("onboarding-body").innerHTML = `
     <div class="modal-section">
       <h4>How it works</h4>
-      <p>Predict the score for every Portsmouth fixture before kickoff. Pick a first Pompey goalscorer for a bonus. Climb the leaderboard across all 46 gameweeks. All 46 Championship fixtures are already loaded, not added week by week, so if you'd rather not log in before every single match, you can sit down once and predict as many as you like in one go, then forget about it until results start coming in. Just make sure each one's saved before its match kicks off, or it won't count.</p>
+      <p>Predict the score for every Portsmouth fixture before kickoff. Pick a first Pompey goalscorer for a bonus. Climb the league across all 46 gameweeks. All 46 Championship fixtures are already loaded, not added week by week, so if you'd rather not log in before every single match, you can sit down once and predict as many as you like in one go, then forget about it until results start coming in. Just make sure each one's saved before its match kicks off, or it won't count.</p>
     </div>
     <div class="modal-section">
       <h4>Points</h4>
