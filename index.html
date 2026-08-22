@@ -3544,7 +3544,7 @@ async function renderAdminPaymentDashboard() {
         return `
         <div class="player-row ${overdue ? 'overdue' : ''}" data-search-name="${p.display_name.toLowerCase()}">
           <div class="pinfo">
-            <div class="pname">${p.display_name}${overdue ? " ⚠️" : ""}${p.pool_exempt ? " <span style=\"color:var(--grey); font-weight:400;\">(exempt)</span>" : ""}${!p.is_active ? " <span style=\"color:var(--grey); font-weight:400;\">(inactive)</span>" : ""}${p.is_participant === false ? " <span style=\"color:var(--gold); font-weight:700;\">(hidden)</span>" : ""}</div>
+            <div class="pname">${p.display_name}${overdue ? " ⚠️" : ""}${p.pool_exempt ? " <span style=\"color:var(--grey); font-weight:400;\">(exempt)</span>" : ""}${!p.is_active ? " <span style=\"color:var(--gold); font-weight:700;\">(inactive)</span>" : ""}${p.is_participant === false ? " <span style=\"color:var(--gold); font-weight:700;\">(hidden)</span>" : ""}</div>
             <div class="pmeta">${p.phone_number || "no mobile on file"} · joined ${new Date(p.created_at).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}</div>
             <div class="pmeta">${(() => {
               const last = lastPredictionByPlayer.get(p.id);
