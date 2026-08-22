@@ -231,7 +231,7 @@
   }
   .dup-warning-banner .label{font-weight:700; color:#9c7a1f; font-size:12px; margin-bottom:4px;}
 
-  /* ---------- crowd's verdict ---------- */
+  /* ---------- prediction split ---------- */
   .verdict-panel{margin-bottom:12px;}
   .verdict-header{
     display:flex; justify-content:space-between; align-items:center;
@@ -766,7 +766,7 @@
             <video controls playsinline preload="none" poster="./picks-updates-intro-poster.jpg" style="width:100%; max-width:280px; display:block; margin:4px auto 6px; border-radius:12px;">
               <source src="./picks-updates-intro.mp4" type="video/mp4">
             </video>
-            <p style="margin-bottom:6px;">📊 <strong>The Crowd's Verdict</strong> — inside Picks, shows how everyone's split on the next fixture</p>
+            <p style="margin-bottom:6px;">📊 <strong>Prediction Split</strong> — inside Picks, shows how everyone's split on the next fixture</p>
             <p style="margin-bottom:6px;">🥇 <strong>League Awards</strong> — also inside Picks: Most Exact Scores, Most Correct Results (includes exact scores, since those are correct too), Most Correct First Goalscorers, Best Called Match, and Most Predicted Scorer</p>
             <p style="margin-bottom:6px;">📢 <strong>Updates</strong> — up top, flags anything new, and it's where you can suggest a feature too</p>
             <video controls playsinline preload="none" poster="./whats-new-tour-poster.jpg" style="width:100%; max-width:280px; display:block; margin:4px auto 6px; border-radius:12px;">
@@ -2839,7 +2839,7 @@ async function renderVerdictPanel(fixture) {
   slot.innerHTML = `
     <div class="card verdict-panel" id="verdict-panel">
       <div class="verdict-header" id="verdict-toggle">
-        <span>📊 The Crowd's Verdict — next up</span>
+        <span>📊 Prediction Split — next up</span>
         <span class="chev">▾</span>
       </div>
       <div class="verdict-body">
