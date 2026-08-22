@@ -306,7 +306,7 @@
   /* ---------- admin: payment dashboard ---------- */
   .admin-header{
     font-family:'Bebas Neue', Impact, sans-serif; font-size:18px; letter-spacing:0.5px;
-    margin:18px 0 8px;
+    margin:18px 0 8px; text-align:center;
   }
   .admin-group-header{
     font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.6px;
@@ -652,8 +652,7 @@
     <section id="view-leaderboard" class="view">
       <div id="prize-slot"></div>
       <div id="mover-slot"></div>
-      <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--grey); margin-bottom:6px;">
-        <span><span class="lb-paid-tick">✓</span> = paid</span>
+      <div style="display:flex; justify-content:flex-end; font-size:11px; color:var(--grey); margin-bottom:6px;">
         <span id="lb-player-count"></span>
       </div>
       <div class="card" style="padding:0; overflow-x:auto;">
@@ -690,6 +689,7 @@
               <span id="profile-mobile"></span>
               <span id="profile-edit-link" style="color:var(--navy); text-decoration:underline; cursor:pointer; margin-left:6px;">Edit</span>
             </div>
+            <div id="profile-payment-status" style="font-size:12px; margin-top:4px;"></div>
             <div id="profile-mobile-edit" class="hidden" style="display:flex; gap:6px; margin-top:6px;">
               <input type="tel" id="profile-mobile-input" style="flex:1; height:36px; border-radius:8px; border:1px solid var(--grey-light); padding:0 8px; font-size:13px;">
               <button id="btn-save-mobile" style="height:36px; border-radius:8px; border:none; background:var(--navy); color:var(--white); font-size:12px; font-weight:700; padding:0 10px;">Save</button>
@@ -710,7 +710,7 @@
         <p style="font-size:11px; color:var(--grey); margin-top:10px; margin-bottom:0;">This button opens the pool — you'll still need to tap Contribute inside PayPal itself to actually send your £10.</p>
         <p style="font-size:11px; color:var(--grey); margin-top:6px; margin-bottom:0;">No PayPal account? Tap "Contribute as a Guest" once you're on the page — you don't need to sign up.</p>
       </div>
-      <div class="card collapsible collapsed" style="padding:0;">
+      <div class="card collapsible" style="padding:0;">
         <div class="collapsible-header" id="profile-instructions-toggle">
           <span>📖 Instructions</span>
           <span class="chev">▾</span>
@@ -810,7 +810,6 @@
       <div id="admin-fixtures-slot"></div>
       <div id="admin-editfixtures-slot"></div>
       <div id="admin-squad-slot"></div>
-      <div id="admin-export-slot"></div>
 
       <div class="admin-group-header">📣 Communication</div>
       <div id="admin-postupdate-slot"></div>
@@ -1544,6 +1543,9 @@ async function refreshPayEntryCard() {
     if (rows[0]) currentPlayer.payment_verified = rows[0].payment_verified;
   } catch (e) { /* fall back to whatever's already cached rather than blocking the tab */ }
   card.classList.toggle("hidden", !!currentPlayer.payment_verified);
+  document.getElementById("profile-payment-status").innerHTML = currentPlayer.payment_verified
+    ? `<span class="lb-paid-tick">✓ Paid</span>`
+    : `<span style="color:var(--red);">Not yet verified as paid</span>`;
 }
 
 document.querySelectorAll("nav.floating-nav .tab").forEach(tab => {
@@ -1570,7 +1572,6 @@ function renderAdminPanels() {
   renderAdminMissingPanel();
   renderAdminRecentPredictionsPanel();
   renderAdminSquadPanel();
-  renderAdminExportPanel();
   renderAdminPaymentLogPanel();
   renderAdminPostUpdatePanel();
   renderAdminRecentJoinersPanel();
@@ -1648,28 +1649,6 @@ async function checkForUnseenUpdate() {
     }
     return false;
   } catch (e) { return false; }
-}
-
-function buildShareMessage(prize, appUrl) {
-  let prizeLine;
-  if (prize.verifiedCount === 0) {
-    prizeLine = "the prize pot kicks in as soon as the first entry's verified";
-  } else if (prize.winners === 1) {
-    prizeLine = `the current prize pot is: 🏆 £${prize.amounts[0]} (winner takes all)`;
-  } else if (prize.winners === 2) {
-    prizeLine = `the current prize pot is: 🥇 £${prize.amounts[0]} 🥈 £${prize.amounts[1]}`;
-  } else {
-    prizeLine = `the current prize pot is: 🥇 £${prize.amounts[0]} 🥈 £${prize.amounts[1]} 🥉 £${prize.amounts[2]}`;
-  }
-  return [
-    "🏆 I have created a Pompey Predictor app for the new season.",
-    "",
-    `Have a go at predicting Pompey fixtures and Pompey goalscorers this season: ${appUrl}`,
-    "",
-    `👥 ${prize.entries} signed up so far, with ${prize.verifiedCount} paid and verified. It's a one-off £10 entry, and ${prizeLine}`,
-    "",
-    "You can pay by PayPal through the app once you're in."
-  ].join("\n");
 }
 
 document.getElementById("profile-instructions-toggle").addEventListener("click", (e) => {
@@ -2460,69 +2439,6 @@ async function downloadFullBackupWorkbook(status) {
   }
 }
 
-async function renderAdminExportPanel() {
-  const slot = document.getElementById("admin-export-slot");
-  slot.innerHTML = `
-    <div class="card">
-      <div class="admin-header" style="margin-top:0;">📦 Data Backup</div>
-      <button class="mc-save" id="btn-export-workbook" style="margin-bottom:8px; background:var(--red);">Export All (One Workbook, 6 Sheets)</button>
-      <p style="font-size:12px; color:var(--grey); margin-top:-4px; margin-bottom:12px;">Or run these one at a time as a routine backup instead.</p>
-      <button class="mc-save" id="btn-export-predictions" style="margin-bottom:8px;">Export Predictions</button>
-      <button class="mc-save" id="btn-export-results" style="margin-bottom:8px;">Export Results</button>
-      <button class="mc-save" id="btn-export-players" style="margin-bottom:8px;">Export Players</button>
-      <button class="mc-save" id="btn-export-paymentlog" style="margin-bottom:8px;">Export Payment Log</button>
-      <button class="mc-save" id="btn-export-fixtures" style="margin-bottom:8px;">Export Fixtures</button>
-      <button class="mc-save" id="btn-export-squad">Export Squad</button>
-      <div id="export-status" style="font-size:12px; color:var(--grey); margin-top:8px;"></div>
-    </div>`;
-
-  const status = document.getElementById("export-status");
-
-  document.getElementById("btn-export-workbook").addEventListener("click", () => downloadFullBackupWorkbook(status));
-
-  document.getElementById("btn-export-predictions").addEventListener("click", async () => {
-    status.textContent = "Exporting predictions…";
-    const predictions = await sbFetchAll("predictions?select=*");
-    downloadCsv(`predictions_${new Date().toISOString().slice(0,10)}.csv`, toCsv(predictions));
-    status.textContent = "Predictions downloaded ✓";
-  });
-
-  document.getElementById("btn-export-results").addEventListener("click", async () => {
-    status.textContent = "Exporting results…";
-    const results = await sbFetchAll("results?select=*");
-    downloadCsv(`results_${new Date().toISOString().slice(0,10)}.csv`, toCsv(results));
-    status.textContent = "Results downloaded ✓";
-  });
-
-  document.getElementById("btn-export-players").addEventListener("click", async () => {
-    status.textContent = "Exporting players…";
-    const players = await sbFetchAll("players?select=*");
-    downloadCsv(`players_${new Date().toISOString().slice(0,10)}.csv`, toCsv(players));
-    status.textContent = "Players downloaded ✓";
-  });
-
-  document.getElementById("btn-export-paymentlog").addEventListener("click", async () => {
-    status.textContent = "Exporting payment log…";
-    const log = await sbFetchAll("payment_log?select=*");
-    downloadCsv(`payment_log_${new Date().toISOString().slice(0,10)}.csv`, toCsv(log));
-    status.textContent = "Payment log downloaded ✓";
-  });
-
-  document.getElementById("btn-export-fixtures").addEventListener("click", async () => {
-    status.textContent = "Exporting fixtures…";
-    const fixtures = await sbFetchAll("fixtures?select=*");
-    downloadCsv(`fixtures_${new Date().toISOString().slice(0,10)}.csv`, toCsv(fixtures));
-    status.textContent = "Fixtures downloaded ✓";
-  });
-
-  document.getElementById("btn-export-squad").addEventListener("click", async () => {
-    status.textContent = "Exporting squad…";
-    const squad = await sbFetchAll("squad?select=*");
-    downloadCsv(`squad_${new Date().toISOString().slice(0,10)}.csv`, toCsv(squad));
-    status.textContent = "Squad downloaded ✓";
-  });
-}
-
 /* ---------- Onboarding (first-ever login on any device) ---------- */
 function maybeShowOnboarding() {
   if (currentPlayer.has_seen_onboarding) return;
@@ -2839,7 +2755,7 @@ async function renderVerdictPanel(fixture) {
   slot.innerHTML = `
     <div class="card verdict-panel" id="verdict-panel">
       <div class="verdict-header" id="verdict-toggle">
-        <span>📊 Prediction Split — next up</span>
+        <span style="flex:1; text-align:center;">📊 Prediction Split — next up</span>
         <span class="chev">▾</span>
       </div>
       <div class="verdict-body">
@@ -3487,7 +3403,6 @@ async function renderAdminPaymentDashboard() {
         <span>Deadline:</span>
         <input type="date" id="deadline-input" value="${deadline}">
         <button id="btn-save-deadline">Save</button>
-        <button id="btn-whatsapp-recruit" title="Share to WhatsApp" style="background:#25D366; color:var(--white); border:none; border-radius:8px; padding:0 14px; height:34px; font-size:13px; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:6px;">💬 Share to WhatsApp</button>
       </div>
       <div id="deadline-status" style="font-size:12px; color:var(--grey); margin-top:-8px; margin-bottom:10px;"></div>
     </div>
@@ -3620,11 +3535,6 @@ async function renderAdminPaymentDashboard() {
       : n < RAMP_END ? "60–79 ramp tier"
       : "fixed 6:2:1 tier";
     result.innerHTML = `<strong>${n} verified</strong> → pool ${gbp(calc.pool)} (${tierNote}): ${breakdown}`;
-  });
-
-  document.getElementById("btn-whatsapp-recruit").addEventListener("click", () => {
-    const message = buildShareMessage(prize, GITHUB_PAGES_URL);
-    window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, "_blank");
   });
 
   document.getElementById("btn-save-deadline").addEventListener("click", async () => {
@@ -4350,9 +4260,9 @@ function renderLbTable(rows, prizeWinners = 0) {
       <th>Pos</th><th>Player</th><th>Exact</th><th>Correct</th><th>Scorer</th><th>Pts</th>
     </tr>
     ${rows.sort((a, b) => a.rank - b.rank).map(r => `
-      <tr data-player-row="${r.player.id}" data-player-name="${r.player.display_name}" style="cursor:pointer;" class="${r.rank <= prizeWinners ? "lb-inmoney" : ""} ${r.rank === prizeWinners ? "lb-inmoney-cutoff" : ""}">
+      <tr data-player-row="${r.player.id}" data-player-name="${r.player.display_name}" data-player-paid="${!!r.player.payment_verified}" style="cursor:pointer;" class="${r.rank <= prizeWinners ? "lb-inmoney" : ""} ${r.rank === prizeWinners ? "lb-inmoney-cutoff" : ""}">
         <td>${r.rank}${r.movement > 0 ? `<div class="lb-move up">▲${r.movement}</div>` : r.movement < 0 ? `<div class="lb-move down">▼${Math.abs(r.movement)}</div>` : ""}</td>
-        <td>${r.player.display_name}${r.player.payment_verified ? ` <span class="lb-paid-tick" title="Paid">✓</span>` : ""}</td>
+        <td>${r.player.display_name}</td>
         <td>${r.exact}</td>
         <td>${r.correct}</td>
         <td>${r.scorer}</td>
@@ -4360,12 +4270,12 @@ function renderLbTable(rows, prizeWinners = 0) {
       </tr>`).join("")}
   `;
   tableEl.querySelectorAll("[data-player-row]").forEach(row => {
-    row.addEventListener("click", () => openPlayerCard(row.dataset.playerRow, row.dataset.playerName));
+    row.addEventListener("click", () => openPlayerCard(row.dataset.playerRow, row.dataset.playerName, row.dataset.playerPaid === "true"));
   });
 }
 
-async function openPlayerCard(playerId, playerName) {
-  document.getElementById("player-card-name").textContent = playerName;
+async function openPlayerCard(playerId, playerName, isPaid) {
+  document.getElementById("player-card-name").innerHTML = `${playerName}${isPaid ? ` <span class="lb-paid-tick" style="font-size:13px; vertical-align:middle;" title="Paid">✓ Paid</span>` : ""}`;
   const body = document.getElementById("player-card-body");
   body.innerHTML = `<div class="placeholder-note">Loading…</div>`;
   openModal("modal-player-card");
