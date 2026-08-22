@@ -273,7 +273,6 @@
     background:var(--grey-light); color:var(--grey);
   }
   .mc-badge.active{background:#e7f6ec; color:#1c8a45;}
-  .mc-badge.locked{background:#f1f1f3; color:#7a7a7a;}
   .mc-scores{display:flex; align-items:center; justify-content:center; gap:14px; margin-bottom:12px;}
   .mc-scores input{
     width:56px; height:56px; text-align:center; font-size:24px; font-weight:700;
@@ -293,15 +292,6 @@
   }
   .mc-save:disabled{opacity:0.5;}
   .mc-save-status{font-size:12px; text-align:center; margin-top:6px; min-height:16px;}
-  .mc-locked-note{font-size:12px; color:var(--grey); text-align:center; padding:6px 0;}
-  .mc-badge.finished{background:var(--grey-light); color:var(--navy); font-weight:700;}
-  .mc-finished-summary{padding:10px 0 2px; text-align:center; font-size:13px;}
-  .mc-finished-summary .mfs-yours{color:var(--text); margin-bottom:4px;}
-  .mc-finished-summary .mfs-outcome{font-weight:700;}
-  .mc-finished-summary .mfs-outcome.exact{color:#8a6d00;}
-  .mc-finished-summary .mfs-outcome.correct{color:var(--navy);}
-  .mc-finished-summary .mfs-outcome.miss{color:var(--grey); font-weight:400;}
-  .mc-finished-summary .mfs-scorer{color:var(--grey); font-size:12px; margin-top:2px;}
 
   /* ---------- admin: payment dashboard ---------- */
   .admin-header{
@@ -421,13 +411,13 @@
   .result-row .rr-teams{font-weight:700;}
   .result-row .rr-badge{font-size:10px; font-weight:700; padding:3px 8px; border-radius:999px; background:var(--grey-light); color:var(--grey);}
   .result-row .rr-badge.done{background:#e7f6ec; color:#1c8a45;}
-  .result-row .rr-inputs{display:flex; align-items:center; gap:10px; margin-bottom:8px;}
+  .result-row .rr-inputs{display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin-bottom:8px;}
   .result-row .rr-inputs input{
     width:48px; height:44px; text-align:center; font-size:18px; font-weight:700;
     border-radius:10px; border:2px solid var(--grey-light);
   }
   .result-row .rr-inputs select{
-    flex:1; height:44px; border-radius:10px; border:1px solid var(--grey-light); padding:0 10px; font-size:13px;
+    flex:1 1 100%; min-width:0; height:44px; border-radius:10px; border:1px solid var(--grey-light); padding:0 10px; font-size:13px;
   }
   .result-row .rr-save{
     width:100%; height:40px; border-radius:8px; border:none; background:var(--navy); color:var(--white);
@@ -733,6 +723,7 @@
             <p style="margin-bottom:6px;">🎯 Enter a score for each fixture before kick-off, then tap Save Prediction</p>
             <p style="margin-bottom:6px;">📅 All 46 games are already loaded — use the ‹ › arrows to flick between months, do them all in one go or dip in and out</p>
             <p>🔒 Locks the second the match kicks off, no editing after that — get it in early if you won't be free nearer the time</p>
+            <p>👀 Once it locks, it moves out of here — check Picks for the result and how everyone called it</p>
           </div>
           <div class="modal-section">
             <h4>3. First Pompey goalscorer</h4>
@@ -2803,9 +2794,18 @@ async function renderMonth(monthKey, cachedFixtures) {
   const predByFixture = new Map(myPreds.map(p => [p.fixture_id, p]));
   const resultByFixture = new Map(results.map(r => [r.fixture_id, r]));
 
+  // Predictions is deliberately forward-looking only — once a fixture kicks
+  // off there's nothing left to predict, and it moves to Picks instead,
+  // rather than piling up here as an ever-growing scroll of finished matches.
+  const stillOpen = monthFixtures.filter(f => new Date(f.kickoff).getTime() > Date.now());
+
   const list = document.getElementById("match-list");
   list.innerHTML = "";
-  monthFixtures.forEach(f => {
+  if (stillOpen.length === 0) {
+    list.innerHTML = `<div class="placeholder-note">Everything in ${monthLabelFor(monthKey)} has kicked off — check the Picks tab for how it went.</div>`;
+    return;
+  }
+  stillOpen.forEach(f => {
     list.appendChild(buildMatchCard(f, squad, predByFixture.get(f.id), resultByFixture.get(f.id)));
   });
 }
@@ -2827,13 +2827,7 @@ function sortSquadByPosition(squad) {
 function buildMatchCard(fixture, squad, existingPred, result) {
   const wrap = document.createElement("div");
   wrap.className = "card match-card";
-  const locked = new Date(fixture.kickoff).getTime() <= Date.now();
-
-  const badge = locked
-    ? (result
-        ? `<span class="mc-badge finished">FT ${result.home_score}-${result.away_score}</span>`
-        : `<span class="mc-badge locked">Locked</span>`)
-    : `<span class="mc-badge active">${fmtKickoff(fixture.kickoff)}</span>`;
+  const badge = `<span class="mc-badge active">${fmtKickoff(fixture.kickoff)}</span>`;
 
   const isCup = fixture.competition && fixture.competition !== "Championship";
   const header = `
@@ -2844,27 +2838,6 @@ function buildMatchCard(fixture, squad, existingPred, result) {
       </div>
       ${badge}
     </div>`;
-
-  // Once a match is locked, predictions can no longer change, so the full
-  // input grid (score boxes, goalscorer dropdown) has nothing left to do —
-  // Predictions stays forward-looking; the full breakdown lives in Picks.
-  if (locked) {
-    let summaryHtml;
-    if (!existingPred) {
-      summaryHtml = `<div class="mc-finished-summary mfs-outcome miss">You didn't predict this one</div>`;
-    } else if (!result) {
-      summaryHtml = `<div class="mc-finished-summary"><div class="mfs-yours">Your prediction: ${existingPred.home_score}-${existingPred.away_score}${existingPred.first_scorer ? ` · ⚽ ${existingPred.first_scorer}` : ""}</div><div style="color:var(--grey); font-size:12px;">Kicked off — waiting for the full-time result</div></div>`;
-    } else {
-      const bd = calcPoints(existingPred, result);
-      summaryHtml = `
-        <div class="mc-finished-summary">
-          <div class="mfs-yours">You predicted ${existingPred.home_score}-${existingPred.away_score}</div>
-          ${badgeFor(existingPred, result) || ""}
-        </div>`;
-    }
-    wrap.innerHTML = header + summaryHtml;
-    return wrap;
-  }
 
   wrap.innerHTML = header + `
     <div class="mc-scores">
@@ -4334,15 +4307,19 @@ function renderSeasonRecords(players, predictions, allResults, resultsByFixture,
   const playerById = new Map(players.map(p => [p.id, p]));
 
   // highest single match score
-  let highest = null;
+  let highestTotal = -1, highestEntries = [];
   predictions.forEach(pred => {
     const result = resultsByFixture.get(pred.fixture_id);
     if (!result) return;
     const bd = calcPoints(pred, result);
-    if (!highest || bd.total > highest.total) {
-      highest = { total: bd.total, player: playerById.get(pred.player_id), fixture: fixtureById.get(pred.fixture_id) };
+    if (bd.total > highestTotal) {
+      highestTotal = bd.total;
+      highestEntries = [{ player: playerById.get(pred.player_id), fixture: fixtureById.get(pred.fixture_id) }];
+    } else if (bd.total === highestTotal && bd.total > 0) {
+      highestEntries.push({ player: playerById.get(pred.player_id), fixture: fixtureById.get(pred.fixture_id) });
     }
   });
+  const highest = highestEntries.length ? { total: highestTotal, entries: highestEntries } : null;
 
   // cumulative exact / scorer counts, and chronological streaks
   const orderedFixtureIds = [...resultsByFixture.entries()]
@@ -4379,9 +4356,12 @@ function renderSeasonRecords(players, predictions, allResults, resultsByFixture,
   });
 
   const topOf = (map, min = 1) => {
-    let best = null;
-    map.forEach((v, k) => { if (v >= min && (!best || v > best.v)) best = { id: k, v }; });
-    return best ? { player: playerById.get(best.id), value: best.v } : null;
+    let maxV = 0;
+    map.forEach((v) => { if (v >= min && v > maxV) maxV = v; });
+    if (maxV < min) return null;
+    const players_ = [];
+    map.forEach((v, k) => { if (v === maxV) players_.push(playerById.get(k)); });
+    return { players: players_, value: maxV };
   };
 
   const mostExact = topOf(exactCounts, 1);
@@ -4396,11 +4376,11 @@ function renderSeasonRecords(players, predictions, allResults, resultsByFixture,
     .sort((a, b) => b.rate - a.rate)[0];
 
   const rows = [
-    highest && `<div class="record-row"><div class="rlabel">Highest single match score</div><div class="rdetail">${highest.player?.display_name || "—"} — ${highest.total} pts (${highest.fixture ? `${highest.fixture.home_team} v ${highest.fixture.away_team}` : "unknown fixture"})</div></div>`,
-    mostExact && `<div class="record-row"><div class="rlabel">Most exact scores</div><div class="rdetail">${mostExact.player.display_name} — ${mostExact.value}</div></div>`,
-    mostScorer && `<div class="record-row"><div class="rlabel">Most first Pompey goalscorer picks correct</div><div class="rdetail">${mostScorer.player.display_name} — ${mostScorer.value}</div></div>`,
-    longestCorrectStreak && `<div class="record-row"><div class="rlabel">Longest correct-result streak</div><div class="rdetail">${longestCorrectStreak.player.display_name} — ${longestCorrectStreak.value}</div></div>`,
-    longestExactStreak && `<div class="record-row"><div class="rlabel">Longest exact-score streak</div><div class="rdetail">${longestExactStreak.player.display_name} — ${longestExactStreak.value}</div></div>`,
+    highest && `<div class="record-row"><div class="rlabel">Highest single match score</div><div class="rdetail">${highest.entries.map(e => e.player?.display_name || "—").join(", ")} — ${highest.total} pts (${highest.entries[0].fixture ? `${highest.entries[0].fixture.home_team} v ${highest.entries[0].fixture.away_team}` : "unknown fixture"})</div></div>`,
+    mostExact && `<div class="record-row"><div class="rlabel">Most exact scores</div><div class="rdetail">${mostExact.players.map(p => p.display_name).join(", ")} — ${mostExact.value}</div></div>`,
+    mostScorer && `<div class="record-row"><div class="rlabel">Most first Pompey goalscorer picks correct</div><div class="rdetail">${mostScorer.players.map(p => p.display_name).join(", ")} — ${mostScorer.value}</div></div>`,
+    longestCorrectStreak && `<div class="record-row"><div class="rlabel">Longest correct-result streak</div><div class="rdetail">${longestCorrectStreak.players.map(p => p.display_name).join(", ")} — ${longestCorrectStreak.value}</div></div>`,
+    longestExactStreak && `<div class="record-row"><div class="rlabel">Longest exact-score streak</div><div class="rdetail">${longestExactStreak.players.map(p => p.display_name).join(", ")} — ${longestExactStreak.value}</div></div>`,
     bestRate && `<div class="record-row"><div class="rlabel">Best performance rate</div><div class="rdetail">${bestRate.player.display_name} — ${bestRate.rate.toFixed(2)} pts/prediction</div></div>`
   ].filter(Boolean);
 
@@ -4408,11 +4388,11 @@ function renderSeasonRecords(players, predictions, allResults, resultsByFixture,
 
   document.getElementById("btn-share-records")?.addEventListener("click", () => {
     const lines = ["🏅 Pompey Predictor — Season Records"];
-    if (highest) lines.push(`Highest match score: ${highest.player?.display_name} — ${highest.total} pts`);
-    if (mostExact) lines.push(`Most exact scores: ${mostExact.player.display_name} — ${mostExact.value}`);
-    if (mostScorer) lines.push(`Most scorer picks: ${mostScorer.player.display_name} — ${mostScorer.value}`);
-    if (longestCorrectStreak) lines.push(`Longest correct streak: ${longestCorrectStreak.player.display_name} — ${longestCorrectStreak.value}`);
-    if (longestExactStreak) lines.push(`Longest exact streak: ${longestExactStreak.player.display_name} — ${longestExactStreak.value}`);
+    if (highest) lines.push(`Highest match score: ${highest.entries.map(e => e.player?.display_name).join(", ")} — ${highest.total} pts`);
+    if (mostExact) lines.push(`Most exact scores: ${mostExact.players.map(p => p.display_name).join(", ")} — ${mostExact.value}`);
+    if (mostScorer) lines.push(`Most scorer picks: ${mostScorer.players.map(p => p.display_name).join(", ")} — ${mostScorer.value}`);
+    if (longestCorrectStreak) lines.push(`Longest correct streak: ${longestCorrectStreak.players.map(p => p.display_name).join(", ")} — ${longestCorrectStreak.value}`);
+    if (longestExactStreak) lines.push(`Longest exact streak: ${longestExactStreak.players.map(p => p.display_name).join(", ")} — ${longestExactStreak.value}`);
     if (bestRate) lines.push(`Best rate: ${bestRate.player.display_name} — ${bestRate.rate.toFixed(2)} pts/prediction`);
     const text = lines.join("\n");
     if (navigator.share) navigator.share({ text }).catch(() => {});
@@ -4488,7 +4468,7 @@ async function renderAdminResultsPanel() {
               <input type="tel" inputmode="numeric" maxlength="2" class="rr-away" value="${existing?.away_score ?? ''}" placeholder="0">
               <select class="rr-scorer">
                 <option value="">No Pompey goalscorer</option>
-                ${sortSquadByPosition(squad).map(s => `<option value="${s.player_name}" ${existing?.first_scorer === s.player_name ? "selected" : ""}>${s.player_name}${s.position ? ` (${positionLabel(s.position)})` : ""}${!s.active ? " — inactive" : ""}</option>`).join("")}
+                ${sortSquadByPosition(squad).filter(s => s.active || existing?.first_scorer === s.player_name).map(s => `<option value="${s.player_name}" ${existing?.first_scorer === s.player_name ? "selected" : ""}>${s.player_name}${s.position ? ` (${positionLabel(s.position)})` : ""}${!s.active ? " — inactive" : ""}</option>`).join("")}
               </select>
             </div>
             <button class="rr-save" data-fixture="${f.id}">${existing ? 'Update result' : 'Save result'}</button>
@@ -4497,6 +4477,12 @@ async function renderAdminResultsPanel() {
         }).join("")}
       </div>
     </div>`;
+
+  slot.querySelectorAll(".rr-home").forEach(input => {
+    input.addEventListener("input", () => {
+      if (input.value.length >= 1) input.closest(".result-row").querySelector(".rr-away").focus();
+    });
+  });
 
   slot.querySelectorAll("[data-filter]").forEach(btn => {
     btn.addEventListener("click", () => { resultsFilter = btn.dataset.filter; renderAdminResultsPanel(); });
