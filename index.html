@@ -545,7 +545,6 @@
     <form class="auth-form" id="form-returning">
       <input type="text" id="input-return-firstname" placeholder="First name" autocomplete="given-name" required>
       <input type="text" id="input-return-surname" placeholder="Surname" autocomplete="family-name" required>
-      <input type="tel" id="input-return-mobile" placeholder="Mobile number" autocomplete="tel" required>
       <input type="tel" inputmode="numeric" maxlength="4" id="input-return-pin" placeholder="Your PIN" required>
       <button type="submit" id="btn-return-login">Log me in</button>
       <div class="auth-status" id="returning-status"></div>
@@ -1228,6 +1227,8 @@ function enterApp() {
   maybeShowOnboarding();
   if (currentPlayer.has_seen_onboarding && !currentPlayer.pin_hash) {
     openSetPinNudge();
+  } else {
+    maybeShowNotificationPrompt();
   }
   checkForUnseenUpdate().then(whatsNewShown => {
     if (!whatsNewShown) maybeAutoOpenInstructions();
@@ -1288,11 +1289,10 @@ document.getElementById("form-returning").addEventListener("submit", async (e) =
   e.preventDefault();
   const firstName = document.getElementById("input-return-firstname").value.trim();
   const surname = document.getElementById("input-return-surname").value.trim();
-  const mobile = document.getElementById("input-return-mobile").value.trim();
   const pin = document.getElementById("input-return-pin").value.trim();
   const btn = document.getElementById("btn-return-login");
   const status = document.getElementById("returning-status");
-  if (!firstName || !surname || !mobile || pin.length !== 4) { status.textContent = "Fill in your name, mobile, and 4-digit PIN."; return; }
+  if (!firstName || !surname || pin.length !== 4) { status.textContent = "Fill in your name and 4-digit PIN."; return; }
   btn.disabled = true; status.textContent = "Checking…";
 
   const fullName = `${firstName} ${surname}`.trim().toLowerCase();
@@ -1312,7 +1312,6 @@ document.getElementById("form-returning").addEventListener("submit", async (e) =
         document.getElementById("new-panel").classList.remove("hidden");
         document.getElementById("input-firstname").value = firstName;
         document.getElementById("input-surname").value = surname;
-        document.getElementById("input-mobile").value = mobile;
         document.getElementById("newplayer-status").textContent = "";
       }, 1800);
       return;
@@ -1321,7 +1320,10 @@ document.getElementById("form-returning").addEventListener("submit", async (e) =
     status.textContent = "Found you — logging in…";
     const user = await createAnonymousSession();
     session_user_id = user.id;
-    currentPlayer = await createPlayerRow(firstName, surname, mobile);
+    // A placeholder only — claim_account below restores the real, original
+    // number from the account being reclaimed, so nothing typed here
+    // actually needs to be the correct number, or even present at all.
+    currentPlayer = await createPlayerRow(firstName, surname, "");
     currentUser = user;
 
     const pinHash = await hashPin(pin);
@@ -1914,7 +1916,7 @@ async function renderPicksOverlay() {
   fetchNextFixture().then(renderVerdictPanel);
 
   const [players, predictions, results, fixtures] = await Promise.all([
-    sbFetchAll("players?is_active=eq.true&is_participant=eq.true&select=*"),
+    sbFetchAll("players?is_active=eq.true&is_participant=eq.true&select=*&order=display_name.asc"),
     sbFetchAll("predictions?select=*"),
     sbFetchAll("results?select=*"),
     sbFetchAll("fixtures?select=*&order=kickoff.asc")
@@ -2592,13 +2594,14 @@ function downloadCsv(filename, csv) {
 async function downloadFullBackupWorkbook(status) {
   status.textContent = "Gathering all six tables…";
   try {
-    const [predictions, results, players, paymentLog, fixtures, squad] = await Promise.all([
+    const [predictions, results, players, paymentLog, fixtures, squad, pushSubs] = await Promise.all([
       sbFetchAll("predictions?select=*"),
       sbFetchAll("results?select=*"),
       sbFetchAll("players?select=*"),
       sbFetchAll("payment_log?select=*"),
       sbFetchAll("fixtures?select=*"),
-      sbFetchAll("squad?select=*")
+      sbFetchAll("squad?select=*"),
+      sbFetchAll("push_subscriptions?select=player_id")
     ]);
 
     status.textContent = "Loading spreadsheet library…";
@@ -2628,7 +2631,8 @@ async function downloadFullBackupWorkbook(status) {
       added_by: playerName.get(l.added_by) || l.added_by, added_by_id: l.added_by,
       date_added: l.date_added, created_at: toDate(l.created_at)
     }));
-    const playersReadable = players.map(p => ({ ...p, created_at: toDate(p.created_at) }));
+    const notifyingPlayerIds = new Set(pushSubs.map(s => s.player_id));
+    const playersReadable = players.map(p => ({ ...p, created_at: toDate(p.created_at), notifications_enabled: notifyingPlayerIds.has(p.id) }));
     const fixturesReadable = fixtures.map(f => ({ ...f, created_at: toDate(f.created_at) }));
 
     // Finds whichever column is headed created_at on a sheet and applies a
@@ -2699,6 +2703,17 @@ function maybeShowOnboarding() {
     body: JSON.stringify({ has_seen_onboarding: true })
   }).catch(() => {}); // non-critical — worst case they see onboarding once more next time
   localStorage.setItem("pfc_instructions_autoopened", "1"); // new signups get onboarding instead, not both modals stacked
+}
+
+function maybeShowNotificationPrompt() {
+  if (currentPlayer.has_seen_notification_prompt) return;
+  openModal("modal-notification-announce");
+  currentPlayer.has_seen_notification_prompt = true; // keep in-memory copy consistent immediately
+  fetch(`${REST_URL}/players?id=eq.${currentPlayer.id}`, {
+    method: "PATCH",
+    headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${getAccessToken()}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ has_seen_notification_prompt: true })
+  }).catch(() => {}); // non-critical — worst case they see this once more next time
 }
 
 function maybeAutoOpenInstructions() {
