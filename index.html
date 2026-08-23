@@ -18,7 +18,7 @@
     --white:#ffffff;
     --red:#E10613;
     --gold:#D4AF37;
-    --grey:#8a94a3;
+    --grey:#6b7684;
     --grey-light:#eef1f5;
     --card-bg:#ffffff;
     --text:#0b1b33;
@@ -617,12 +617,16 @@
         <div class="avatar" id="player-pill-avatar">?</div>
         <span class="pill-name" id="player-pill-name"></span>
       </div>
-      <button class="icon-btn hidden" id="btn-admin-cog" title="Admin">⚙️</button>
+      <button class="icon-btn hidden" id="btn-admin-cog" title="Admin" aria-label="Admin settings">⚙️</button>
       <button class="icon-btn-labeled" id="btn-share" title="Share app">
         <span class="ibl-icon">🔗</span><span class="ibl-label">Share</span>
       </button>
     </div>
   </header>
+
+  <div id="offline-banner" class="hidden" style="background:var(--red); color:var(--white); text-align:center; font-size:12px; font-weight:700; padding:6px 10px;">
+    📡 You're offline — some things may not load until your connection's back
+  </div>
 
   <main>
     <section id="view-fixtures" class="view active">
@@ -632,9 +636,9 @@
       <div id="reminder-slot"></div>
 
       <div class="gw-nav">
-        <button id="month-prev">‹</button>
+        <button id="month-prev" aria-label="Previous month">‹</button>
         <span class="gw-label" id="month-label">MONTH</span>
-        <button id="month-next">›</button>
+        <button id="month-next" aria-label="Next month">›</button>
       </div>
 
       <div id="match-list"></div>
@@ -828,7 +832,7 @@
     <div class="modal-sheet">
       <div class="modal-header">
         <h2 style="margin:0;">Welcome to Pompey Predictor</h2>
-        <button class="icon-btn modal-close" style="background:var(--grey-light); color:var(--navy);">✕</button>
+        <button class="icon-btn modal-close" aria-label="Close" style="background:var(--grey-light); color:var(--navy);">✕</button>
       </div>
       <div class="modal-body" id="onboarding-body"></div>
     </div>
@@ -855,7 +859,7 @@
     <div class="modal-sheet">
       <div class="modal-header">
         <h2 style="margin:0;">💷 Have you paid?</h2>
-        <button class="icon-btn modal-close" style="background:var(--grey-light); color:var(--navy);">✕</button>
+        <button class="icon-btn modal-close" aria-label="Close" style="background:var(--grey-light); color:var(--navy);">✕</button>
       </div>
       <div class="modal-body" style="text-align:center;">
         <p style="font-size:14px; color:var(--grey); margin-bottom:14px;">Nice first prediction! Just checking, since you're not marked as paid yet, £10 confirms your place in the league. No PayPal account? Tap "Contribute as a Guest" once you're on the page.</p>
@@ -868,7 +872,7 @@
     <div class="modal-sheet">
       <div class="modal-header">
         <h2 style="margin:0;">Share the app</h2>
-        <button class="icon-btn modal-close" style="background:var(--grey-light); color:var(--navy);">✕</button>
+        <button class="icon-btn modal-close" aria-label="Close" style="background:var(--grey-light); color:var(--navy);">✕</button>
       </div>
       <div class="modal-body" id="share-body"></div>
     </div>
@@ -878,7 +882,7 @@
     <div class="modal-sheet">
       <div class="modal-header">
         <h2 style="margin:0;" id="player-card-name">Player</h2>
-        <button class="icon-btn modal-close" style="background:var(--grey-light); color:var(--navy);">✕</button>
+        <button class="icon-btn modal-close" aria-label="Close" style="background:var(--grey-light); color:var(--navy);">✕</button>
       </div>
       <div class="modal-body" id="player-card-body"></div>
     </div>
@@ -1136,6 +1140,13 @@ async function hashPin(pin) {
    ============================================================ */
 let currentUser = null;
 let currentPlayer = null;
+
+function updateOfflineBanner() {
+  document.getElementById("offline-banner").classList.toggle("hidden", navigator.onLine);
+}
+window.addEventListener("online", updateOfflineBanner);
+window.addEventListener("offline", updateOfflineBanner);
+updateOfflineBanner();
 
 async function boot() {
   let session = getSession();
@@ -4224,6 +4235,13 @@ async function renderSeasonSummary() {
     .filter(f => new Date(f.kickoff).getTime() > now && !myFixtureIds.has(f.id))
     .sort((a, b) => new Date(a.kickoff) - new Date(b.kickoff))[0];
 
+  const playerAbove = mine.rank > 1 ? standings.find(r => r.rank === mine.rank - 1) : null;
+  const gapLine = mine.rank === 1
+    ? "You're top of the League 🏆"
+    : playerAbove
+      ? `${Math.max(0, playerAbove.total - mine.total)} point${(playerAbove.total - mine.total) === 1 ? "" : "s"} behind ${playerAbove.player.display_name} (${playerAbove.rank})`
+      : "";
+
   slot.innerHTML = `
     <div class="card">
       <div class="admin-header" style="margin-top:0;">📊 Your Season So Far</div>
@@ -4233,6 +4251,11 @@ async function renderSeasonSummary() {
         <div class="ss-tile"><div class="label">Exact Scores</div><div class="value">${mine.exact}</div></div>
         <div class="ss-tile"><div class="label">Correct Results</div><div class="value">${mine.correct}</div></div>
         <div class="ss-tile"><div class="label">Correct First GS</div><div class="value">${mine.scorer}</div></div>
+        ${gapLine ? `
+        <div class="ss-tile wide">
+          <div class="label">Gap To Next Place</div>
+          <div style="font-size:14px; font-weight:700; color:var(--navy); margin-top:2px;">${gapLine}</div>
+        </div>` : ""}
         <div class="ss-tile wide">
           <div class="label">Last Predicted</div>
           <div style="font-size:14px; font-weight:700; color:var(--navy); margin-top:2px;">
