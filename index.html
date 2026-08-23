@@ -907,6 +907,7 @@ const GITHUB_PAGES_URL = "https://pfc-predictor.github.io/PFC-Predictor";
 
 const REST_URL = `${SUPABASE_URL}/rest/v1`;
 const AUTH_URL = `${SUPABASE_URL}/auth/v1`;
+const SEND_NOTIFICATION_URL = `${SUPABASE_URL}/functions/v1/send-notification`;
 
 // Reuse the crest already embedded in the apple-touch-icon link tag rather
 // than duplicating that large base64 string again for every crest-big div.
@@ -1620,6 +1621,33 @@ async function refreshPayEntryCard() {
 // iOS only ever allows push notifications for a PWA actually launched from
 // its Home Screen icon, never from a regular Safari tab — this checks both
 // the iOS-specific flag and the standard cross-browser equivalent.
+// Calls the send-notification Edge Function — the actual dispatch (and the
+// private key it needs) lives there, never in this file. Used by both the
+// manual "Notify missing" button and the automatic call after saving a
+// result; both trigger points share this one function.
+async function sendPushNotification(type, fixtureId, btn) {
+  const originalLabel = btn ? btn.textContent : "";
+  if (btn) { btn.disabled = true; btn.textContent = "Sending…"; }
+  const statusEl = document.querySelector(`[data-notify-status="${fixtureId}"]`);
+  try {
+    const res = await fetch(SEND_NOTIFICATION_URL, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${getAccessToken()}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ type, fixture_id: fixtureId })
+    });
+    const result = await res.json();
+    if (!res.ok) throw new Error(result.error || "Send failed");
+    if (statusEl) statusEl.textContent = `Sent to ${result.sent}${result.failed ? `, ${result.failed} failed` : ""}.`;
+    if (btn) { btn.textContent = "Sent ✓"; setTimeout(() => { btn.textContent = originalLabel; btn.disabled = false; }, 2000); }
+  } catch (err) {
+    if (statusEl) statusEl.textContent = `Couldn't send: ${err.message}`;
+    if (btn) { btn.disabled = false; btn.textContent = originalLabel; }
+  }
+}
+
 function isStandalone() {
   return window.navigator.standalone === true || window.matchMedia("(display-mode: standalone)").matches;
 }
@@ -2446,7 +2474,11 @@ async function renderAdminMissingPanel() {
           </div>
           <div style="font-size:11px; color:var(--grey); margin-bottom:6px;">${scorerCount}/${fixturePreds.length} also picked a first Pompey goalscorer</div>
           ${missing.length > 0 ? `
-            <button class="rr-save" style="background:var(--grey-light); color:var(--navy); margin-bottom:8px;" data-copy-missing="${f.id}" data-teams="${f.home_team} v ${f.away_team}" data-names="${missing.map(m => m.display_name).join(', ')}">Copy WhatsApp nudge (all names, for a group)</button>
+            <div style="display:flex; gap:8px; margin-bottom:8px;">
+              <button class="rr-save" style="background:var(--grey-light); color:var(--navy); flex:1;" data-copy-missing="${f.id}" data-teams="${f.home_team} v ${f.away_team}" data-names="${missing.map(m => m.display_name).join(', ')}">Copy WhatsApp nudge (all names, for a group)</button>
+              <button class="rr-save" style="background:var(--navy); color:var(--white); flex:0 0 auto; padding:0 14px;" data-notify-missing="${f.id}">🔔 Notify missing</button>
+            </div>
+            <div data-notify-status="${f.id}" style="font-size:11px; color:var(--grey); margin-bottom:6px;"></div>
             ${missing.map(m => `
               <div class="player-row" style="padding:6px 0;">
                 <div class="pinfo"><div class="pname" style="font-size:13px;">${m.display_name}</div></div>
@@ -2471,6 +2503,10 @@ async function renderAdminMissingPanel() {
       const text = `⚽ Reminder for ${btn.dataset.teams} — still waiting on predictions from: ${btn.dataset.names}. Get them in before kickoff!`;
       navigator.clipboard?.writeText(text).then(() => { btn.textContent = "Copied ✓"; setTimeout(() => btn.textContent = "Copy WhatsApp nudge", 1500); });
     });
+  });
+
+  slot.querySelectorAll("[data-notify-missing]").forEach(btn => {
+    btn.addEventListener("click", () => sendPushNotification("missing", btn.dataset.notifyMissing, btn));
   });
 }
 
@@ -4737,6 +4773,7 @@ async function renderAdminResultsPanel() {
           first_scorer: row.querySelector(".rr-scorer").value
         });
         status.textContent = "Saved ✓";
+        sendPushNotification("results", parseInt(btn.dataset.fixture, 10));
         setTimeout(() => renderAdminResultsPanel(), 600);
       } catch (err) {
         status.textContent = err.message;
