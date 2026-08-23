@@ -699,6 +699,10 @@
         </div>
         <div id="reset-pin-status" style="font-size:11px; color:var(--grey); margin-top:6px;"></div>
       </div>
+      <div class="card" id="push-notification-card">
+        <div class="admin-header" style="margin-top:0;">🔔 Get Notified</div>
+        <div id="push-notification-body"></div>
+      </div>
       <div class="card" id="pay-entry-card" style="text-align:center;">
         <h3 style="margin-top:0;">£10 entry</h3>
         <p style="font-size:13px; color:var(--grey); margin-bottom:14px;">Pay into the shared PayPal pool to confirm your place in the league.</p>
@@ -895,6 +899,10 @@
    ============================================================ */
 const SUPABASE_URL = "https://sddnbznhkecbgihlkxjt.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNkZG5iem5oa2VjYmdpaGxreGp0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ1MDg4ODAsImV4cCI6MjEwMDA4NDg4MH0.pAPLnHysxiW4u3y6832uOWpjSJBPDaG6r9iQd37M8wI";
+// Public by design — this is the half of the key pair that's safe for
+// every browser to see. The private half never appears anywhere in this
+// file, it only ever lives as a secret on the sending function itself.
+const VAPID_PUBLIC_KEY = "BJXjmNuioZCBmVgM9w_qTcvfsSz5ExDKUGEN1Zf50jSwaKMh2aS2ZF2MY_DpuQo3suQPzY9LrZ3MRAmXdnpX3EY";
 const GITHUB_PAGES_URL = "https://pfc-predictor.github.io/PFC-Predictor";
 
 const REST_URL = `${SUPABASE_URL}/rest/v1`;
@@ -1207,6 +1215,7 @@ function enterApp() {
   checkForUnseenUpdate().then(whatsNewShown => {
     if (!whatsNewShown) maybeAutoOpenInstructions();
   });
+  renderPushNotificationCard();
 }
 
 const SCREENS = ["loading","newplayer","set-pin","unlock","lost","app"];
@@ -1608,6 +1617,89 @@ async function refreshPayEntryCard() {
     : `<span style="color:var(--red);">Not yet verified as paid</span>`;
 }
 
+// iOS only ever allows push notifications for a PWA actually launched from
+// its Home Screen icon, never from a regular Safari tab — this checks both
+// the iOS-specific flag and the standard cross-browser equivalent.
+function isStandalone() {
+  return window.navigator.standalone === true || window.matchMedia("(display-mode: standalone)").matches;
+}
+
+// Converts the VAPID public key from the base64url string it's stored as
+// into the raw byte array the browser's push API actually requires.
+function urlBase64ToUint8Array(base64String) {
+  const padding = "=".repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const rawData = window.atob(base64);
+  return Uint8Array.from([...rawData].map(c => c.charCodeAt(0)));
+}
+
+async function renderPushNotificationCard() {
+  const body = document.getElementById("push-notification-body");
+  if (!body) return;
+
+  if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+    body.innerHTML = `<p style="font-size:12px; color:var(--grey); margin:0;">Notifications aren't supported in this browser.</p>`;
+    return;
+  }
+
+  if (!isStandalone()) {
+    body.innerHTML = `<p style="font-size:13px; color:var(--grey); margin:0;">Add this page to your Home Screen to unlock notifications for missing predictions and full-time results — that's the one thing that makes them possible at all, iPhone won't allow them any other way.</p>`;
+    return;
+  }
+
+  if (Notification.permission === "denied") {
+    body.innerHTML = `<p style="font-size:13px; color:var(--grey); margin:0;">Notifications are blocked for this app in your phone's settings — you'd need to turn them back on there.</p>`;
+    return;
+  }
+
+  try {
+    const registration = await navigator.serviceWorker.ready;
+    const existing = await registration.pushManager.getSubscription();
+    if (existing) {
+      body.innerHTML = `<p style="font-size:13px; color:#1c8a45; margin:0; font-weight:600;">✅ Notifications enabled</p>`;
+      return;
+    }
+  } catch (e) { /* fall through to the enable prompt */ }
+
+  body.innerHTML = `
+    <p style="font-size:13px; color:var(--grey); margin:0 0 10px;">Get a nudge if you're about to miss a prediction deadline, and a heads up once results are in.</p>
+    <button class="mc-save" id="btn-enable-push">🔔 Enable Notifications</button>
+    <div id="push-enable-status" style="font-size:12px; color:var(--red); margin-top:6px;"></div>`;
+
+  document.getElementById("btn-enable-push").addEventListener("click", async () => {
+    const btn = document.getElementById("btn-enable-push");
+    const status = document.getElementById("push-enable-status");
+    btn.disabled = true; btn.textContent = "Enabling…";
+    try {
+      const permission = await Notification.requestPermission();
+      if (permission !== "granted") {
+        status.textContent = "Notifications need to be allowed to turn this on.";
+        btn.disabled = false; btn.textContent = "🔔 Enable Notifications";
+        return;
+      }
+      const registration = await navigator.serviceWorker.ready;
+      const subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+      });
+      const res = await fetch(`${REST_URL}/push_subscriptions`, {
+        method: "POST",
+        headers: {
+          apikey: SUPABASE_ANON_KEY,
+          Authorization: `Bearer ${getAccessToken()}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ player_id: currentPlayer.id, subscription: subscription.toJSON() })
+      });
+      if (!res.ok) throw new Error();
+      renderPushNotificationCard();
+    } catch (err) {
+      status.textContent = "Couldn't turn that on — try again in a moment.";
+      btn.disabled = false; btn.textContent = "🔔 Enable Notifications";
+    }
+  });
+}
+
 document.querySelectorAll("nav.floating-nav .tab").forEach(tab => {
   tab.addEventListener("click", () => {
     document.querySelectorAll("nav.floating-nav .tab").forEach(t => t.classList.remove("active"));
@@ -1617,6 +1709,7 @@ document.querySelectorAll("nav.floating-nav .tab").forEach(tab => {
     if (tab.dataset.view === "profile" && currentPlayer) {
       refreshPayEntryCard();
       renderSeasonSummary();
+      renderPushNotificationCard();
     }
     if (tab.dataset.view === "leaderboard") renderLeaderboard();
     if (tab.dataset.view === "picks") renderPicksOverlay();
