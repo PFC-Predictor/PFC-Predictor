@@ -306,6 +306,7 @@
   .prize-grid{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:12px;}
   .season-summary-grid{display:grid; grid-template-columns:1fr 1fr; gap:8px;}
   .season-summary-grid .ss-tile{background:var(--grey-light); border-radius:12px; padding:10px 12px;}
+  .season-summary-grid .ss-tile.wide{grid-column:1 / -1;}
   .season-summary-grid .ss-tile .label{font-size:11px; color:var(--grey); text-transform:uppercase; letter-spacing:0.3px;}
   .season-summary-grid .ss-tile .value{font-family:'Bebas Neue', Impact, sans-serif; font-size:24px; color:var(--navy);}
   .season-summary-grid .ss-tile.rank .value{color:var(--gold);}
@@ -833,6 +834,23 @@
     </div>
   </div>
 
+  <div id="modal-set-pin-nudge" class="modal-overlay hidden">
+    <div class="modal-sheet">
+      <div class="modal-header">
+        <h2 style="margin:0;">🔑 One quick thing</h2>
+      </div>
+      <div class="modal-body" style="text-align:center;">
+        <p>Your account doesn't have a PIN saved yet, which means if you ever lose this device or open the app somewhere new, there's nothing to get you back into your own account. Takes ten seconds to sort now.</p>
+        <div class="pin-dots" id="nudge-pin-dots">
+          <span></span><span></span><span></span><span></span>
+        </div>
+        <div class="pin-pad" id="nudge-pin-pad"></div>
+        <div id="nudge-pin-status" style="font-size:12px; color:var(--red); min-height:16px; margin-top:6px;"></div>
+        <button type="button" id="btn-pin-nudge-later" style="background:none; border:none; color:var(--grey); font-size:13px; margin-top:10px;">Maybe later</button>
+      </div>
+    </div>
+  </div>
+
   <div id="modal-payment-nudge" class="modal-overlay hidden">
     <div class="modal-sheet">
       <div class="modal-header">
@@ -1172,6 +1190,9 @@ function enterApp() {
   showScreen("app");
   initFixturesView();
   maybeShowOnboarding();
+  if (currentPlayer.has_seen_onboarding && !currentPlayer.pin_hash) {
+    openSetPinNudge();
+  }
   checkForUnseenUpdate().then(whatsNewShown => {
     if (!whatsNewShown) maybeAutoOpenInstructions();
   });
@@ -1416,6 +1437,42 @@ function buildPinPad(container, onDigit, onBackspace) {
   });
 }
 
+function openSetPinNudge() {
+  openModal("modal-set-pin-nudge");
+  let buffer = "";
+  const status = document.getElementById("nudge-pin-status");
+  status.textContent = "";
+  buildPinPad(document.getElementById("nudge-pin-pad"),
+    async (d) => {
+      if (buffer.length >= 4) return;
+      buffer += d;
+      renderPinDots("nudge-pin-dots", buffer.length);
+      if (buffer.length === 4) {
+        const hash = await hashPin(buffer);
+        try {
+          const res = await fetch(`${REST_URL}/players?id=eq.${currentPlayer.id}`, {
+            method: "PATCH",
+            headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${getAccessToken()}`, "Content-Type": "application/json" },
+            body: JSON.stringify({ pin_hash: hash })
+          });
+          if (!res.ok) throw new Error();
+          localStorage.setItem(LS_KEYS.pinHash, hash);
+          currentPlayer.pin_hash = hash;
+          closeModal("modal-set-pin-nudge");
+        } catch (e) {
+          // Surfaced deliberately, not swallowed — a silent failure here is
+          // exactly what left these accounts without a PIN in the first place.
+          status.textContent = "Couldn't save that — check your connection and try again.";
+          buffer = "";
+          renderPinDots("nudge-pin-dots", 0);
+        }
+      }
+    },
+    () => { buffer = buffer.slice(0, -1); renderPinDots("nudge-pin-dots", buffer.length); }
+  );
+}
+document.getElementById("btn-pin-nudge-later").addEventListener("click", () => closeModal("modal-set-pin-nudge"));
+
 let setPinBuffer = "";
 buildPinPad(document.getElementById("setpin-pad"),
   async (d) => {
@@ -1593,6 +1650,7 @@ document.querySelectorAll(".modal-close").forEach(btn => {
   btn.addEventListener("click", (e) => e.target.closest(".modal-overlay").classList.add("hidden"));
 });
 document.querySelectorAll(".modal-overlay").forEach(overlay => {
+  if (overlay.id === "modal-set-pin-nudge") return; // deliberate — Maybe Later is the only intentional exit
   overlay.addEventListener("click", (e) => { if (e.target === overlay) overlay.classList.add("hidden"); });
 });
 
@@ -3330,6 +3388,21 @@ function fixtureNudgeLink(phoneNumber, displayName, homeTeam, awayTeam, kickoff)
   return `https://wa.me/${intl}?text=${encodeURIComponent(message)}`;
 }
 
+function homeScreenVideoNudgeLink(phoneNumber, displayName) {
+  const digits = phoneNumber.replace(/\D/g, "");
+  const intl = digits.startsWith("0") ? `44${digits.slice(1)}` : digits;
+  const firstName = displayName.split(" ")[0];
+  const message = [
+    `Hi ${firstName}! Looks like you've ended up with a duplicate account, easy to do, no worries at all.`,
+    "",
+    "To stop it happening again, add the app to your Home Screen so it always opens the same account. Quick video showing exactly how:",
+    `${GITHUB_PAGES_URL}/homescreen-tutorial.mp4`,
+    "",
+    "Once that's done, always open it from that icon, not the original link, and this won't happen again."
+  ].join("\n");
+  return `https://wa.me/${intl}?text=${encodeURIComponent(message)}`;
+}
+
 function suggestFeatureLink(adminPhoneNumber) {
   const digits = adminPhoneNumber.replace(/\D/g, "");
   const intl = digits.startsWith("0") ? `44${digits.slice(1)}` : digits;
@@ -3458,7 +3531,7 @@ async function renderAdminPaymentDashboard() {
         const remainingPayLog = paymentLogCountByPlayer.get(p.id) || 0;
         const safeToDelete = !p.is_active && remainingPreds === 0 && remainingMsgs === 0 && remainingPayLog === 0;
         return `
-        <div class="player-row ${overdue ? 'overdue' : ''}" data-search-name="${p.display_name.toLowerCase()}">
+        <div class="player-row ${overdue ? 'overdue' : ''}" data-search-name="${p.display_name.toLowerCase()}${!p.is_active ? ' inactive' : ''}${p.is_participant === false ? ' hidden' : ''}">
           <div class="pinfo">
             <div class="pname">${p.display_name}${overdue ? " ⚠️" : ""}${p.pool_exempt ? " <span style=\"color:var(--grey); font-weight:400;\">(exempt)</span>" : ""}${!p.is_active ? " <span style=\"color:var(--gold); font-weight:700;\">(inactive)</span>" : ""}${p.is_participant === false ? " <span style=\"color:var(--gold); font-weight:700;\">(hidden)</span>" : ""}</div>
             <div class="pmeta">${p.phone_number || "no mobile on file"} · joined ${new Date(p.created_at).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}</div>
@@ -3916,6 +3989,7 @@ async function renderAdminRecentJoinersPanel() {
             <div class="pmeta">Joined ${relativeJoinTime(p.created_at)}</div>
           </div>
           <div class="pactions">
+            ${p.display_name.includes("⚠️") && p.phone_number ? `<a href="${homeScreenVideoNudgeLink(p.phone_number, p.display_name)}" target="_blank" rel="noopener" class="btn-verify" style="background:#25D366; color:var(--white); text-decoration:none; display:inline-block;">📱 Send video</a>` : ""}
             <button class="btn-verify" data-verify="${p.id}" data-current="${p.payment_verified}">${p.payment_verified ? "Paid ✓" : "Verify"}</button>
           </div>
         </div>`).join("")}
@@ -4120,12 +4194,14 @@ async function renderSeasonSummary() {
   if (!currentPlayer) { slot.innerHTML = ""; return; }
   slot.innerHTML = `<div class="placeholder-note">Loading…</div>`;
 
-  const [players, allPredictions, allResults] = await Promise.all([
+  const [players, allPredictions, allResults, allFixtures] = await Promise.all([
     sbFetchAll("players?is_active=eq.true&is_participant=eq.true&select=*"),
     sbFetchAll("predictions?select=*"),
-    sbFetchAll("results?select=*")
+    sbFetchAll("results?select=*"),
+    sbFetchAll("fixtures?select=*")
   ]);
   const resultsByFixture = new Map(allResults.map(r => [r.fixture_id, r]));
+  const fixtureById = new Map(allFixtures.map(f => [f.id, f]));
   const standings = denseRank(computeStandingsFor(players, allPredictions, resultsByFixture));
   const mine = standings.find(r => r.player.id === currentPlayer.id);
 
@@ -4138,24 +4214,39 @@ async function renderSeasonSummary() {
     return;
   }
 
+  const myPredictions = allPredictions.filter(p => p.player_id === currentPlayer.id);
+  const lastPredicted = [...myPredictions].sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
+  const lastPredictedFixture = lastPredicted ? fixtureById.get(lastPredicted.fixture_id) : null;
+
+  const myFixtureIds = new Set(myPredictions.map(p => p.fixture_id));
+  const now = Date.now();
+  const nextMissing = allFixtures
+    .filter(f => new Date(f.kickoff).getTime() > now && !myFixtureIds.has(f.id))
+    .sort((a, b) => new Date(a.kickoff) - new Date(b.kickoff))[0];
+
   slot.innerHTML = `
     <div class="card">
       <div class="admin-header" style="margin-top:0;">📊 Your Season So Far</div>
       <div class="season-summary-grid">
-        <div class="ss-tile rank"><div class="label">Current Rank</div><div class="value">${mine.rank}${ordinalSuffix(mine.rank)} / ${standings.length}</div></div>
+        <div class="ss-tile rank"><div class="label">Current Rank</div><div class="value">${mine.rank} / ${standings.length}</div></div>
         <div class="ss-tile"><div class="label">Total Points</div><div class="value">${mine.total}</div></div>
         <div class="ss-tile"><div class="label">Exact Scores</div><div class="value">${mine.exact}</div></div>
         <div class="ss-tile"><div class="label">Correct Results</div><div class="value">${mine.correct}</div></div>
         <div class="ss-tile"><div class="label">Correct First GS</div><div class="value">${mine.scorer}</div></div>
+        <div class="ss-tile wide">
+          <div class="label">Last Predicted</div>
+          <div style="font-size:14px; font-weight:700; color:var(--navy); margin-top:2px;">
+            ${lastPredictedFixture ? `${lastPredictedFixture.home_team} v ${lastPredictedFixture.away_team} — ${lastPredicted.home_score}-${lastPredicted.away_score}${lastPredicted.first_scorer ? ` · ⚽ ${lastPredicted.first_scorer}` : ""}` : "—"}
+          </div>
+        </div>
+        <div class="ss-tile wide">
+          <div class="label">Still To Predict</div>
+          <div style="font-size:14px; font-weight:700; color:var(--navy); margin-top:2px;">
+            ${nextMissing ? `${nextMissing.home_team} v ${nextMissing.away_team} — ${fmtKickoff(nextMissing.kickoff)}` : "You're all caught up ✅"}
+          </div>
+        </div>
       </div>
     </div>`;
-}
-function ordinalSuffix(n) {
-  const j = n % 10, k = n % 100;
-  if (j === 1 && k !== 11) return "st";
-  if (j === 2 && k !== 12) return "nd";
-  if (j === 3 && k !== 13) return "rd";
-  return "th";
 }
 
 
