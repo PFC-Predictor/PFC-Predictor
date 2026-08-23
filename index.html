@@ -2492,7 +2492,6 @@ async function renderAdminMissingPanel() {
           </div>
           <div style="font-size:11px; color:var(--grey); margin-bottom:6px;">${scorerCount}/${fixturePreds.length} also picked a first Pompey goalscorer</div>
           ${missing.length > 0 ? `
-            <button class="rr-save" style="background:var(--grey-light); color:var(--navy); margin-bottom:8px;" data-copy-missing="${f.id}" data-teams="${f.home_team} v ${f.away_team}" data-names="${missing.map(m => m.display_name).join(', ')}">Copy WhatsApp nudge (all names, for a group)</button>
             <button class="rr-save" style="background:var(--navy); color:var(--white); margin-bottom:8px;" data-notify-missing="${f.id}">🔔 Notify missing</button>
             <div data-notify-status="${f.id}" style="font-size:11px; color:var(--grey); margin-bottom:6px;"></div>
             ${missing.map(m => `
@@ -2512,13 +2511,6 @@ async function renderAdminMissingPanel() {
     const panel = e.currentTarget.closest(".collapsible");
     panel.classList.toggle("collapsed");
     missingPanelCollapsed = panel.classList.contains("collapsed");
-  });
-
-  slot.querySelectorAll("[data-copy-missing]").forEach(btn => {
-    btn.addEventListener("click", () => {
-      const text = `⚽ Reminder for ${btn.dataset.teams} — still waiting on predictions from: ${btn.dataset.names}. Get them in before kickoff!`;
-      navigator.clipboard?.writeText(text).then(() => { btn.textContent = "Copied ✓"; setTimeout(() => btn.textContent = "Copy WhatsApp nudge", 1500); });
-    });
   });
 
   slot.querySelectorAll("[data-notify-missing]").forEach(btn => {
@@ -3128,19 +3120,36 @@ function buildMatchCard(fixture, squad, existingPred, result) {
         statusEl.textContent = "You've got Pompey scoring — pick a first goalscorer before saving.";
         return;
       }
-      saveBtn.disabled = true; statusEl.textContent = "Saving…";
-      try {
-        await savePrediction({
-          fixture_id: fixture.id, home_score: h, away_score: a,
-          first_scorer: scorerValue
-        });
-        statusEl.textContent = "Saved ✓";
-        maybeShowPaymentNudge();
-      } catch (err) {
-        statusEl.textContent = err.message;
-      } finally {
-        saveBtn.disabled = false;
-      }
+      saveBtn.disabled = true;
+      const attemptSave = async () => {
+        const maxAttempts = 4;
+        for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+          statusEl.style.color = "var(--grey)";
+          statusEl.textContent = attempt === 1 ? "Saving…" : `Still trying to save… (${attempt}/${maxAttempts})`;
+          try {
+            await savePrediction({
+              fixture_id: fixture.id, home_score: h, away_score: a,
+              first_scorer: scorerValue
+            });
+            statusEl.style.color = "#1c8a45";
+            statusEl.textContent = "Saved ✓";
+            maybeShowPaymentNudge();
+            return;
+          } catch (err) {
+            if (attempt === maxAttempts) {
+              // Unmissable, and it stays on screen rather than quietly
+              // reverting — a save that hasn't actually gone through
+              // should never look the same as one that has.
+              statusEl.style.color = "var(--red)";
+              statusEl.textContent = `⚠️ Not saved — ${err.message}. Check your connection and tap Save again.`;
+              return;
+            }
+            await new Promise(r => setTimeout(r, attempt * 1000));
+          }
+        }
+      };
+      await attemptSave();
+      saveBtn.disabled = false;
     }, { passive: true });
   }
 
