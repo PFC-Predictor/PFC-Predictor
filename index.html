@@ -2474,10 +2474,8 @@ async function renderAdminMissingPanel() {
           </div>
           <div style="font-size:11px; color:var(--grey); margin-bottom:6px;">${scorerCount}/${fixturePreds.length} also picked a first Pompey goalscorer</div>
           ${missing.length > 0 ? `
-            <div style="display:flex; gap:8px; margin-bottom:8px;">
-              <button class="rr-save" style="background:var(--grey-light); color:var(--navy); flex:1;" data-copy-missing="${f.id}" data-teams="${f.home_team} v ${f.away_team}" data-names="${missing.map(m => m.display_name).join(', ')}">Copy WhatsApp nudge (all names, for a group)</button>
-              <button class="rr-save" style="background:var(--navy); color:var(--white); flex:0 0 auto; padding:0 14px;" data-notify-missing="${f.id}">🔔 Notify missing</button>
-            </div>
+            <button class="rr-save" style="background:var(--grey-light); color:var(--navy); margin-bottom:8px;" data-copy-missing="${f.id}" data-teams="${f.home_team} v ${f.away_team}" data-names="${missing.map(m => m.display_name).join(', ')}">Copy WhatsApp nudge (all names, for a group)</button>
+            <button class="rr-save" style="background:var(--navy); color:var(--white); margin-bottom:8px;" data-notify-missing="${f.id}">🔔 Notify missing</button>
             <div data-notify-status="${f.id}" style="font-size:11px; color:var(--grey); margin-bottom:6px;"></div>
             ${missing.map(m => `
               <div class="player-row" style="padding:6px 0;">
