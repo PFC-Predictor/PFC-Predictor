@@ -187,6 +187,15 @@
     touch-action:manipulation;
   }
 
+  /* The PIN nudge sits on the light modal sheet, not the dark auth
+     screens the pad and dots were originally styled for — same
+     components, but they need real contrast against a light background
+     instead of the translucent white built for navy. */
+  #modal-set-pin-nudge .pin-dots span{ border-color:var(--grey); }
+  #modal-set-pin-nudge .pin-pad button{
+    background:var(--white); color:var(--navy); border:2px solid var(--grey-light);
+  }
+
   #screen-loading{
     min-height:100vh; display:flex; align-items:center; justify-content:center;
     background:var(--navy); color:var(--white); font-family:'Bebas Neue', Impact, sans-serif;
