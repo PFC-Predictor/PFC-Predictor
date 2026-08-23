@@ -2395,9 +2395,10 @@ async function downloadFullBackupWorkbook(status) {
     status.textContent = "Building workbook…";
     const playerName = new Map(players.map(p => [p.id, p.display_name]));
     const fixtureName = new Map(fixtures.map(f => [f.id, `${f.home_team} v ${f.away_team} (${new Date(f.kickoff).toLocaleDateString("en-GB")})`]));
+    const fmtDateTime = (iso) => iso ? new Date(iso).toLocaleString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "";
 
     const predictionsReadable = predictions.map(p => ({
-      id: p.id, created_at: p.created_at,
+      id: p.id, created_at: fmtDateTime(p.created_at),
       player: playerName.get(p.player_id) || p.player_id, player_id: p.player_id,
       fixture: fixtureName.get(p.fixture_id) || p.fixture_id, fixture_id: p.fixture_id,
       home_score: p.home_score, away_score: p.away_score, first_scorer: p.first_scorer
@@ -2410,8 +2411,10 @@ async function downloadFullBackupWorkbook(status) {
       id: l.id,
       player: playerName.get(l.player_id) || l.player_id, player_id: l.player_id,
       added_by: playerName.get(l.added_by) || l.added_by, added_by_id: l.added_by,
-      date_added: l.date_added, created_at: l.created_at
+      date_added: l.date_added, created_at: fmtDateTime(l.created_at)
     }));
+    const playersReadable = players.map(p => ({ ...p, created_at: fmtDateTime(p.created_at) }));
+    const fixturesReadable = fixtures.map(f => ({ ...f, created_at: fmtDateTime(f.created_at) }));
 
     const wb = XLSX.utils.book_new();
     const addSheet = (name, rows) => {
@@ -2420,9 +2423,9 @@ async function downloadFullBackupWorkbook(status) {
     };
     addSheet("Predictions", predictionsReadable);
     addSheet("Results", resultsReadable);
-    addSheet("Players", players);
+    addSheet("Players", playersReadable);
     addSheet("PaymentLog", paymentLogReadable);
-    addSheet("Fixtures", fixtures);
+    addSheet("Fixtures", fixturesReadable);
     addSheet("Squad", squad);
 
     XLSX.writeFile(wb, `${new Date().toISOString().slice(0,10).replace(/-/g, "")}-PFC.xlsx`);
