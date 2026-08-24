@@ -3249,6 +3249,14 @@ async function mergePlayerAccounts(oldId, newId) {
     });
   }
 
+  // Same gap as the old phone-number issue, just for notifications this
+  // time — without this, whichever account someone tapped Enable on keeps
+  // the subscription even after that account gets merged away, and it
+  // quietly stops being findable against the account they actually use.
+  await fetch(`${REST_URL}/push_subscriptions?player_id=eq.${oldId}`, {
+    method: "PATCH", headers, body: JSON.stringify({ player_id: newId })
+  });
+
   // Payment Log references players from both sides (player_id and added_by),
   // and that table's foreign keys have no automatic cleanup rule, so leaving
   // either untouched blocks deletion of the old account later with an opaque
