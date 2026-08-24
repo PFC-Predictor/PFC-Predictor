@@ -915,6 +915,16 @@
       <div class="modal-body" id="player-card-body"></div>
     </div>
   </div>
+
+  <div id="modal-admin-player-detail" class="modal-overlay hidden">
+    <div class="modal-sheet">
+      <div class="modal-header">
+        <h2 style="margin:0;" id="admin-player-detail-name">Player</h2>
+        <button class="icon-btn modal-close" aria-label="Close" style="background:var(--grey-light); color:var(--navy);">✕</button>
+      </div>
+      <div class="modal-body" id="admin-player-detail-body"></div>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -3720,7 +3730,7 @@ async function renderAdminPaymentDashboard() {
         return `
         <div class="player-row ${overdue ? 'overdue' : ''}" data-search-name="${p.display_name.toLowerCase()}${!p.is_active ? ' inactive' : ''}${p.is_participant === false ? ' hidden' : ''}">
           <div class="pinfo">
-            <div class="pname">${p.display_name}${overdue ? " ⚠️" : ""}${p.pool_exempt ? " <span style=\"color:var(--grey); font-weight:400;\">(exempt)</span>" : ""}${!p.is_active ? " <span style=\"color:var(--gold); font-weight:700;\">(inactive)</span>" : ""}${p.is_participant === false ? " <span style=\"color:var(--gold); font-weight:700;\">(hidden)</span>" : ""}</div>
+            <div class="pname" data-admin-player-detail="${p.id}" style="cursor:pointer; text-decoration:underline; text-decoration-style:dotted;">${p.display_name}${overdue ? " ⚠️" : ""}${p.pool_exempt ? " <span style=\"color:var(--grey); font-weight:400;\">(exempt)</span>" : ""}${!p.is_active ? " <span style=\"color:var(--gold); font-weight:700;\">(inactive)</span>" : ""}${p.is_participant === false ? " <span style=\"color:var(--gold); font-weight:700;\">(hidden)</span>" : ""}</div>
             <div class="pmeta">${p.phone_number || "no mobile on file"} · joined ${new Date(p.created_at).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}</div>
             <div class="pmeta">${(() => {
               const last = lastPredictionByPlayer.get(p.id);
@@ -3769,6 +3779,10 @@ async function renderAdminPaymentDashboard() {
       const panel = slot.querySelector(`[data-more-panel="${btn.dataset.moreToggle}"]`);
       panel.style.display = panel.style.display === "none" ? "flex" : "none";
     });
+  });
+
+  slot.querySelectorAll("[data-admin-player-detail]").forEach(el => {
+    el.addEventListener("click", () => openAdminPlayerDetail(el.dataset.adminPlayerDetail, players.find(p => p.id === el.dataset.adminPlayerDetail)));
   });
 
   document.getElementById("payment-players-toggle").addEventListener("click", (e) => {
@@ -4612,6 +4626,52 @@ async function openPlayerCard(playerId, playerName, isPaid) {
         </div>
       </div>`;
     }).join("")}`;
+}
+
+async function openAdminPlayerDetail(playerId, playerRow) {
+  document.getElementById("admin-player-detail-name").textContent = playerRow?.display_name?.replace(/\s*⚠️\s*/g, "") || "Player";
+  const body = document.getElementById("admin-player-detail-body");
+  body.innerHTML = `<div class="placeholder-note">Loading…</div>`;
+  openModal("modal-admin-player-detail");
+
+  try {
+    const [allPlayers, myPredictions, allPredictions, allResults, allFixtures, pushSubs] = await Promise.all([
+      sbFetchAll("players?is_active=eq.true&is_participant=eq.true&select=*"),
+      sbFetchAll(`predictions?player_id=eq.${playerId}&select=*&order=created_at.desc`),
+      sbFetchAll("predictions?select=*"),
+      sbFetchAll("results?select=*"),
+      sbFetchAll("fixtures?select=*"),
+      sbFetchAll(`push_subscriptions?player_id=eq.${playerId}&select=id`)
+    ]);
+
+    const fixtureById = new Map(allFixtures.map(f => [f.id, f]));
+    const resultByFixture = new Map(allResults.map(r => [r.fixture_id, r]));
+    const lastPred = myPredictions[0];
+    const lastFixture = lastPred ? fixtureById.get(lastPred.fixture_id) : null;
+
+    const standings = denseRank(computeStandingsFor(allPlayers, allPredictions, resultByFixture));
+    const mine = standings.find(r => r.player.id === playerId);
+
+    const row = (label, value) => `<div class="record-row"><div class="rlabel">${label}</div><div class="rdetail">${value}</div></div>`;
+
+    body.innerHTML = `
+      ${row("Mobile number", playerRow?.phone_number || "No number on file")}
+      ${row("Joined", playerRow ? new Date(playerRow.created_at).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit" }) : "—")}
+      ${row("Last predicted", lastPred ? `${lastFixture ? `${lastFixture.home_team} v ${lastFixture.away_team}` : "a fixture"} · ${new Date(lastPred.created_at).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}` : "No predictions yet")}
+      ${row("PIN set", playerRow?.pin_hash ? "✅ Yes" : "⚠️ No — won't show the reclaim popup until they set one")}
+      ${row("Notifications", pushSubs.length > 0 ? `✅ Enabled (${pushSubs.length} device${pushSubs.length === 1 ? "" : "s"})` : "Not enabled")}
+      ${row("League standing", mine ? `${mine.rank} of ${standings.length} — ${mine.total} pts (${mine.exact} exact, ${mine.correct} correct, ${mine.scorer} scorer)` : "Not currently in the league table")}
+      ${row("Payment", playerRow?.payment_verified ? "✅ Paid" : (playerRow?.pool_exempt ? "Exempt from pool" : "⚠️ Not yet verified"))}
+      ${row("Account status", [
+        playerRow?.is_admin ? "Admin" : null,
+        playerRow?.is_active === false ? "Inactive (merged away)" : "Active",
+        playerRow?.is_participant === false ? "Hidden from league" : null,
+        playerRow?.display_name?.includes("⚠️") ? "Flagged as possible duplicate" : null
+      ].filter(Boolean).join(" · "))}
+    `;
+  } catch (err) {
+    body.innerHTML = `<div class="placeholder-note">Couldn't load this player's details — ${err.message}</div>`;
+  }
 }
 
 function renderSeasonRecords(players, predictions, allResults, resultsByFixture, fixtureById) {
