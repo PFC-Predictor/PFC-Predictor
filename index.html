@@ -3589,7 +3589,7 @@ function fixtureNudgeLink(phoneNumber, displayName, homeTeam, awayTeam, kickoff)
   const intl = digits.startsWith("0") ? `44${digits.slice(1)}` : digits;
   const firstName = displayName.split(" ")[0];
   const when = new Date(kickoff).toLocaleString("en-GB", { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
-  const message = `Hi ${firstName}, don't forget to predict ${homeTeam} v ${awayTeam}, ${when}.`;
+  const message = `Hi ${firstName}, don't forget to predict ${homeTeam} v ${awayTeam}, ${when}. Turn on notifications in Profile and you'll get reminded automatically next time.`;
   return `https://wa.me/${intl}?text=${encodeURIComponent(message)}`;
 }
 
