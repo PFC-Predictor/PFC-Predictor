@@ -777,7 +777,7 @@
               <source src="./picks-updates-intro.mp4" type="video/mp4">
             </video>
             <p style="margin-bottom:6px;">📊 <strong>Prediction Split</strong> — inside Picks, shows how everyone's split on the next fixture</p>
-            <p style="margin-bottom:6px;">🥇 <strong>League Awards</strong> — also inside Picks: Most Exact Scores, Most Correct Results (includes exact scores, since those are correct too), Most Correct First Goalscorers, Best Called Match, and Most Predicted Scorer</p>
+            <p style="margin-bottom:6px;">🥇 <strong>League Awards</strong> — also inside Picks: Most Exact Scores, Most Correct Results (includes exact scores, since those are correct too), Most Correct First Goalscorers, Best Called Match, Most Predicted Scorer, and the League Average points per game</p>
             <p style="margin-bottom:6px;">📢 <strong>Updates</strong> — up top, flags anything new, and it's where you can suggest a feature too</p>
             <video controls playsinline preload="none" poster="./whats-new-tour-poster.jpg" style="width:100%; max-width:280px; display:block; margin:4px auto 6px; border-radius:12px;">
               <source src="./whats-new-tour.mp4" type="video/mp4">
@@ -2006,6 +2006,11 @@ function renderAwardsPanel(players, predictions, resultByFixture, fixtures) {
       ${scorerMax ? `<div class="award-item"><span class="al">Most Correct First Goalscorers</span><span class="av">${topScorer.filter(s => s.scorer === scorerMax).map(s => s.player.display_name).join(", ")}</span></div>` : ""}
       ${bestMatch ? `<div class="award-item"><span class="al">Best Called Match</span><span class="av">${bestMatch.fixture.home_team} v ${bestMatch.fixture.away_team} (${bestMatch.correctCount}/${bestMatch.total})</span></div>` : ""}
       ${topPickedScorer ? `<div class="award-item"><span class="al">Most Predicted Scorer</span><span class="av">${topPickedScorer} (${topPickedScorerCount} picks)</span></div>` : ""}
+      ${(() => {
+        const totalScored = standings.reduce((sum, s) => sum + s.scoredCount, 0);
+        const totalPts = standings.reduce((sum, s) => sum + s.total, 0);
+        return totalScored > 0 ? `<div class="award-item"><span class="al">League Average</span><span class="av">${(totalPts / totalScored).toFixed(2)} pts/game</span></div>` : "";
+      })()}
     </div>`;
 }
 
@@ -4449,6 +4454,7 @@ async function renderSeasonSummary() {
         <div class="ss-tile"><div class="label">Exact Scores</div><div class="value">${mine.exact}</div></div>
         <div class="ss-tile"><div class="label">Correct Results</div><div class="value">${mine.correct}</div></div>
         <div class="ss-tile"><div class="label">Correct First GS</div><div class="value">${mine.scorer}</div></div>
+        <div class="ss-tile"><div class="label">Avg Points/Game</div><div class="value">${(mine.total / mine.scoredCount).toFixed(2)}</div></div>
         ${gapLine ? `
         <div class="ss-tile wide">
           <div class="label">Gap To Next Place</div>
