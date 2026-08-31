@@ -866,6 +866,20 @@
     </div>
   </div>
 
+  <div id="modal-login-change-announce" class="modal-overlay hidden">
+    <div class="modal-sheet">
+      <div class="modal-header">
+        <h2 style="margin:0;">🔐 A small update to logging in is coming soon</h2>
+        <button class="icon-btn modal-close" aria-label="Close" style="background:var(--grey-light); color:var(--navy);">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="modal-section">
+          <p style="margin-bottom:0;">Soon the app will just open up without the need for you to input your pin. If it ever asks, just type your name and PIN and you're straight back in, same account, same history.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div id="modal-set-pin-nudge" class="modal-overlay hidden">
     <div class="modal-sheet">
       <div class="modal-header">
@@ -1246,6 +1260,8 @@ function enterApp() {
   maybeShowOnboarding();
   if (currentPlayer.has_seen_onboarding && !currentPlayer.pin_hash) {
     openSetPinNudge();
+  } else if (currentPlayer.has_seen_onboarding && !currentPlayer.has_seen_login_change_notice) {
+    maybeShowLoginChangeAnnounce();
   } else {
     maybeShowNotificationPrompt();
   }
@@ -2729,6 +2745,17 @@ function maybeShowNotificationPrompt() {
     method: "PATCH",
     headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${getAccessToken()}`, "Content-Type": "application/json" },
     body: JSON.stringify({ has_seen_notification_prompt: true })
+  }).catch(() => {}); // non-critical — worst case they see this once more next time
+}
+
+function maybeShowLoginChangeAnnounce() {
+  if (currentPlayer.has_seen_login_change_notice) return;
+  openModal("modal-login-change-announce");
+  currentPlayer.has_seen_login_change_notice = true; // keep in-memory copy consistent immediately
+  fetch(`${REST_URL}/players?id=eq.${currentPlayer.id}`, {
+    method: "PATCH",
+    headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${getAccessToken()}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ has_seen_login_change_notice: true })
   }).catch(() => {}); // non-critical — worst case they see this once more next time
 }
 
