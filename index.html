@@ -542,8 +542,8 @@
   <h1 class="display">POMPEY PREDICTOR</h1>
 
   <div id="login-panel">
-    <p style="color:#ffd479; font-weight:600; font-size:13px; max-width:320px; margin:0 0 14px;">First time here? Add this page to your Home Screen first. On iPhone: Share button → Add to Home Screen. On Android: ⋮ menu → Add to Home screen (or Install app).</p>
-    <p>Enter your name and PIN to get in.</p>
+    <p style="color:#ffd479; font-weight:600; font-size:13px; max-width:320px; margin:0 0 14px;">Add this page to your Home Screen. On iPhone: Share button → Add to Home Screen. On Android: ⋮ menu → Add to Home screen (or Install app).</p>
+    <p>Enter your name and PIN to get in. Use the exact name you signed up with, first time, not a nickname or short version.</p>
     <form class="auth-form" id="form-login">
       <input type="text" id="input-login-firstname" placeholder="First name" autocomplete="given-name" required>
       <input type="text" id="input-login-surname" placeholder="Surname" autocomplete="family-name" required>
@@ -679,9 +679,8 @@
           <div class="modal-section">
             <h4>1. Quick heads up on how this works</h4>
             <p style="margin-bottom:6px;">📱 This isn't an app store app, it's a website saved to your phone</p>
-            <p style="margin-bottom:6px;">🔁 Open the link again on a different phone, or lose it, and it can look like a brand-new signup — even though it's still you</p>
-            <p style="margin-bottom:6px;">😌 Don't panic — tell Ant and he'll merge your accounts, nothing's lost</p>
-            <p style="margin-bottom:6px;">👉 Best fix: add it to your Home Screen once (Share icon on iPhone, ⋮ menu on Android, then "Add to Home Screen") and always open it from there from now on</p>
+            <p style="margin-bottom:6px;">🔑 Opening it on a new phone, or your saved login's gone? No problem — just enter your name and PIN, and you're straight back into your real account, same points, same history, nothing duplicated. Use the exact name you first signed up with, not a nickname or short version, or it won't find you</p>
+            <p style="margin-bottom:6px;">👉 Still worth adding it to your Home Screen (Share icon on iPhone, ⋮ menu on Android, then "Add to Home Screen") — that way it stays logged in day to day, and it's what lets notifications work</p>
             <video controls playsinline preload="none" poster="./homescreen-tutorial-poster.jpg" style="width:100%; max-width:280px; display:block; margin:4px auto 6px; border-radius:12px;">
               <source src="./homescreen-tutorial.mp4" type="video/mp4">
             </video>
@@ -818,19 +817,7 @@
     </div>
   </div>
 
-  <div id="modal-login-change-announce" class="modal-overlay hidden">
-    <div class="modal-sheet">
-      <div class="modal-header">
-        <h2 style="margin:0;">🔐 A small update to logging in is coming soon</h2>
-        <button class="icon-btn modal-close" aria-label="Close" style="background:var(--grey-light); color:var(--navy);">✕</button>
-      </div>
-      <div class="modal-body">
-        <div class="modal-section">
-          <p style="margin-bottom:0;">Soon the app will just open up without the need for you to input your pin. If it ever asks, just type your name and PIN and you're straight back in, same account, same history.</p>
-        </div>
-      </div>
-    </div>
-  </div>
+
 
   <div id="modal-set-pin-nudge" class="modal-overlay hidden">
     <div class="modal-sheet">
@@ -1097,7 +1084,11 @@ async function fetchMyPlayerRow() {
 
 async function createPlayerRow(firstName, surname, mobile, pinHash) {
   const session = getSession();
-  let displayName = `${firstName.trim()} ${surname.trim()}`;
+  // Sentence case regardless of how it was typed — "RAY ROGERS" and
+  // "ray rogers" both become "Ray Rogers", so the leaderboard stays
+  // consistent from the very first signup, not just on later reclaims.
+  const toSentenceCase = (s) => s.trim().toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+  let displayName = `${toSentenceCase(firstName)} ${toSentenceCase(surname)}`;
 
   // A name collision in a private league almost always means someone signing
   // up a second time, not two different friends sharing an identical name —
@@ -1210,8 +1201,6 @@ function enterApp() {
   maybeShowOnboarding();
   if (currentPlayer.has_seen_onboarding && !currentPlayer.pin_hash) {
     openSetPinNudge();
-  } else if (currentPlayer.has_seen_onboarding && !currentPlayer.has_seen_login_change_notice) {
-    maybeShowLoginChangeAnnounce();
   } else {
     maybeShowNotificationPrompt();
   }
@@ -2548,17 +2537,6 @@ function maybeShowNotificationPrompt() {
     method: "PATCH",
     headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${getAccessToken()}`, "Content-Type": "application/json" },
     body: JSON.stringify({ has_seen_notification_prompt: true })
-  }).catch(() => {}); // non-critical — worst case they see this once more next time
-}
-
-function maybeShowLoginChangeAnnounce() {
-  if (currentPlayer.has_seen_login_change_notice) return;
-  openModal("modal-login-change-announce");
-  currentPlayer.has_seen_login_change_notice = true; // keep in-memory copy consistent immediately
-  fetch(`${REST_URL}/players?id=eq.${currentPlayer.id}`, {
-    method: "PATCH",
-    headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${getAccessToken()}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ has_seen_login_change_notice: true })
   }).catch(() => {}); // non-critical — worst case they see this once more next time
 }
 
