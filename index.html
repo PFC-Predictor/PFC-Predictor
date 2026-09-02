@@ -165,6 +165,7 @@
     -webkit-user-select:text; user-select:text;
     height:48px; border-radius:12px; border:none; padding:0 16px;
     font-size:16px; background:rgba(255,255,255,0.95); color:var(--text);
+    text-align:center;
   }
   .auth-form button, .btn-primary{
     height:48px; min-height:44px; border-radius:12px; border:none;
@@ -180,7 +181,7 @@
     width:16px; height:16px; border-radius:50%; border:2px solid rgba(255,255,255,0.5);
   }
   .pin-dots span.filled{background:var(--gold); border-color:var(--gold);}
-  .pin-pad{display:grid; grid-template-columns:repeat(3,1fr); gap:10px; width:100%; max-width:280px;}
+  .pin-pad{display:grid; grid-template-columns:repeat(3,1fr); gap:10px; width:100%; max-width:280px; margin:0 auto;}
   .pin-pad button{
     height:60px; min-height:44px; border-radius:14px; border:none;
     background:rgba(255,255,255,0.1); color:var(--white); font-size:20px; font-weight:600;
@@ -540,76 +541,29 @@
   <div class="crest-big">⚽</div>
   <h1 class="display">POMPEY PREDICTOR</h1>
 
-  <div id="gate-panel">
-    <p style="color:#ffd479; font-weight:600; font-size:13px; max-width:320px; margin:0 0 14px;">Add this page to your Home Screen first, then answer below. On iPhone: Share button → Add to Home Screen. On Android: ⋮ menu → Add to Home screen (or Install app).</p>
-    <p>Have you played Pompey Predictor before?</p>
-    <div class="auth-form">
-      <button type="button" id="btn-gate-yes" style="background:rgba(255,212,121,0.15); border:2px solid #ffd479; color:#ffd479; border-radius:12px; height:52px; font-size:15px; font-weight:700;">Yes, I've played before</button>
-      <button type="button" id="btn-gate-no" style="background:var(--red); border:none; color:var(--white); border-radius:12px; height:52px; font-size:15px; font-weight:700;">No, I'm a new player</button>
-    </div>
+  <div id="login-panel">
+    <p style="color:#ffd479; font-weight:600; font-size:13px; max-width:320px; margin:0 0 14px;">First time here? Add this page to your Home Screen first. On iPhone: Share button → Add to Home Screen. On Android: ⋮ menu → Add to Home screen (or Install app).</p>
+    <p>Enter your name and PIN to get in.</p>
+    <form class="auth-form" id="form-login">
+      <input type="text" id="input-login-firstname" placeholder="First name" autocomplete="given-name" required>
+      <input type="text" id="input-login-surname" placeholder="Surname" autocomplete="family-name" required>
+      <input type="tel" inputmode="numeric" maxlength="4" id="input-login-pin" placeholder="PIN" required>
+      <button type="button" id="btn-new-toggle" style="background:none; border:none; color:#ffd479; text-decoration:underline; font-size:13px; padding:4px 0; height:auto;">New here? Create one instead</button>
+      <button type="submit" id="btn-login">Continue</button>
+      <div class="auth-status" id="login-status"></div>
+    </form>
   </div>
 
-  <div id="returning-panel" class="hidden">
-    <p>What name did you sign up with, and what's your PIN?</p>
-    <form class="auth-form" id="form-returning">
-      <input type="text" id="input-return-firstname" placeholder="First name" autocomplete="given-name" required>
-      <input type="text" id="input-return-surname" placeholder="Surname" autocomplete="family-name" required>
-      <input type="tel" inputmode="numeric" maxlength="4" id="input-return-pin" placeholder="Your PIN" required>
-      <button type="submit" id="btn-return-login">Log me in</button>
-      <div class="auth-status" id="returning-status"></div>
+  <div id="new-mobile-panel" class="hidden">
+    <p>Looks like you're new here — what's the best number to reach you on?</p>
+    <form class="auth-form" id="form-new-mobile">
+      <input type="tel" id="input-new-mobile" placeholder="Mobile number" autocomplete="tel" required>
+      <button type="submit" id="btn-finish-signup">Get started</button>
+      <div class="auth-status" id="new-mobile-status"></div>
     </form>
-    <button type="button" id="btn-returning-back" style="background:none; border:none; color:var(--grey); font-size:13px; margin-top:10px;">← Back</button>
-  </div>
-
-  <div id="new-panel" class="hidden">
-    <p>Enter your name to get started. Next time, your PIN gets you straight in.</p>
-    <form class="auth-form" id="form-newplayer">
-      <input type="text" id="input-firstname" placeholder="First name" autocomplete="given-name" required>
-      <input type="text" id="input-surname" placeholder="Surname" autocomplete="family-name" required>
-      <input type="tel" id="input-mobile" placeholder="Mobile number" autocomplete="tel" required>
-      <button type="button" id="btn-toggle-reclaim" style="background:rgba(255,212,121,0.15); border:2px solid #ffd479; color:#ffd479; border-radius:12px; height:48px; font-size:14px; font-weight:700;">🔑 Actually, I've played before</button>
-      <div id="name-match-note" class="hidden" style="background:rgba(255,212,121,0.15); border:2px solid #ffd479; border-radius:12px; padding:10px 12px; font-size:13px; color:#ffd479; font-weight:600;"></div>
-      <div id="reclaim-section" class="hidden">
-        <div style="font-size:12px; color:#ffd479; font-weight:600; margin-bottom:6px;">Enter your original PIN — this gets your points and history back, not a fresh start.</div>
-        <input type="tel" inputmode="numeric" maxlength="4" id="input-reclaim-pin" placeholder="Original PIN">
-      </div>
-      <button type="submit" id="btn-create-account">Get started</button>
-      <div class="auth-status" id="newplayer-status"></div>
-    </form>
-    <button type="button" id="btn-new-back" style="background:none; border:none; color:var(--grey); font-size:13px; margin-top:4px;">← Back</button>
+    <button type="button" id="btn-new-mobile-back" style="background:none; border:none; color:var(--grey); font-size:13px; margin-top:10px;">← Back</button>
     <div class="auth-note">Your mobile number is only visible to Ant James as the league admin.</div>
   </div>
-</div>
-<!-- ============ AUTH: SET UP LOCAL PIN (first time on this device, post signup) ============ -->
-<div id="screen-set-pin" class="auth-wrap hidden">
-  <div class="crest-big">🔒</div>
-  <h1 class="display">SET A DEVICE PIN</h1>
-  <p>Choose a 4-digit PIN to quickly unlock the app on this device. This never leaves your phone.</p>
-  <div class="pin-dots" id="setpin-dots">
-    <span></span><span></span><span></span><span></span>
-  </div>
-  <div class="pin-pad" id="setpin-pad"></div>
-</div>
-
-<!-- ============ AUTH: UNLOCK WITH PIN (already have a session on this device) ============ -->
-<div id="screen-unlock" class="auth-wrap hidden">
-  <div class="crest-big">⚽</div>
-  <h1 class="display" id="unlock-name">WELCOME BACK</h1>
-  <p>Enter your PIN to unlock Pompey Predictor.</p>
-  <div class="pin-dots" id="unlock-dots">
-    <span></span><span></span><span></span><span></span>
-  </div>
-  <div class="auth-status" id="unlock-status"></div>
-  <div class="pin-pad" id="unlock-pad"></div>
-  <button class="auth-note" id="btn-forgot-pin" style="background:none; border:none; text-decoration:underline; margin-top:16px; cursor:pointer;">Forgot your PIN?</button>
-</div>
-
-<!-- ============ AUTH: SESSION LOST (device forgot its session — no email recovery available) ============ -->
-<div id="screen-lost" class="auth-wrap hidden">
-  <div class="crest-big">⚠️</div>
-  <h1 class="display">DEVICE NOT RECOGNISED</h1>
-  <p>This device doesn't have a saved session. If you've played before, ask the admin to re-link your account. Otherwise, get started below.</p>
-  <button class="btn-primary" style="max-width:280px;" id="btn-lost-continue">Start fresh</button>
 </div>
 
 <!-- ============ MAIN APP ============ -->
@@ -702,10 +656,8 @@
           </div>
           <div style="display:flex; flex-direction:column; gap:6px;">
             <button class="btn-primary" id="btn-sign-out" style="background:var(--navy); font-size:12px; padding:0 12px; height:36px; width:auto; white-space:nowrap;">Sign out</button>
-            <button class="btn-primary" id="btn-reset-pin" style="background:var(--grey-light); color:var(--navy); font-size:12px; padding:0 12px; height:36px; width:auto; white-space:nowrap;">Reset PIN</button>
           </div>
         </div>
-        <div id="reset-pin-status" style="font-size:11px; color:var(--grey); margin-top:6px;"></div>
       </div>
       <div class="card" id="push-notification-card">
         <div class="admin-header" style="margin-top:0;">🔔 Get Notified</div>
@@ -783,7 +735,7 @@
               <source src="./whats-new-tour.mp4" type="video/mp4">
             </video>
             <p style="margin-bottom:6px;">🔗 <strong>Share</strong> — also up top, get a QR code and link to invite someone</p>
-            <p style="margin-bottom:6px;">🔑 Forgotten your PIN? There's a reset link on the unlock screen</p>
+            <p style="margin-bottom:6px;">🔑 Forgotten your PIN? Just message Ant, he can sort you a new one</p>
             <p>⚠️ Symbol next to a name? Just a possible duplicate signup Ant's sorting — nothing to worry about</p>
           </div>
           <div class="modal-section">
@@ -1143,7 +1095,7 @@ async function fetchMyPlayerRow() {
   return { user, player: rows[0] };
 }
 
-async function createPlayerRow(firstName, surname, mobile) {
+async function createPlayerRow(firstName, surname, mobile, pinHash) {
   const session = getSession();
   let displayName = `${firstName.trim()} ${surname.trim()}`;
 
@@ -1170,7 +1122,7 @@ async function createPlayerRow(firstName, surname, mobile) {
       "Content-Type": "application/json",
       Prefer: "return=representation"
     },
-    body: JSON.stringify({ id: session_user_id, display_name: displayName, phone_number: mobile.trim() })
+    body: JSON.stringify({ id: session_user_id, display_name: displayName, phone_number: mobile.trim(), pin_hash: pinHash || null })
   });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
@@ -1208,29 +1160,27 @@ updateOfflineBanner();
 async function boot() {
   let session = getSession();
 
-  if (!session) { showScreen("newplayer"); resetToGate(); return; }
+  // A device that's already logged in stays logged in — this only ever
+  // drops into the login form when there's genuinely no valid session on
+  // this device at all (a new phone, a cleared browser, exactly the
+  // moment that used to create a duplicate). An ordinary reopen never
+  // touches this path.
+  if (!session) { showScreen("newplayer"); return; }
 
   if (!sessionIsValid(session)) {
     session = await refreshSessionIfNeeded();
-    if (!session) { clearSession(); showScreen("lost"); return; }
+    if (!session) { clearSession(); showScreen("newplayer"); return; }
   }
 
   try {
     const result = await fetchMyPlayerRow();
-    if (!result) { showScreen("lost"); return; }
+    if (!result) { showScreen("newplayer"); return; }
     currentUser = result.user;
     currentPlayer = result.player;
-
-    const storedPinHash = localStorage.getItem(LS_KEYS.pinHash);
-    if (!storedPinHash) {
-      showScreen("set-pin");
-    } else {
-      document.getElementById("unlock-name").textContent = `HI ${currentPlayer.display_name.split(" ")[0].toUpperCase()}`;
-      showScreen("unlock");
-    }
+    enterApp();
   } catch (err) {
     console.error(err);
-    showScreen("lost");
+    showScreen("newplayer");
   }
 }
 
@@ -1271,7 +1221,7 @@ function enterApp() {
   renderPushNotificationCard();
 }
 
-const SCREENS = ["loading","newplayer","set-pin","unlock","lost","app"];
+const SCREENS = ["loading","newplayer","app"];
 
 let pillCollapseTimer = null;
 document.getElementById("player-pill").addEventListener("click", (e) => {
@@ -1293,75 +1243,48 @@ function showScreen(name) {
   });
 }
 
-/* ---------- new player signup form ---------- */
-function resetToGate() {
-  document.getElementById("gate-panel").classList.remove("hidden");
-  document.getElementById("returning-panel").classList.add("hidden");
-  document.getElementById("new-panel").classList.add("hidden");
-  document.getElementById("returning-status").textContent = "";
-  document.getElementById("newplayer-status").textContent = "";
+/* ---------- unified login (name + PIN, every visit, every device) ---------- */
+function resetLoginPanel() {
+  document.getElementById("login-panel").classList.remove("hidden");
+  document.getElementById("new-mobile-panel").classList.add("hidden");
+  document.getElementById("login-status").textContent = "";
+  document.getElementById("new-mobile-status").textContent = "";
 }
-document.getElementById("btn-gate-yes").addEventListener("click", () => {
-  document.getElementById("gate-panel").classList.add("hidden");
-  document.getElementById("returning-panel").classList.remove("hidden");
-  document.getElementById("input-return-firstname").focus();
-});
-document.getElementById("btn-gate-no").addEventListener("click", () => {
-  document.getElementById("gate-panel").classList.add("hidden");
-  document.getElementById("new-panel").classList.remove("hidden");
-  document.getElementById("input-firstname").focus();
-});
-document.getElementById("btn-returning-back").addEventListener("click", resetToGate);
-document.getElementById("btn-new-back").addEventListener("click", resetToGate);
 
-document.getElementById("btn-toggle-reclaim").addEventListener("click", () => {
-  const section = document.getElementById("reclaim-section");
-  const nowHidden = section.classList.toggle("hidden");
-  if (!nowHidden) document.getElementById("input-reclaim-pin").focus();
+document.getElementById("btn-new-mobile-back").addEventListener("click", resetLoginPanel);
+
+document.getElementById("btn-new-toggle").addEventListener("click", () => {
+  const pinField = document.getElementById("input-login-pin");
+  const toggle = document.getElementById("btn-new-toggle");
+  const isCreating = toggle.dataset.mode === "create";
+  toggle.dataset.mode = isCreating ? "" : "create";
+  pinField.placeholder = isCreating ? "PIN" : "Choose any 4 digits";
+  toggle.textContent = isCreating ? "New here? Create one instead" : "← Actually, I've played before";
+  pinField.focus();
 });
 
-document.getElementById("form-returning").addEventListener("submit", async (e) => {
+document.getElementById("form-login").addEventListener("submit", async (e) => {
   e.preventDefault();
-  const firstName = document.getElementById("input-return-firstname").value.trim();
-  const surname = document.getElementById("input-return-surname").value.trim();
-  const pin = document.getElementById("input-return-pin").value.trim();
-  const btn = document.getElementById("btn-return-login");
-  const status = document.getElementById("returning-status");
-  if (!firstName || !surname || pin.length !== 4) { status.textContent = "Fill in your name and 4-digit PIN."; return; }
+  const firstName = document.getElementById("input-login-firstname").value.trim();
+  const surname = document.getElementById("input-login-surname").value.trim();
+  const pin = document.getElementById("input-login-pin").value.trim();
+  const btn = document.getElementById("btn-login");
+  const status = document.getElementById("login-status");
+  if (!firstName || !surname || pin.length !== 4) { status.textContent = "Fill in your name and a 4-digit PIN."; return; }
   btn.disabled = true; status.textContent = "Checking…";
 
-  const fullName = `${firstName} ${surname}`.trim().toLowerCase();
   try {
-    // Read-only check first — no session, no row, nothing created yet.
-    // Only proceed to actually log someone in if a genuine match exists.
-    const res = await fetch(`${REST_URL}/players?is_active=eq.true&select=display_name`, {
-      headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` }
-    });
-    const existing = res.ok ? await res.json() : [];
-    const isMatch = existing.some(p => p.display_name.replace(/\s*⚠️\s*/g, "").trim().toLowerCase() === fullName);
-
-    if (!isMatch) {
-      status.textContent = `We couldn't find a ${firstName} ${surname} on file — let's get you set up as new instead.`;
-      setTimeout(() => {
-        document.getElementById("returning-panel").classList.add("hidden");
-        document.getElementById("new-panel").classList.remove("hidden");
-        document.getElementById("input-firstname").value = firstName;
-        document.getElementById("input-surname").value = surname;
-        document.getElementById("newplayer-status").textContent = "";
-      }, 1800);
-      return;
-    }
-
-    status.textContent = "Found you — logging in…";
+    // A fresh session and a fresh row are created up front regardless of
+    // whether this turns out to be a new player or a returning one — if a
+    // real match exists, claim_account below merges that account's history
+    // onto this row and deactivates the old one; if it doesn't, this row
+    // simply becomes their genuine new account, no separate signup step.
     const user = await createAnonymousSession();
     session_user_id = user.id;
-    // A placeholder only — claim_account below restores the real, original
-    // number from the account being reclaimed, so nothing typed here
-    // actually needs to be the correct number, or even present at all.
-    currentPlayer = await createPlayerRow(firstName, surname, "");
+    const pinHash = await hashPin(pin);
+    currentPlayer = await createPlayerRow(firstName, surname, "", pinHash);
     currentUser = user;
 
-    const pinHash = await hashPin(pin);
     const claimRes = await fetch(`${REST_URL}/rpc/claim_account`, {
       method: "POST",
       headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${getAccessToken()}`, "Content-Type": "application/json" },
@@ -1372,126 +1295,66 @@ document.getElementById("form-returning").addEventListener("submit", async (e) =
     try { claimResult = JSON.parse(rawClaimText); } catch (e) { /* leave claimResult empty — handled below */ }
 
     if (claimResult.success) {
-      localStorage.setItem(LS_KEYS.pinHash, pinHash);
-      await fetch(`${REST_URL}/players?id=eq.${currentPlayer.id}`, {
-        method: "PATCH",
-        headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${getAccessToken()}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ pin_hash: pinHash })
-      });
-      status.textContent = "Welcome back! Your history has been restored.";
-      setTimeout(enterApp, 900);
+      // The row was enriched server-side by the merge above — admin rights,
+      // real phone number, payment status, all of it — but the copy of it
+      // sitting in memory right now is from before that happened. Refetch
+      // rather than trust the stale snapshot.
+      const refreshed = await fetchMyPlayerRow();
+      if (refreshed) { currentPlayer = refreshed.player; currentUser = refreshed.user; }
+      status.textContent = "Welcome back!";
+      setTimeout(enterApp, 600);
       return;
     }
 
-    // Claim didn't verify — a fresh account now exists under this name.
-    // Be upfront about that immediately, same wording as the in-app banner,
-    // rather than silently continuing as if nothing happened.
+    if (claimResult.message === "no_match") {
+      // Nobody by this name has ever played before — the row already
+      // created above is their real new account, it just needs a mobile
+      // number before they're properly set up.
+      document.getElementById("login-panel").classList.add("hidden");
+      document.getElementById("new-mobile-panel").classList.remove("hidden");
+      document.getElementById("input-new-mobile").focus();
+      btn.disabled = false;
+      return;
+    }
+
+    // A name matched, but the PIN didn't verify against it — same handling
+    // already proven for this exact scenario: explain plainly, and the
+    // fresh row already created stays as a visibly flagged duplicate for
+    // admin review rather than silently vanishing.
     let diagnosticNote;
     if (["no_pin_on_file", "wrong_pin", "locked"].includes(claimResult.message)) {
       diagnosticNote = claimFailureReasonNote(claimResult.message);
     } else {
-      // Genuinely unrecognised outcome — show exactly what the server sent
-      // back rather than swallowing it, since guessing hasn't found this.
       diagnosticNote = `<div style="font-size:10px; color:rgba(255,212,121,0.6); margin-top:6px; word-break:break-all;">(Unexpected response — HTTP ${claimRes.status}: ${escapeHtml(rawClaimText).slice(0, 300)})</div>`;
     }
     status.innerHTML = DUPLICATE_EXPLAINER_HTML.replace(/\n/g, "<br>") + diagnosticNote;
-    setTimeout(() => { showScreen("set-pin"); }, 9000);
+    btn.disabled = false;
   } catch (err) {
     status.textContent = err.message || "Something went wrong — try again.";
     btn.disabled = false;
   }
 });
 
-
-// Catches the duplicate at the one moment it's actually created, rather
-// than relying on someone remembering to tap "I've played before" —
-// checks as soon as both name fields are filled, not on submit, so
-// there's time to notice and react before they've committed to anything.
-let nameMatchCheckTimer = null;
-async function checkForNameMatch() {
-  const firstName = document.getElementById("input-firstname").value.trim();
-  const surname = document.getElementById("input-surname").value.trim();
-  const note = document.getElementById("name-match-note");
-  const reclaimSection = document.getElementById("reclaim-section");
-  if (!firstName || !surname) { note.classList.add("hidden"); return; }
-  const fullName = `${firstName} ${surname}`.toLowerCase();
-  try {
-    const res = await fetch(`${REST_URL}/players?is_active=eq.true&select=display_name`, {
-      headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` }
-    });
-    if (!res.ok) return;
-    const existing = await res.json();
-    const isMatch = existing.some(p => p.display_name.replace(/\s*⚠️\s*/g, "").trim().toLowerCase() === fullName);
-    if (isMatch) {
-      note.textContent = `We already have a ${firstName} ${surname} on file. If that's you, enter your original PIN below to get your points and history back. If it's someone else with the same name, just carry on.`;
-      note.classList.remove("hidden");
-      reclaimSection.classList.remove("hidden");
-    } else {
-      note.classList.add("hidden");
-    }
-  } catch (e) { /* non-critical — signup still works normally either way */ }
-}
-["input-firstname", "input-surname"].forEach(id => {
-  document.getElementById(id).addEventListener("input", () => {
-    clearTimeout(nameMatchCheckTimer);
-    nameMatchCheckTimer = setTimeout(checkForNameMatch, 500);
-  });
-});
-
-document.getElementById("form-newplayer").addEventListener("submit", async (e) => {
+document.getElementById("form-new-mobile").addEventListener("submit", async (e) => {
   e.preventDefault();
-  const firstName = document.getElementById("input-firstname").value.trim();
-  const surname = document.getElementById("input-surname").value.trim();
-  const mobile = document.getElementById("input-mobile").value.trim();
-  const reclaimPin = document.getElementById("input-reclaim-pin").value.trim();
-  const btn = document.getElementById("btn-create-account");
-  const status = document.getElementById("newplayer-status");
-  if (!firstName || !surname || !mobile) { status.textContent = "All three fields are needed."; return; }
-  btn.disabled = true; status.textContent = "Setting up your account…";
+  const mobile = document.getElementById("input-new-mobile").value.trim();
+  const btn = document.getElementById("btn-finish-signup");
+  const status = document.getElementById("new-mobile-status");
+  if (!mobile) { status.textContent = "Enter a mobile number to finish setting up."; return; }
+  btn.disabled = true; status.textContent = "Finishing up…";
   try {
-    const user = await createAnonymousSession();
-    session_user_id = user.id;
-    currentPlayer = await createPlayerRow(firstName, surname, mobile);
-    currentUser = user;
-
-    if (reclaimPin.length === 4) {
-      status.textContent = "Checking for your old account…";
-      try {
-        const pinHash = await hashPin(reclaimPin);
-        const claimRes = await fetch(`${REST_URL}/rpc/claim_account`, {
-          method: "POST",
-          headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${getAccessToken()}`, "Content-Type": "application/json" },
-          body: JSON.stringify({ p_display_name: `${firstName} ${surname}`, p_pin_hash: pinHash })
-        });
-        const claimResult = await claimRes.json().catch(() => ({}));
-        if (claimResult.success) {
-          localStorage.setItem(LS_KEYS.pinHash, pinHash);
-          await fetch(`${REST_URL}/players?id=eq.${currentPlayer.id}`, {
-            method: "PATCH",
-            headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${getAccessToken()}`, "Content-Type": "application/json" },
-            body: JSON.stringify({ pin_hash: pinHash })
-          });
-          status.textContent = "Welcome back! Your history has been restored.";
-          setTimeout(enterApp, 900);
-          return;
-        } else if (claimResult.message === "no_pin_on_file" || claimResult.message === "wrong_pin" || claimResult.message === "locked") {
-          status.innerHTML = DUPLICATE_EXPLAINER_HTML.replace(/\n/g, "<br>") + claimFailureReasonNote(claimResult.message);
-        }
-        // no_match falls through silently — most people leave this field blank anyway
-      } catch (e) { /* non-critical — proceed as a normal new signup below */ }
-    }
-
-    showScreen("set-pin");
+    const res = await fetch(`${REST_URL}/players?id=eq.${currentPlayer.id}`, {
+      method: "PATCH",
+      headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${getAccessToken()}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ phone_number: mobile })
+    });
+    if (!res.ok) throw new Error("Could not save your number — try again.");
+    currentPlayer.phone_number = mobile;
+    enterApp();
   } catch (err) {
     status.textContent = err.message;
     btn.disabled = false;
   }
-});
-
-document.getElementById("btn-lost-continue").addEventListener("click", () => {
-  clearSession();
-  showScreen("newplayer");
-  resetToGate();
 });
 
 /* ---------- PIN pads ---------- */
@@ -1547,52 +1410,6 @@ function openSetPinNudge() {
 }
 document.getElementById("btn-pin-nudge-later").addEventListener("click", () => closeModal("modal-set-pin-nudge"));
 
-let setPinBuffer = "";
-buildPinPad(document.getElementById("setpin-pad"),
-  async (d) => {
-    if (setPinBuffer.length >= 4) return;
-    setPinBuffer += d;
-    renderPinDots("setpin-dots", setPinBuffer.length);
-    if (setPinBuffer.length === 4) {
-      const hash = await hashPin(setPinBuffer);
-      localStorage.setItem(LS_KEYS.pinHash, hash);
-      // best-effort — if this fails, the PIN still works locally on this
-      // device, it just can't be used to reclaim the account elsewhere
-      try {
-        await fetch(`${REST_URL}/players?id=eq.${currentPlayer.id}`, {
-          method: "PATCH",
-          headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${getAccessToken()}`, "Content-Type": "application/json" },
-          body: JSON.stringify({ pin_hash: hash })
-        });
-      } catch (e) { /* non-critical */ }
-      setPinBuffer = "";
-      enterApp();
-    }
-  },
-  () => { setPinBuffer = setPinBuffer.slice(0, -1); renderPinDots("setpin-dots", setPinBuffer.length); }
-);
-
-let unlockBuffer = "";
-buildPinPad(document.getElementById("unlock-pad"),
-  async (d) => {
-    if (unlockBuffer.length >= 4) return;
-    unlockBuffer += d;
-    renderPinDots("unlock-dots", unlockBuffer.length);
-    if (unlockBuffer.length === 4) {
-      const hash = await hashPin(unlockBuffer);
-      const stored = localStorage.getItem(LS_KEYS.pinHash);
-      const status = document.getElementById("unlock-status");
-      if (hash === stored) { unlockBuffer = ""; enterApp(); }
-      else {
-        status.textContent = "Wrong PIN, try again.";
-        unlockBuffer = "";
-        renderPinDots("unlock-dots", 0);
-      }
-    }
-  },
-  () => { unlockBuffer = unlockBuffer.slice(0, -1); renderPinDots("unlock-dots", unlockBuffer.length); }
-);
-
 function renderPinDots(containerId, count) {
   const dots = document.querySelectorAll(`#${containerId} span`);
   dots.forEach((d, i) => d.classList.toggle("filled", i < count));
@@ -1633,26 +1450,9 @@ document.getElementById("btn-save-mobile").addEventListener("click", async () =>
   }
 });
 
-document.getElementById("btn-reset-pin").addEventListener("click", () => {
-  localStorage.removeItem(LS_KEYS.pinHash);
-  document.getElementById("reset-pin-status").textContent = "";
-  showScreen("set-pin");
-});
-
 document.getElementById("btn-sign-out").addEventListener("click", () => {
   clearSession();
   location.reload();
-});
-
-document.getElementById("btn-forgot-pin").addEventListener("click", () => {
-  // Session is still valid at this point — the PIN is a device unlock, not
-  // the credential, so clearing the local hash and dropping back into
-  // Set a Device PIN is enough. No fresh magic link required.
-  localStorage.removeItem(LS_KEYS.pinHash);
-  unlockBuffer = "";
-  renderPinDots("unlock-dots", 0);
-  document.getElementById("unlock-status").textContent = "";
-  showScreen("set-pin");
 });
 
 /* ---------- bottom nav ---------- */
@@ -2493,10 +2293,12 @@ async function renderAdminMissingPanel() {
   slot.innerHTML = `<div class="placeholder-note">Loading…</div>`;
   const now = Date.now();
   const weekAhead = now + 7 * 24 * 3600 * 1000;
-  const [fixtures, players] = await Promise.all([
+  const [fixtures, players, pushSubs] = await Promise.all([
     sbFetchAll("fixtures?select=*"),
-    sbFetchAll("players?is_active=eq.true&is_participant=eq.true&select=*&order=display_name.asc")
+    sbFetchAll("players?is_active=eq.true&is_participant=eq.true&select=*&order=display_name.asc"),
+    sbFetchAll("push_subscriptions?select=player_id")
   ]);
+  const notifyingPlayerIds = new Set(pushSubs.map(s => s.player_id));
   const upcoming = fixtures.filter(f => {
     const k = new Date(f.kickoff).getTime();
     return k > now && k <= weekAhead;
@@ -2534,9 +2336,10 @@ async function renderAdminMissingPanel() {
           ${missing.length > 0 ? `
             <button class="rr-save" style="background:var(--navy); color:var(--white); margin-bottom:8px;" data-notify-missing="${f.id}">🔔 Notify missing</button>
             <div data-notify-status="${f.id}" style="font-size:11px; color:var(--grey); margin-bottom:6px;"></div>
+            <div style="font-size:11px; color:var(--grey); margin-bottom:6px;">🔔 next to a name = they already get the push above, no need to WhatsApp them too</div>
             ${missing.map(m => `
               <div class="player-row" style="padding:6px 0;">
-                <div class="pinfo"><div class="pname" style="font-size:13px;">${m.display_name}</div></div>
+                <div class="pinfo"><div class="pname" style="font-size:13px;">${m.display_name}${notifyingPlayerIds.has(m.id) ? ' <span title="Already gets push notifications">🔔</span>' : ''}</div></div>
                 ${m.phone_number
                   ? `<a href="${fixtureNudgeLink(m.phone_number, m.display_name, f.home_team, f.away_team, f.kickoff)}" target="_blank" rel="noopener" class="btn-verify" style="background:#25D366; color:var(--white); text-decoration:none; display:inline-block;">WhatsApp</a>`
                   : `<span style="font-size:11px; color:var(--grey);">No number</span>`}
