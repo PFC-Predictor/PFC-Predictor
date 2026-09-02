@@ -200,7 +200,7 @@
   #screen-loading{
     min-height:100vh; display:flex; align-items:center; justify-content:center;
     background:var(--navy); color:var(--white); font-family:'Bebas Neue', Impact, sans-serif;
-    font-size:22px; letter-spacing:1px;
+    font-size:22px; letter-spacing:1px; text-align:center; padding:0 20px;
   }
 
   .hidden{display:none !important;}
@@ -542,7 +542,7 @@
   <h1 class="display">POMPEY PREDICTOR</h1>
 
   <div id="login-panel">
-    <p style="color:#ffd479; font-weight:600; font-size:13px; max-width:320px; margin:0 0 14px;">Add this page to your Home Screen. On iPhone: Share button → Add to Home Screen. On Android: ⋮ menu → Add to Home screen (or Install app).</p>
+    <p style="color:#ffd479; font-weight:600; font-size:13px; max-width:320px; margin:0 0 14px;">Add this page to your Home Screen<br>iPhone: Share button → Add to Home Screen<br>Android: ⋮ menu → Install app</p>
     <p>Enter your name and PIN to get in. Use the exact name you signed up with, first time, not a nickname or short version.</p>
     <form class="auth-form" id="form-login">
       <input type="text" id="input-login-firstname" placeholder="First name" autocomplete="given-name" required>
@@ -680,7 +680,7 @@
             <h4>1. Quick heads up on how this works</h4>
             <p style="margin-bottom:6px;">📱 This isn't an app store app, it's a website saved to your phone</p>
             <p style="margin-bottom:6px;">🔑 Opening it on a new phone, or your saved login's gone? No problem — just enter your name and PIN, and you're straight back into your real account, same points, same history, nothing duplicated. Use the exact name you first signed up with, not a nickname or short version, or it won't find you</p>
-            <p style="margin-bottom:6px;">👉 Still worth adding it to your Home Screen (Share icon on iPhone, ⋮ menu on Android, then "Add to Home Screen") — that way it stays logged in day to day, and it's what lets notifications work</p>
+            <p style="margin-bottom:6px;">👉 Still worth adding it to your Home Screen (Share icon on iPhone, then Add to Home Screen. On Android, ⋮ menu, then "Install app" specifically, not "Add to Home Screen") — that way it stays logged in day to day, and it's what lets notifications work</p>
             <video controls playsinline preload="none" poster="./homescreen-tutorial-poster.jpg" style="width:100%; max-width:280px; display:block; margin:4px auto 6px; border-radius:12px;">
               <source src="./homescreen-tutorial.mp4" type="video/mp4">
             </video>
@@ -811,7 +811,7 @@
       <div class="modal-body">
         <div class="modal-section">
           <p style="margin-bottom:6px;">You can now get a nudge if you're about to miss a prediction deadline, and a heads up the moment results are in.</p>
-          <p style="margin-bottom:0;">This only works if you've added the app to your Home Screen, that's an Apple rule, not ours, there's no way round it. Already done that? Head to Profile and tap Enable Notifications. Haven't yet? Instructions in your Profile walks through it, takes a few seconds.</p>
+          <p style="margin-bottom:0;">This only works once the app is properly installed on your phone, not just bookmarked, that's a phone rule, not ours, there's no way round it. On iPhone, that's Add to Home Screen. On Android, look for "Install app" specifically, "Add to Home Screen" alone won't do it. Already done that? Head to Profile and tap Enable Notifications. Haven't yet? Instructions in your Profile walks through it, takes a few seconds.</p>
         </div>
       </div>
     </div>
@@ -1513,7 +1513,7 @@ async function renderPushNotificationCard() {
   }
 
   if (!isStandalone()) {
-    body.innerHTML = `<p style="font-size:13px; color:var(--grey); margin:0;">Add this page to your Home Screen to unlock notifications for missing predictions and full-time results — that's the one thing that makes them possible at all, iPhone won't allow them any other way.</p>`;
+    body.innerHTML = `<p style="font-size:13px; color:var(--grey); margin:0;">Add this page to your Home Screen to unlock notifications for missing predictions and full-time results — that's the one thing that makes them possible at all, your phone won't allow them any other way. On iPhone: Add to Home Screen. On Android: look for "Install app" specifically, "Add to Home Screen" alone won't do it.</p>`;
     return;
   }
 
