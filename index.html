@@ -3435,6 +3435,7 @@ function suggestFeatureLink(adminPhoneNumber) {
 
 
 let paymentPlayersCollapsed = true;
+let inactiveAccountsCollapsed = false;
 
 async function renderAdminPaymentDashboard() {
   const slot = document.getElementById("admin-slot");
@@ -3471,6 +3472,10 @@ async function renderAdminPaymentDashboard() {
 
   const unpaid = players
     .filter(p => p.is_active && !p.pool_exempt && !p.payment_verified)
+    .sort((a, b) => a.display_name.localeCompare(b.display_name));
+
+  const inactivePlayers = players
+    .filter(p => !p.is_active)
     .sort((a, b) => a.display_name.localeCompare(b.display_name));
 
   slot.innerHTML = `
@@ -3520,11 +3525,10 @@ async function renderAdminPaymentDashboard() {
       </div>
     </div>
 
+    ${unpaid.length > 0 ? `
     <div class="card" style="margin-top:12px;">
       <div class="admin-header" style="margin-top:0;">📋 Unpaid Summary (${unpaid.length})</div>
-      ${unpaid.length === 0
-        ? `<div class="placeholder-note">Everyone active has paid ✓</div>`
-        : unpaid.map(p => `
+      ${unpaid.map(p => `
           <div class="player-row">
             <div class="pinfo">
               <div class="pname">${p.display_name}</div>
@@ -3537,7 +3541,35 @@ async function renderAdminPaymentDashboard() {
                 : `<span style="font-size:11px; color:var(--grey);">No number</span>`}
             </div>
           </div>`).join("")}
-    </div>
+    </div>` : ""}
+
+    ${inactivePlayers.length > 0 ? `
+    <div class="card collapsible ${inactiveAccountsCollapsed ? 'collapsed' : ''}" style="margin-top:12px; padding:0;">
+      <div class="collapsible-header" id="inactive-accounts-toggle">
+        <span>🗑️ Inactive Accounts (${inactivePlayers.length})</span>
+        <span class="chev">▾</span>
+      </div>
+      <div class="collapsible-body" style="padding:0 14px 14px;">
+        <div class="placeholder-note" style="margin-top:0;">Leftover from merges — everything real already moved to the surviving account, safe to clear these out.</div>
+        ${inactivePlayers.map(p => {
+          const remainingPreds = predictionCountByPlayer.get(p.id) || 0;
+          const remainingMsgs = messageCountByPlayer.get(p.id) || 0;
+          const remainingPayLog = paymentLogCountByPlayer.get(p.id) || 0;
+          const safeToDelete = remainingPreds === 0 && remainingMsgs === 0 && remainingPayLog === 0;
+          return `
+          <div class="player-row">
+            <div class="pinfo">
+              <div class="pname">${p.display_name}</div>
+            </div>
+            <div class="pactions">
+              ${safeToDelete
+                ? `<button class="btn-purge" data-delete-duplicate="${p.id}" data-name="${p.display_name}">Delete</button>`
+                : `<button class="btn-purge" data-force-delete="${p.id}" data-name="${p.display_name}">Force delete (${remainingPreds + remainingMsgs + remainingPayLog} leftover)</button>`}
+            </div>
+          </div>`;
+        }).join("")}
+      </div>
+    </div>` : ""}
 
     <div class="card collapsible ${paymentPlayersCollapsed ? 'collapsed' : ''}" style="padding:0; margin-top:12px;">
       <div class="collapsible-header" id="payment-players-toggle">
@@ -3615,6 +3647,12 @@ async function renderAdminPaymentDashboard() {
     const panel = e.currentTarget.closest(".collapsible");
     panel.classList.toggle("collapsed");
     paymentPlayersCollapsed = panel.classList.contains("collapsed");
+  });
+
+  document.getElementById("inactive-accounts-toggle")?.addEventListener("click", (e) => {
+    const panel = e.currentTarget.closest(".collapsible");
+    panel.classList.toggle("collapsed");
+    inactiveAccountsCollapsed = panel.classList.contains("collapsed");
   });
 
   document.getElementById("prizecalc-toggle").addEventListener("click", (e) => {
