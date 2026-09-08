@@ -4291,10 +4291,13 @@ async function renderSeasonSummary() {
     .sort((a, b) => new Date(a.kickoff) - new Date(b.kickoff))[0];
 
   const playerAbove = mine.rank > 1 ? standings.find(r => r.rank === mine.rank - 1) : null;
+  const pointsBehind = playerAbove ? Math.max(0, playerAbove.total - mine.total) : 0;
   const gapLine = mine.rank === 1
     ? "You're top of the League 🏆"
     : playerAbove
-      ? `${Math.max(0, playerAbove.total - mine.total)} point${(playerAbove.total - mine.total) === 1 ? "" : "s"} behind ${playerAbove.player.display_name} (${playerAbove.rank})`
+      ? pointsBehind === 0
+        ? `Level with ${playerAbove.player.display_name} (${playerAbove.total})`
+        : `${pointsBehind} point${pointsBehind === 1 ? "" : "s"} behind ${playerAbove.player.display_name} (${playerAbove.total})`
       : "";
 
   slot.innerHTML = `
@@ -4315,7 +4318,7 @@ async function renderSeasonSummary() {
         <div class="ss-tile wide">
           <div class="label">Last Predicted</div>
           <div style="font-size:14px; font-weight:700; color:var(--navy); margin-top:2px;">
-            ${lastPredictedFixture ? `${lastPredictedFixture.home_team} v ${lastPredictedFixture.away_team} — ${lastPredicted.home_score}-${lastPredicted.away_score}${lastPredicted.first_scorer ? ` · ⚽ ${lastPredicted.first_scorer}` : ""}` : "—"}
+            ${lastPredictedFixture ? `${lastPredictedFixture.home_team} v ${lastPredictedFixture.away_team} — predicted ${lastPredicted.home_score}-${lastPredicted.away_score}${lastPredicted.first_scorer ? ` · ⚽ ${lastPredicted.first_scorer}` : ""}` : "—"}
           </div>
         </div>
         <div class="ss-tile wide">
@@ -4363,7 +4366,6 @@ async function renderPrizePoolCard() {
 
   slot.innerHTML = `
     <div class="prize-card">
-      <div class="pc-title">💷 PRIZE POOL</div>
       ${buildPodiumHtml(prize.amounts, gbp)}
       ${prize.winners === 1 ? `<div class="pc-note">Under 20 paid entries — one winner takes it all.</div>` : ""}
       ${duplicateNote}
