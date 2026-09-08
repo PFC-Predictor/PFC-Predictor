@@ -1530,7 +1530,7 @@ async function renderPushNotificationCard() {
     const registration = await navigator.serviceWorker.ready;
     const existing = await registration.pushManager.getSubscription();
     if (existing) {
-      body.innerHTML = `<p style="font-size:13px; color:#1c8a45; margin:0; font-weight:600;">✅ Notifications enabled</p>`;
+      body.innerHTML = `<p style="font-size:13px; color:#1c8a45; margin:0; font-weight:600; text-align:center;">✅ Notifications enabled</p>`;
       return;
     }
   } catch (e) { /* fall through to the enable prompt */ }
@@ -4296,7 +4296,7 @@ async function renderSeasonSummary() {
     ? "You're top of the League 🏆"
     : playerAbove
       ? pointsBehind === 0
-        ? `Level with ${playerAbove.player.display_name} (${playerAbove.total})`
+        ? `Level with ${playerAbove.player.display_name}`
         : `${pointsBehind} point${pointsBehind === 1 ? "" : "s"} behind ${playerAbove.player.display_name} (${playerAbove.total})`
       : "";
 
@@ -4413,8 +4413,8 @@ async function renderLeaderboard() {
 
     if (biggestUp || biggestDown) {
       moverHtml = `<div class="mover-grid">
-        ${biggestUp ? `<div class="mover-card up"><div class="arrow">📈</div><div class="name">${biggestUp.player.display_name}</div><div class="delta">Biggest mover, up ${biggestUp.movement}</div></div>` : "<div></div>"}
-        ${biggestDown ? `<div class="mover-card down"><div class="arrow">📉</div><div class="name">${biggestDown.player.display_name}</div><div class="delta">Biggest faller, down ${Math.abs(biggestDown.movement)}</div></div>` : "<div></div>"}
+        ${biggestUp ? `<div class="mover-card up"><div class="name">${biggestUp.player.display_name}</div><div class="delta">Biggest mover, up ${biggestUp.movement}</div></div>` : "<div></div>"}
+        ${biggestDown ? `<div class="mover-card down"><div class="name">${biggestDown.player.display_name}</div><div class="delta">Biggest faller, down ${Math.abs(biggestDown.movement)}</div></div>` : "<div></div>"}
       </div>`;
     }
     renderLbTable(withMovement, prizeWinners);
