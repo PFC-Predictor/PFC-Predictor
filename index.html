@@ -4378,13 +4378,23 @@ async function renderLeaderboard() {
 
   renderPrizePoolCard();
 
-  const [players, allPredictions, allResults, allFixtures, prizePlayers] = await Promise.all([
-    sbFetchAll("players?is_active=eq.true&is_participant=eq.true&select=*&order=display_name.asc"),
-    sbFetchAll("predictions?select=*"),
-    sbFetchAll("results?select=*&order=created_at.asc"),
-    sbFetchAll("fixtures?select=*"),
-    fetchAllPlayersAdmin()
-  ]);
+  let players, allPredictions, allResults, allFixtures, prizePlayers;
+  try {
+    [players, allPredictions, allResults, allFixtures, prizePlayers] = await Promise.all([
+      sbFetchAll("players?is_active=eq.true&is_participant=eq.true&select=*&order=display_name.asc"),
+      sbFetchAll("predictions?select=*"),
+      sbFetchAll("results?select=*&order=created_at.asc"),
+      sbFetchAll("fixtures?select=*"),
+      fetchAllPlayersAdmin()
+    ]);
+  } catch (err) {
+    // A table stuck silently on "Loading…" forever is worse than an honest
+    // failure message — this way it's obvious something's wrong and there's
+    // an actual way to try again, not just a vanished toast to miss.
+    tableEl.innerHTML = `<tr><td style="padding:20px; text-align:center; color:var(--grey);">Couldn't load the league table — check your connection and <span id="lb-retry-link" style="color:var(--navy); text-decoration:underline; cursor:pointer;">tap to retry</span>.</td></tr>`;
+    document.getElementById("lb-retry-link")?.addEventListener("click", renderLeaderboard);
+    return;
+  }
   const prizeWinners = computePrizePool(prizePlayers).winners;
 
   const fixtureById = new Map(allFixtures.map(f => [f.id, f]));
