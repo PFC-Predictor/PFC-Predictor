@@ -740,7 +740,7 @@
         <div id="push-notification-body"></div>
       </div>
       <div class="card">
-        <div class="admin-header" style="margin-top:0;">🎨 Theme</div>
+        <div class="admin-header" style="margin-top:0;">Theme</div>
         <div style="display:flex; gap:6px;">
           <button type="button" class="theme-option" data-theme-choice="light">Light Mode</button>
           <button type="button" class="theme-option" data-theme-choice="dark">Dark Mode</button>
@@ -806,15 +806,15 @@
           </div>
           <div class="modal-section">
             <h4>7. Around the app</h4>
-            <p style="margin-bottom:6px;">📊 <strong>Your Season So Far</strong> — top of your Profile, shows your current rank, points, exact scores, correct results and correct goalscorers at a glance</p>
+            <p style="margin-bottom:6px;"><strong>Your Season So Far</strong> — top of your Profile, shows your current rank, points, exact scores, correct results and correct goalscorers at a glance</p>
             <p style="margin-bottom:6px;">🏆 <strong>League</strong> — live prize pool up top, full table below, tap any name for their full history</p>
             <p style="margin-bottom:6px;">🏅 <strong>Season Records</strong> — sits under the League, tracks the best streaks and scores of the season</p>
             <p style="margin-bottom:6px;">👀 <strong>Picks</strong> — its own tab, shows what everyone called once a match kicks off, grouped by scoreline</p>
             <video controls playsinline preload="none" poster="./picks-updates-intro-poster.jpg" style="width:100%; max-width:280px; display:block; margin:4px auto 6px; border-radius:12px;">
               <source src="./picks-updates-intro.mp4" type="video/mp4">
             </video>
-            <p style="margin-bottom:6px;">📊 <strong>Prediction Split</strong> — inside Picks, shows how everyone's split on the next fixture</p>
-            <p style="margin-bottom:6px;">🥇 <strong>League Awards</strong> — also inside Picks: Most Exact Scores, Most Correct Results (includes exact scores, since those are correct too), Most Correct First Goalscorers, Best Called Match, Most Predicted Scorer, and the League Average points per game</p>
+            <p style="margin-bottom:6px;"><strong>Prediction Split</strong> — inside Picks, shows how everyone's split on the next fixture</p>
+            <p style="margin-bottom:6px;"><strong>League Awards</strong> — also inside Picks: Most Exact Scores, Most Correct Results (includes exact scores, since those are correct too), Most Correct First Goalscorers, Best Called Match, Most Predicted Scorer, and the League Average points per game</p>
             <p style="margin-bottom:6px;">📢 <strong>Updates</strong> — up top, flags anything new, and it's where you can suggest a feature too</p>
             <video controls playsinline preload="none" poster="./whats-new-tour-poster.jpg" style="width:100%; max-width:280px; display:block; margin:4px auto 6px; border-radius:12px;">
               <source src="./whats-new-tour.mp4" type="video/mp4">
@@ -836,7 +836,7 @@
       <button class="btn-primary" id="btn-admin-back" style="background:var(--grey-light); color:var(--navy-text); width:auto; padding:0 14px; height:36px; margin-bottom:14px;">← Back to app</button>
       <div class="admin-group-header" style="margin-top:0;">📋 This week</div>
       <div class="card" style="margin-bottom:12px;">
-        <div class="admin-header" style="margin-top:0;">📦 Weekly Backup</div>
+        <div class="admin-header" style="margin-top:0;">Weekly Backup</div>
         <button class="mc-save" id="btn-weekly-backup" style="background:var(--red);">Export All (One Workbook, 6 Sheets)</button>
         <div id="weekly-backup-status" style="font-size:12px; color:var(--grey); margin-top:8px;"></div>
       </div>
@@ -1897,7 +1897,7 @@ function renderAwardsPanel(players, predictions, resultByFixture, fixtures) {
   const slot = document.getElementById("awards-slot");
   const standings = computeStandingsFor(players, predictions, resultByFixture);
   if (resultByFixture.size === 0) {
-    slot.innerHTML = `<div class="awards-panel"><div class="ap-title">🏆 League Awards</div><div class="award-item"><span class="al">No results yet</span></div></div>`;
+    slot.innerHTML = `<div class="awards-panel"><div class="ap-title">League Awards</div><div class="award-item"><span class="al">No results yet</span></div></div>`;
     return;
   }
   const topExact = [...standings].filter(s => s.exact > 0).sort((a, b) => b.exact - a.exact);
@@ -1936,7 +1936,7 @@ function renderAwardsPanel(players, predictions, resultByFixture, fixtures) {
 
   slot.innerHTML = `
     <div class="awards-panel">
-      <div class="ap-title">🏆 League Awards</div>
+      <div class="ap-title">League Awards</div>
       ${exactMax ? `<div class="award-item"><span class="al">Most Exact Scores</span><span class="av">${topExact.filter(s => s.exact === exactMax).map(s => s.player.display_name).join(", ")}</span></div>` : ""}
       ${correctMax ? `<div class="award-item"><span class="al">Most Correct Results</span><span class="av">${topCorrect.filter(s => s.correctTotal === correctMax).map(s => s.player.display_name).join(", ")}</span></div>` : ""}
       ${scorerMax ? `<div class="award-item"><span class="al">Most Correct First Goalscorers</span><span class="av">${topScorer.filter(s => s.scorer === scorerMax).map(s => s.player.display_name).join(", ")}</span></div>` : ""}
@@ -2425,7 +2425,7 @@ async function renderAdminMissingPanel() {
   }).sort((a, b) => new Date(a.kickoff) - new Date(b.kickoff));
 
   if (upcoming.length === 0) {
-    slot.innerHTML = `<div class="card"><div class="admin-header" style="margin-top:0;">📋 Missing Predictions</div><div class="placeholder-note">No fixtures in the next 7 days.</div></div>`;
+    slot.innerHTML = `<div class="card"><div class="admin-header" style="margin-top:0;">Missing Predictions</div><div class="placeholder-note">No fixtures in the next 7 days.</div></div>`;
     return;
   }
 
@@ -2434,7 +2434,7 @@ async function renderAdminMissingPanel() {
   slot.innerHTML = `
     <div class="card collapsible ${missingPanelCollapsed ? 'collapsed' : ''}" style="padding:0;">
       <div class="collapsible-header" id="missing-toggle">
-        <span>📋 Missing Predictions (next 7 days)</span>
+        <span>Missing Predictions (next 7 days)</span>
         <span class="chev">▾</span>
       </div>
       <div class="collapsible-body" style="padding:0 14px 14px;">
@@ -2491,7 +2491,7 @@ async function renderAdminRecentPredictionsPanel() {
   const next = upcoming[0];
 
   if (!next) {
-    slot.innerHTML = `<div class="card"><div class="admin-header" style="margin-top:0;">🕐 Recent Predictions</div><div class="placeholder-note">No upcoming fixture.</div></div>`;
+    slot.innerHTML = `<div class="card"><div class="admin-header" style="margin-top:0;">Recent Predictions</div><div class="placeholder-note">No upcoming fixture.</div></div>`;
     return;
   }
 
@@ -2956,7 +2956,7 @@ async function renderVerdictPanel(fixture) {
   slot.innerHTML = `
     <div class="card verdict-panel" id="verdict-panel">
       <div class="verdict-header" id="verdict-toggle">
-        <span style="flex:1; text-align:center;">📊 Prediction Split — next up</span>
+        <span style="flex:1; text-align:center;">Prediction Split — next up</span>
         <span class="chev">▾</span>
       </div>
       <div class="verdict-body">
@@ -3269,7 +3269,7 @@ async function renderAdminMergeTrackerPanel() {
   try {
     entries = await sbFetchAll("merge_log?select=*&order=created_at.desc");
   } catch (err) {
-    slot.innerHTML = `<div class="card"><div class="admin-header" style="margin-top:0;">🔬 Duplicate Tracker</div><div class="placeholder-note">Couldn't load this — ${escapeHtml(err.message || "unknown error")}. Most likely the merge_log table hasn't been created in Supabase yet.</div></div>`;
+    slot.innerHTML = `<div class="card"><div class="admin-header" style="margin-top:0;">Duplicate Tracker</div><div class="placeholder-note">Couldn't load this — ${escapeHtml(err.message || "unknown error")}. Most likely the merge_log table hasn't been created in Supabase yet.</div></div>`;
     return;
   }
   const selfCount = entries.filter(e => e.merge_type === "self_reclaim").length;
@@ -3606,7 +3606,7 @@ async function renderAdminPaymentDashboard() {
 
   slot.innerHTML = `
     <div class="card">
-      <div class="admin-header">💰 Payment Dashboard</div>
+      <div class="admin-header">Payment Dashboard</div>
       <div class="prize-grid">
         <div class="prize-tile"><div class="label">Registered</div><div class="value">${prize.registered}</div></div>
         <div class="prize-tile"><div class="label">Verified paid</div><div class="value">${prize.verifiedCount}</div></div>
@@ -3653,7 +3653,7 @@ async function renderAdminPaymentDashboard() {
 
     ${unpaid.length > 0 ? `
     <div class="card" style="margin-top:12px;">
-      <div class="admin-header" style="margin-top:0;">📋 Unpaid Summary (${unpaid.length})</div>
+      <div class="admin-header" style="margin-top:0;">Unpaid Summary (${unpaid.length})</div>
       ${unpaid.map(p => `
           <div class="player-row">
             <div class="pinfo">
@@ -4163,7 +4163,7 @@ async function renderAdminRecentJoinersPanel() {
   if (recent.length === 0) {
     slot.innerHTML = `
       <div class="card">
-        <div class="admin-header" style="margin-top:0;">🆕 Recent Joiners</div>
+        <div class="admin-header" style="margin-top:0;">Recent Joiners</div>
         <div class="placeholder-note" style="margin-top:0;">Nobody's joined in the last 24 hours.</div>
       </div>`;
     return;
@@ -4171,7 +4171,7 @@ async function renderAdminRecentJoinersPanel() {
 
   slot.innerHTML = `
     <div class="card">
-      <div class="admin-header" style="margin-top:0;">🆕 Recent Joiners (${recent.length})</div>
+      <div class="admin-header" style="margin-top:0;">Recent Joiners (${recent.length})</div>
       <div style="font-size:12px; color:var(--grey); margin:-4px 0 10px;">Joined in the last 24 hours — a good spot to verify them as they pay.</div>
       ${recent.map(p => `
         <div class="player-row">
@@ -4230,7 +4230,7 @@ async function renderAdminDuplicatesPanel() {
   if (duplicateClusters.length === 0) {
     slot.innerHTML = `
       <div class="card">
-        <div class="admin-header" style="margin-top:0;">🧑‍🤝‍🧑 Duplicates</div>
+        <div class="admin-header" style="margin-top:0;">Duplicates</div>
         <div class="placeholder-note" style="margin-top:0;">No duplicate names among active players right now.</div>
       </div>`;
     return;
@@ -4238,7 +4238,7 @@ async function renderAdminDuplicatesPanel() {
 
   slot.innerHTML = `
     <div class="card">
-      <div class="admin-header" style="margin-top:0;">🧑‍🤝‍🧑 Duplicates (${duplicateClusters.length})</div>
+      <div class="admin-header" style="margin-top:0;">Duplicates (${duplicateClusters.length})</div>
       <p style="font-size:12px; color:var(--grey); margin-top:-4px;">
         Pick which account to keep in each group, then merge — prediction and chat history moves onto the kept account, same as the re-link tool below.
       </p>
@@ -4296,7 +4296,7 @@ async function renderAdminRelinkPanel() {
 
   slot.innerHTML = `
     <div class="card">
-      <div class="admin-header" style="margin-top:0;">🔗 Re-link a lost session</div>
+      <div class="admin-header" style="margin-top:0;">Re-link a lost session</div>
       <p style="font-size:12px; color:var(--grey); margin-top:-4px;">
         Use this when someone loses their session, starts a fresh account, then contacts you.
         Pick their old orphaned account and their new one — prediction and chat history moves
@@ -4399,7 +4399,7 @@ async function renderSeasonSummary() {
   if (!mine || mine.scoredCount === 0) {
     slot.innerHTML = `
       <div class="card">
-        <div class="admin-header" style="margin-top:0;">📊 Your Season So Far</div>
+        <div class="admin-header" style="margin-top:0;">Your Season So Far</div>
         <div class="placeholder-note" style="margin-top:0;">Your stats appear here once the first result's in.</div>
       </div>`;
     return;
@@ -4427,7 +4427,7 @@ async function renderSeasonSummary() {
 
   slot.innerHTML = `
     <div class="card">
-      <div class="admin-header" style="margin-top:0;">📊 Your Season So Far</div>
+      <div class="admin-header" style="margin-top:0;">Your Season So Far</div>
       <div class="season-summary-grid">
         <div class="ss-tile rank"><div class="label">Current Rank</div><div class="value">${mine.rank} / ${standings.length}</div></div>
         <div class="ss-tile"><div class="label">Total Points</div><div class="value">${mine.total}</div></div>
@@ -4827,7 +4827,7 @@ async function renderAdminResultsPanel() {
 
   slot.innerHTML = `
     <div class="card" style="padding:0;">
-      <div class="admin-header" style="padding:0 14px;">⚽ Enter Results</div>
+      <div class="admin-header" style="padding:0 14px;">Enter Results</div>
       <div class="rr-filter">
         <button data-filter="needs" class="${resultsFilter === 'needs' ? 'active' : ''}">Needs a result</button>
         <button data-filter="all" class="${resultsFilter === 'all' ? 'active' : ''}">All played</button>
