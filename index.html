@@ -136,24 +136,6 @@
   }
   .icon-btn-labeled .ibl-icon{font-size:15px; line-height:1;}
   .icon-btn-labeled .ibl-label{font-size:8.5px; font-weight:600; letter-spacing:0.2px; line-height:1; color:rgba(255,255,255,0.85);}
-  .player-pill{
-    display:flex; align-items:center; gap:0;
-    background:rgba(255,255,255,0.12);
-    border-radius:999px; padding:4px;
-    font-size:14px; font-weight:600;
-    cursor:pointer; overflow:hidden;
-    max-width:36px; transition:max-width 0.25s ease, padding 0.25s ease;
-    white-space:nowrap;
-  }
-  .player-pill.expanded{max-width:200px; padding:4px 14px 4px 4px;}
-  .player-pill .avatar{
-    width:28px; height:28px; min-width:28px; border-radius:50%; background:var(--red);
-    display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700;
-  }
-  .player-pill .pill-name{
-    margin-left:8px; opacity:0; transition:opacity 0.15s ease 0.1s;
-  }
-  .player-pill.expanded .pill-name{opacity:1;}
 
   /* ---------- main / views ---------- */
   main{flex:1; padding:16px 16px calc(84px + var(--safe-bottom)); max-width:640px; width:100%; margin:0 auto;}
@@ -654,10 +636,6 @@
       <h1>POMPEY PREDICTOR</h1>
     </div>
     <div class="header-actions">
-      <div class="player-pill hidden" id="player-pill">
-        <div class="avatar" id="player-pill-avatar">?</div>
-        <span class="pill-name" id="player-pill-name"></span>
-      </div>
       <button class="icon-btn hidden" id="btn-admin-cog" title="Admin" aria-label="Admin settings">⚙️</button>
       <button class="icon-btn-labeled" id="btn-share" title="Share app">
         <span class="ibl-icon">🔗</span><span class="ibl-label">Share</span>
@@ -1296,9 +1274,6 @@ async function maybeShowPaymentNudge() {
 }
 
 function enterApp() {
-  document.getElementById("player-pill-name").textContent = currentPlayer.display_name;
-  document.getElementById("player-pill-avatar").textContent = currentPlayer.display_name.slice(0,1).toUpperCase();
-  document.getElementById("player-pill").classList.remove("hidden");
   document.getElementById("profile-name").textContent = currentPlayer.display_name;
   document.getElementById("profile-mobile").textContent = currentPlayer.phone_number || "";
   document.getElementById("btn-admin-cog").classList.toggle("hidden", !currentPlayer.is_admin);
@@ -1319,19 +1294,6 @@ function enterApp() {
 
 const SCREENS = ["loading","newplayer","app"];
 
-let pillCollapseTimer = null;
-document.getElementById("player-pill").addEventListener("click", (e) => {
-  e.stopPropagation();
-  const pill = document.getElementById("player-pill");
-  pill.classList.toggle("expanded");
-  clearTimeout(pillCollapseTimer);
-  if (pill.classList.contains("expanded")) {
-    pillCollapseTimer = setTimeout(() => pill.classList.remove("expanded"), 3000);
-  }
-});
-document.addEventListener("click", () => {
-  document.getElementById("player-pill").classList.remove("expanded");
-});
 function showScreen(name) {
   SCREENS.forEach(s => {
     const el = document.getElementById(`screen-${s}`) || (s === "app" ? document.getElementById("app") : null);
