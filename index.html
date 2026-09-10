@@ -278,12 +278,25 @@
     background:#fdecec; border:1px solid #f5b8b8; border-radius:14px; padding:12px 14px;
     margin-bottom:12px; font-size:13px; text-align:center;
   }
+  :root[data-theme="dark"] .reminder-banner{ background:#3a1f24; border-color:#5c2c33; }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]) .reminder-banner{ background:#3a1f24; border-color:#5c2c33; }
+  }
   .reminder-banner .label{font-weight:700; color:var(--red-text); font-size:12px; margin-bottom:6px;}
   .reminder-banner .item{display:flex; justify-content:center; padding:3px 0; color:var(--text);}
   .reminder-banner .item .t{color:var(--red-text); font-weight:600; font-variant-numeric:tabular-nums;}
   .dup-warning-banner{
     background:#fef6e7; border:1px solid #f0d99a; border-radius:14px; padding:12px 14px;
     margin-bottom:12px; font-size:13px; text-align:center; color:var(--text); line-height:1.5;
+  }
+  :root[data-theme="dark"] .dup-warning-banner{ background:#3a3319; border-color:#5c4f26; }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]) .dup-warning-banner{ background:#3a3319; border-color:#5c4f26; }
+  }
+  .pay-reminder-section{ background:#fff7dc; }
+  :root[data-theme="dark"] .pay-reminder-section{ background:#3a3319; }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]) .pay-reminder-section{ background:#3a3319; }
   }
   .dup-warning-banner .label{font-weight:700; color:#9c7a1f; font-size:12px; margin-bottom:4px;}
 
@@ -393,6 +406,10 @@
     padding:10px 0; border-top:1px solid var(--grey-light); font-size:13px;
   }
   .player-row.overdue{background:#fdecec; margin:0 -16px; padding:10px 16px; border-top-color:#f5b8b8;}
+  :root[data-theme="dark"] .player-row.overdue{ background:#3a1f24; border-top-color:#5c2c33; }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]) .player-row.overdue{ background:#3a1f24; border-top-color:#5c2c33; }
+  }
   .player-row .pinfo{flex:1; min-width:0;}
   .player-row .pname{font-weight:700;}
   .player-row .pmeta{color:var(--grey); font-size:11px;}
@@ -2607,7 +2624,7 @@ function maybeShowOnboarding() {
       <h4>App Failure Policy</h4>
       <p>In the unlikely event of a system failure halfway through the season, the league will be officially cancelled and 100% of joining fees will be refunded by the admin as quickly as possible via the PayPal Pool.</p>
     </div>
-    <div class="modal-section" style="background:#fff7dc; border-radius:12px; padding:12px; margin:0 -4px;">
+    <div class="modal-section pay-reminder-section" style="border-radius:12px; padding:12px; margin:0 -4px;">
       <h4>💷 Have you paid?</h4>
       <p>£10 entry confirms your place in the league. If you haven't yet, pay now so you don't forget. No PayPal account? Tap "Contribute as a Guest" once you're on the page, you don't need to sign up.</p>
       <a href="https://www.paypal.com/pool/9q61PGoEEs?sr=ancr" target="_blank" rel="noopener" class="btn-primary" style="display:block; text-align:center; text-decoration:none; line-height:44px; background:var(--navy); margin-top:8px;">Pay via PayPal Pool</a>
