@@ -36,6 +36,7 @@
     --card-bg:#ffffff;
     --text:#0b1b33;
     --page-bg:#eef1f5;
+    --link:#0a66c2;
     --safe-bottom:env(safe-area-inset-bottom, 0px);
     --safe-top:env(safe-area-inset-top, 0px);
   }
@@ -52,6 +53,7 @@
       --card-bg:#1b212c;
       --text:#e9edf3;
       --page-bg:#11151c;
+      --link:#4d94ff;
     }
   }
   /* An explicit dark override wins even when the phone itself is set to
@@ -64,6 +66,7 @@
     --card-bg:#1b212c;
     --text:#e9edf3;
     --page-bg:#11151c;
+    --link:#4d94ff;
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
   html,body{margin:0;padding:0;background:var(--page-bg);color:var(--text);
@@ -220,7 +223,7 @@
   }
   .auth-form button, .btn-primary{
     height:48px; min-height:44px; border-radius:12px; border:none;
-    background:var(--red); color:var(--white); font-weight:700; font-size:15px;
+    background:var(--navy); color:var(--white); font-weight:700; font-size:15px;
     touch-action:manipulation; font-family:'Barlow', Impact, sans-serif; text-transform:uppercase; letter-spacing:0.5px;
   }
   .auth-form button:disabled{opacity:0.6;}
@@ -449,6 +452,7 @@
   .mover-card .delta{font-size:11px; color:rgba(255,255,255,0.7);}
   .lb-summary{text-align:right; font-size:11px; color:var(--grey); margin-bottom:6px;}
   table.lb-table{width:100%; border-collapse:collapse; font-size:12.5px;}
+  .lb-name-link{color:var(--link); font-weight:600;}
   table.lb-table th{
     text-align:center; font-size:10px; color:var(--grey); text-transform:uppercase;
     padding:6px 2px; border-bottom:2px solid var(--grey-light);
@@ -520,14 +524,14 @@
   .modal-section{margin-bottom:18px;}
   .modal-section h4{font-family:'Barlow', Impact, sans-serif; font-size:16px; margin:0 0 6px; color:var(--navy-text);}
   .modal-section p{font-size:13px; line-height:1.6; margin:0;}
-  .guide-link{color:var(--navy-text); text-decoration:underline; font-weight:600; cursor:pointer;}
+  .guide-link{color:var(--link); text-decoration:underline; font-weight:600; cursor:pointer;}
 
   /* ---------- everyone's picks ---------- */
   .awards-panel{background:var(--navy); color:var(--white); border-radius:16px; padding:14px; margin-bottom:14px;}
   .awards-panel .ap-title{font-family:'Barlow', Impact, sans-serif; font-size:16px; margin-bottom:8px; text-align:center;}
   .award-item{display:flex; justify-content:space-between; font-size:12px; padding:5px 0; border-top:1px solid rgba(255,255,255,0.15);}
   .award-item .al{color:rgba(255,255,255,0.7);}
-  .award-item .av{font-weight:700; color:var(--gold); text-align:right;}
+  .award-item .av{font-weight:700; color:var(--white); text-align:right;}
   .picks-filter{margin-bottom:12px;}
   .picks-filter select{
     width:100%; height:42px; border-radius:10px; border:1px solid var(--grey-light); padding:0 12px; font-size:13px; background:var(--card-bg); color:var(--text);
@@ -702,7 +706,7 @@
             <div id="profile-name" style="font-weight:700; font-size:15px;"></div>
             <div style="font-size:12px; color:var(--grey); margin-top:2px;">
               <span id="profile-mobile"></span>
-              <span id="profile-edit-link" style="color:var(--navy-text); text-decoration:underline; cursor:pointer; margin-left:6px;">Edit</span>
+              <span id="profile-edit-link" style="color:var(--link); text-decoration:underline; cursor:pointer; margin-left:6px;">Edit</span>
             </div>
             <div id="profile-payment-status" style="font-size:12px; margin-top:4px;"></div>
             <div id="profile-mobile-edit" class="hidden" style="display:flex; gap:6px; margin-top:6px;">
@@ -3679,7 +3683,7 @@ async function renderAdminPaymentDashboard() {
         return `
         <div class="player-row ${overdue ? 'overdue' : ''}" data-search-name="${p.display_name.toLowerCase()}${!p.is_active ? ' inactive' : ''}${p.is_participant === false ? ' hidden' : ''}">
           <div class="pinfo">
-            <div class="pname" data-admin-player-detail="${p.id}" style="cursor:pointer; text-decoration:underline; text-decoration-style:dotted;">${p.display_name}${overdue ? " ⚠️" : ""}${p.pool_exempt ? " <span style=\"color:var(--grey); font-weight:400;\">(exempt)</span>" : ""}${!p.is_active ? " <span style=\"color:var(--gold); font-weight:700;\">(inactive)</span>" : ""}${p.is_participant === false ? " <span style=\"color:var(--gold); font-weight:700;\">(hidden)</span>" : ""}</div>
+            <div class="pname" data-admin-player-detail="${p.id}" style="cursor:pointer; color:var(--link); text-decoration:underline; text-decoration-style:dotted;">${p.display_name}${overdue ? " ⚠️" : ""}${p.pool_exempt ? " <span style=\"color:var(--grey); font-weight:400;\">(exempt)</span>" : ""}${!p.is_active ? " <span style=\"color:var(--gold); font-weight:700;\">(inactive)</span>" : ""}${p.is_participant === false ? " <span style=\"color:var(--gold); font-weight:700;\">(hidden)</span>" : ""}</div>
             <div class="pmeta">${p.phone_number || "no mobile on file"} · joined ${new Date(p.created_at).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}</div>
             <div class="pmeta">${(() => {
               const last = lastPredictionByPlayer.get(p.id);
@@ -4481,7 +4485,7 @@ async function renderLeaderboard() {
     // A table stuck silently on "Loading…" forever is worse than an honest
     // failure message — this way it's obvious something's wrong and there's
     // an actual way to try again, not just a vanished toast to miss.
-    tableEl.innerHTML = `<tr><td style="padding:20px; text-align:center; color:var(--grey);">Couldn't load the league table — check your connection and <span id="lb-retry-link" style="color:var(--navy-text); text-decoration:underline; cursor:pointer;">tap to retry</span>.</td></tr>`;
+    tableEl.innerHTML = `<tr><td style="padding:20px; text-align:center; color:var(--grey);">Couldn't load the league table — check your connection and <span id="lb-retry-link" style="color:var(--link); text-decoration:underline; cursor:pointer;">tap to retry</span>.</td></tr>`;
     document.getElementById("lb-retry-link")?.addEventListener("click", renderLeaderboard);
     return;
   }
@@ -4535,7 +4539,7 @@ function renderLbTable(rows, prizeWinners = 0) {
     ${rows.sort((a, b) => a.rank - b.rank).map(r => `
       <tr data-player-row="${r.player.id}" data-player-name="${r.player.display_name}" data-player-paid="${!!r.player.payment_verified}" style="cursor:pointer;" class="${r.rank <= prizeWinners ? "lb-inmoney" : ""} ${r.rank === prizeWinners ? "lb-inmoney-cutoff" : ""}">
         <td>${r.rank}${r.movement > 0 ? `<div class="lb-move up">▲${r.movement}</div>` : r.movement < 0 ? `<div class="lb-move down">▼${Math.abs(r.movement)}</div>` : ""}</td>
-        <td>${r.player.display_name}</td>
+        <td class="lb-name-link">${r.player.display_name}</td>
         <td>${r.exact}</td>
         <td>${r.correct}</td>
         <td>${r.scorer}</td>
