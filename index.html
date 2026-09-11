@@ -1949,7 +1949,10 @@ function renderPicksGrid(players, predictions, resultByFixture, fixtures) {
     // Grouped by gameweek behind the scenes, same as before, but the
     // gameweek number itself isn't shown — just the fixture(s) it
     // contains, since a Championship gameweek is almost always one match.
-    const label = fxs.map(f => `${f.home_team} v ${f.away_team}`).join(", ");
+    const label = fxs.map(f => {
+      const r = resultByFixture.get(f.id);
+      return r ? `${f.home_team} v ${f.away_team} (${r.home_score}-${r.away_score})` : `${f.home_team} v ${f.away_team}`;
+    }).join(", ");
     const groupFixtureIds = new Set(fxs.map(f => f.id));
     const predCount = predictions.filter(p => groupFixtureIds.has(p.fixture_id) && p.home_score != null).length;
     return `
