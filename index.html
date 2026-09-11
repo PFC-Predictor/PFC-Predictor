@@ -320,7 +320,7 @@
   .verdict-tile .pct{font-family:'Barlow', Impact, sans-serif; font-size:18px; display:block;}
   .verdict-sub{font-size:11px; color:var(--grey); margin-top:6px;}
 
-  /* ---------- month nav ---------- */
+  /* ---------- gameweek nav ---------- */
   .gw-nav{
     display:flex; align-items:center; justify-content:space-between;
     margin-bottom:12px;
@@ -1940,17 +1940,20 @@ function badgeFor(pred, result) {
 
 function renderPicksGrid(players, predictions, resultByFixture, fixtures) {
   const content = document.getElementById("picks-content");
-  const groupKey = f => new Date(f.kickoff).toLocaleString("en-GB", { month: "long", year: "numeric" });
-  const byMonth = new Map();
-  fixtures.forEach(f => { const key = groupKey(f); if (!byMonth.has(key)) byMonth.set(key, []); byMonth.get(key).push(f); });
+  const groupKey = f => f.gameweek != null ? `GW${f.gameweek}` : (f.competition || "Cup Games");
+  const byGw = new Map();
+  fixtures.forEach(f => { const key = groupKey(f); if (!byGw.has(key)) byGw.set(key, []); byGw.get(key).push(f); });
 
   const now = Date.now();
-  content.innerHTML = [...byMonth.entries()].map(([label, fxs]) => {
-    const allDone = fxs.every(f => resultByFixture.has(f.id));
+  content.innerHTML = [...byGw.entries()].map(([key, fxs]) => {
+    // Grouped by gameweek behind the scenes, same as before, but the
+    // gameweek number itself isn't shown — just the fixture(s) it
+    // contains, since a Championship gameweek is almost always one match.
+    const label = fxs.map(f => `${f.home_team} v ${f.away_team}`).join(", ");
     const groupFixtureIds = new Set(fxs.map(f => f.id));
     const predCount = predictions.filter(p => groupFixtureIds.has(p.fixture_id) && p.home_score != null).length;
     return `
-    <div class="gw-group ${allDone ? 'collapsed' : ''}">
+    <div class="gw-group collapsed">
       <div class="gw-group-header"><span>${label} <span style="font-weight:400; color:var(--grey); font-size:11px;">(${predCount})</span></span><span class="chev">▾</span></div>
       <div class="gw-group-body">
         ${fxs.map(f => {
@@ -2086,7 +2089,7 @@ async function renderAdminEditFixturesPanel() {
               <select class="ef-competition" style="height:38px; border-radius:8px; border:1px solid var(--grey-light);">
                 ${COMPETITIONS.map(c => `<option value="${c}" ${f.competition === c ? "selected" : ""}>${c}</option>`).join("")}
               </select>
-              <input type="number" class="ef-gw" value="${f.gameweek ?? ""}" placeholder="GW (optional)" style="width:110px; height:38px; border-radius:8px; border:1px solid var(--grey-light); padding:0 8px; font-size:13px;">
+              <input type="number" class="ef-gw" value="${f.gameweek ?? ""}" placeholder="GW (league only)" style="width:110px; height:38px; border-radius:8px; border:1px solid var(--grey-light); padding:0 8px; font-size:13px;">
             </div>
             <div class="rr-inputs" style="margin-bottom:6px;">
               <input type="datetime-local" class="ef-kickoff" value="${kickoffLocal}" style="flex:1; height:38px; border-radius:8px; border:1px solid var(--grey-light); padding:0 8px; font-size:13px;">
@@ -2173,7 +2176,7 @@ async function renderAdminAddFixturePanel() {
           <option value="Play-off">Play-off</option>
           <option value="Friendly">Friendly</option>
         </select>
-        <input type="number" id="new-fixture-gw" placeholder="Gameweek (optional)" style="height:40px; border-radius:8px; border:1px solid var(--grey-light); padding:0 10px;">
+        <input type="number" id="new-fixture-gw" placeholder="Gameweek (league fixtures only)" style="height:40px; border-radius:8px; border:1px solid var(--grey-light); padding:0 10px;">
         <input type="text" id="new-fixture-home" placeholder="Home team" style="height:40px; border-radius:8px; border:1px solid var(--grey-light); padding:0 10px;">
         <input type="text" id="new-fixture-away" placeholder="Away team" style="height:40px; border-radius:8px; border:1px solid var(--grey-light); padding:0 10px;">
         <input type="datetime-local" id="new-fixture-kickoff" style="height:40px; border-radius:8px; border:1px solid var(--grey-light); padding:0 10px;">
@@ -2199,6 +2202,7 @@ async function renderAdminAddFixturePanel() {
     const status = document.getElementById("add-fixture-status");
 
     if (!home || !away || !kickoffLocal) { status.textContent = "Home team, away team and kickoff are required."; return; }
+    if (competition === "Championship" && !gwVal) { status.textContent = "League fixtures need a gameweek number."; return; }
 
     // datetime-local has no timezone info — treat it as the browser's local time,
     // which for a UK-based admin during BST or GMT is correct either way, since
