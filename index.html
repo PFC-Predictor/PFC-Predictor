@@ -2859,7 +2859,7 @@ async function renderHeroCard(next) {
   const slot = document.getElementById("hero-card-slot");
   if (!next) { slot.innerHTML = ""; return; }
   slot.innerHTML = `
-    <div class="hero-card">
+    <div class="hero-card" id="hero-card" style="cursor:pointer;">
       <div class="eyebrow">Next Up</div>
       <div class="match display">${next.home_team.toUpperCase()} v ${next.away_team.toUpperCase()}</div>
       <div class="kickoff">${fmtKickoff(next.kickoff)}</div>
@@ -2868,6 +2868,20 @@ async function renderHeroCard(next) {
   const el = document.getElementById("hero-countdown");
   const timer = setInterval(() => { if (el) el.textContent = countdownText(next.kickoff); }, 30000);
   countdownTimers.push(timer);
+
+  document.getElementById("hero-card").addEventListener("click", async () => {
+    const targetMonth = monthKeyFor(next.kickoff);
+    if (targetMonth !== currentMonthKey && availableMonths.includes(targetMonth)) {
+      currentMonthKey = targetMonth;
+      await renderMonth(currentMonthKey);
+    }
+    const card = document.getElementById(`fixture-card-${next.id}`);
+    if (!card) return;
+    card.scrollIntoView({ behavior: "smooth", block: "center" });
+    card.style.transition = "box-shadow 0.3s";
+    card.style.boxShadow = "0 0 0 3px var(--gold)";
+    setTimeout(() => { card.style.boxShadow = ""; }, 1500);
+  });
 }
 
 function renderStatsPills() {
@@ -2915,7 +2929,7 @@ async function renderReminderBanner(fixtures, myPredictions) {
   const now = Date.now();
   const soon = fixtures.filter(f => {
     const kickoff = new Date(f.kickoff).getTime();
-    return !predictedIds.has(f.id) && kickoff > now && kickoff - now <= 48 * 3600 * 1000;
+    return !predictedIds.has(f.id) && kickoff > now && kickoff - now <= 24 * 3600 * 1000;
   });
   if (soon.length === 0) { slot.innerHTML = ""; return; }
   slot.innerHTML = `
@@ -3024,6 +3038,7 @@ function sortSquadByPosition(squad) {
 function buildMatchCard(fixture, squad, existingPred, result) {
   const wrap = document.createElement("div");
   wrap.className = "card match-card";
+  wrap.id = `fixture-card-${fixture.id}`;
   const badge = `<span class="mc-badge active">${fmtKickoff(fixture.kickoff)}</span>`;
 
   const isCup = fixture.competition && fixture.competition !== "Championship";
@@ -4540,8 +4555,8 @@ async function renderLeaderboard() {
 
     if (biggestUp || biggestDown) {
       moverHtml = `<div class="mover-grid">
-        ${biggestUp ? `<div class="mover-card up"><div class="name">${biggestUp.player.display_name}</div><div class="delta">Biggest mover, up ${biggestUp.movement}</div></div>` : "<div></div>"}
-        ${biggestDown ? `<div class="mover-card down"><div class="name">${biggestDown.player.display_name}</div><div class="delta">Biggest faller, down ${Math.abs(biggestDown.movement)}</div></div>` : "<div></div>"}
+        ${biggestUp ? `<div class="mover-card up" data-player-row="${biggestUp.player.id}" data-player-name="${biggestUp.player.display_name}" data-player-paid="${!!biggestUp.player.payment_verified}" style="cursor:pointer;"><div class="name">${biggestUp.player.display_name}</div><div class="delta">Biggest mover, up ${biggestUp.movement}</div></div>` : "<div></div>"}
+        ${biggestDown ? `<div class="mover-card down" data-player-row="${biggestDown.player.id}" data-player-name="${biggestDown.player.display_name}" data-player-paid="${!!biggestDown.player.payment_verified}" style="cursor:pointer;"><div class="name">${biggestDown.player.display_name}</div><div class="delta">Biggest faller, down ${Math.abs(biggestDown.movement)}</div></div>` : "<div></div>"}
       </div>`;
     }
     renderLbTable(withMovement, prizeWinners);
@@ -4549,6 +4564,9 @@ async function renderLeaderboard() {
     renderLbTable(current.map(r => ({ ...r, movement: 0 })), prizeWinners);
   }
   document.getElementById("mover-slot").innerHTML = moverHtml;
+  document.querySelectorAll("#mover-slot [data-player-row]").forEach(card => {
+    card.addEventListener("click", () => openPlayerCard(card.dataset.playerRow, card.dataset.playerName, card.dataset.playerPaid === "true"));
+  });
 
   renderSeasonRecords(players, allPredictions, allResults, resultsByFixture, fixtureById);
 }
