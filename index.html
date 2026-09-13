@@ -2686,11 +2686,13 @@ function calcPoints(prediction, result) {
     breakdown.scorer = true;
     breakdown.total += POINTS.SCORER;
   }
-  // A genuine 0-0, correctly called, earns the scorer bonus too — there's no
-  // goalscorer to name, so correctly predicting the nil-nil itself is treated
-  // as the equivalent of naming one. Deliberate rule, decided mid-season, not
-  // a gap being patched — see conversation history for the reasoning.
-  else if (isExact && result.home_score === 0 && result.away_score === 0) {
+  // Portsmouth didn't score at all — admin leaves result.first_scorer blank
+  // whenever that's true, since there's nothing to enter. A player who also
+  // correctly picked "No Pompey goalscorer" gets the same bonus a correct
+  // named scorer would, independent of the rest of their scoreline, exactly
+  // like the named-scorer bonus above already is. Deliberate rule, decided
+  // mid-season — see conversation history for the reasoning.
+  else if (!prediction.first_scorer && !result.first_scorer) {
     breakdown.scorer = true;
     breakdown.total += POINTS.SCORER;
   }
@@ -2876,7 +2878,7 @@ function renderStatsPills() {
       <div class="stats-pill"><div class="sp-count">${POINTS.CORRECT}</div><div class="sp-label">Correct result</div></div>
       <div class="stats-pill"><div class="sp-count">${POINTS.SCORER}</div><div class="sp-label">Scorer picked</div></div>
     </div>
-    <div style="text-align:center; font-size:10.5px; color:var(--grey); margin-top:-6px; margin-bottom:12px;">Max 5 per match — exact and correct don't stack. A correctly called 0-0 also earns the scorer bonus, since there's no goalscorer to name</div>`;
+    <div style="text-align:center; font-size:10.5px; color:var(--grey); margin-top:-6px; margin-bottom:12px;">Max 5 per match — exact and correct don't stack. If Pompey don't score, correctly picking "No Pompey goalscorer" earns the scorer bonus too</div>`;
 }
 
 const DUPLICATE_EXPLAINER_HTML = `You’ve opened the app with a different link, so a duplicate account has been created - easy to do! Don’t worry, your points and predictions are completely safe. Ant will merge the accounts next time he logs in. If you can’t wait, you can still make predictions on this account. They’ll be moved across when the accounts are merged.
