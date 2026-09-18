@@ -4368,6 +4368,22 @@ function computeStandingsFor(players, predictions, resultsByFixture) {
   return [...byPlayer.values()];
 }
 
+// Separate from computeStandingsFor deliberately: participation is measured
+// against kickoff time, not against whether a result has been entered yet.
+// A player who predicted a fixture that's kicked off but not yet scored has
+// still "made" that prediction — counting it only once scored would make
+// someone look like they'd missed a fixture during the admin's lag in
+// entering the result, which isn't true.
+function computeParticipation(predictions, fixtures) {
+  const now = Date.now();
+  const soFarIds = new Set(fixtures.filter(f => new Date(f.kickoff).getTime() <= now).map(f => f.id));
+  const madeByPlayer = new Map();
+  predictions.forEach(p => {
+    if (soFarIds.has(p.fixture_id)) madeByPlayer.set(p.player_id, (madeByPlayer.get(p.player_id) || 0) + 1);
+  });
+  return { fixturesSoFar: soFarIds.size, madeByPlayer };
+}
+
 function denseRank(standings) {
   // kept the function name to avoid touching every call site, but this is no
   // longer a dense/shared ranking — positions split fully based on the full
@@ -4532,9 +4548,11 @@ async function renderLeaderboard() {
   const fixtureById = new Map(allFixtures.map(f => [f.id, f]));
   const resultsByFixture = new Map(allResults.map(r => [r.fixture_id, r]));
 
-  const current = denseRank(computeStandingsFor(players, allPredictions, resultsByFixture));
+  const { fixturesSoFar, madeByPlayer } = computeParticipation(allPredictions, allFixtures);
+  const current = denseRank(computeStandingsFor(players, allPredictions, resultsByFixture))
+    .map(row => ({ ...row, predictionsMade: madeByPlayer.get(row.player.id) || 0 }));
 
-  document.getElementById("lb-player-count").textContent = `${players.length} player${players.length === 1 ? "" : "s"}`;
+  document.getElementById("lb-player-count").textContent = `${players.length} player${players.length === 1 ? "" : "s"} · ${fixturesSoFar} fixture${fixturesSoFar === 1 ? "" : "s"} so far`;
 
   // ---------- movement, based on the most recently entered result ----------
   let moverHtml = "";
@@ -4559,9 +4577,9 @@ async function renderLeaderboard() {
         ${biggestDown ? `<div class="mover-card down" data-player-row="${biggestDown.player.id}" data-player-name="${biggestDown.player.display_name}" data-player-paid="${!!biggestDown.player.payment_verified}" style="cursor:pointer;"><div class="name">${biggestDown.player.display_name}</div><div class="delta">Biggest faller, down ${Math.abs(biggestDown.movement)}</div></div>` : "<div></div>"}
       </div>`;
     }
-    renderLbTable(withMovement, prizeWinners);
+    renderLbTable(withMovement, prizeWinners, fixturesSoFar);
   } else {
-    renderLbTable(current.map(r => ({ ...r, movement: 0 })), prizeWinners);
+    renderLbTable(current.map(r => ({ ...r, movement: 0 })), prizeWinners, fixturesSoFar);
   }
   document.getElementById("mover-slot").innerHTML = moverHtml;
   document.querySelectorAll("#mover-slot [data-player-row]").forEach(card => {
@@ -4571,16 +4589,17 @@ async function renderLeaderboard() {
   renderSeasonRecords(players, allPredictions, allResults, resultsByFixture, fixtureById);
 }
 
-function renderLbTable(rows, prizeWinners = 0) {
+function renderLbTable(rows, prizeWinners = 0, fixturesSoFar = 0) {
   const tableEl = document.getElementById("lb-table");
   tableEl.innerHTML = `
     <tr>
-      <th>Pos</th><th>Player</th><th>Exact</th><th>Correct</th><th>Scorer</th><th>Pts</th>
+      <th>Pos</th><th>Player</th><th title="Predictions made, of ${fixturesSoFar} fixtures so far">Made</th><th>Exact</th><th>Correct</th><th>Scorer</th><th>Pts</th>
     </tr>
     ${rows.sort((a, b) => a.rank - b.rank).map(r => `
       <tr data-player-row="${r.player.id}" data-player-name="${r.player.display_name}" data-player-paid="${!!r.player.payment_verified}" style="cursor:pointer;" class="${r.rank <= prizeWinners ? "lb-inmoney" : ""} ${r.rank === prizeWinners ? "lb-inmoney-cutoff" : ""}">
         <td>${r.rank}${r.movement > 0 ? `<div class="lb-move up">▲${r.movement}</div>` : r.movement < 0 ? `<div class="lb-move down">▼${Math.abs(r.movement)}</div>` : ""}</td>
         <td class="lb-name-link">${r.player.display_name}</td>
+        <td>${r.predictionsMade}</td>
         <td>${r.exact}</td>
         <td>${r.correct}</td>
         <td>${r.scorer}</td>
@@ -4615,6 +4634,9 @@ async function openPlayerCard(playerId, playerName, isPaid) {
   const scored = mine.filter(r => r.result);
   const totalPoints = scored.reduce((sum, r) => sum + calcPoints(r.pred, r.result).total, 0);
   const exactCount = scored.filter(r => calcPoints(r.pred, r.result).exact).length;
+  // fixturesSoFar mirrors the same kickoff-based cutoff mine.length already
+  // used above, so the two numbers are always comparing like with like.
+  const fixturesSoFarCount = fixtures.filter(f => new Date(f.kickoff).getTime() <= now).length;
 
   if (mine.length === 0) {
     body.innerHTML = `<div class="placeholder-note">No kicked-off predictions to show yet.</div>`;
@@ -4625,6 +4647,7 @@ async function openPlayerCard(playerId, playerName, isPaid) {
     <div class="card" style="margin-bottom:10px; text-align:center;">
       <div style="font-family:'Barlow', Impact, sans-serif; font-size:26px; color:var(--navy-text);">${totalPoints} pts</div>
       <div style="font-size:12px; color:var(--grey);">${scored.length} scored predictions · ${exactCount} exact</div>
+      <div style="font-size:12px; color:var(--grey); margin-top:2px;">${mine.length} predictions made from ${fixturesSoFarCount}</div>
     </div>
     ${mine.map(r => {
       const badge = r.result ? badgeFor(r.pred, r.result) : `<span class="badge-pill badge-grey">Pending</span>`;
