@@ -1575,7 +1575,14 @@ async function refreshPayEntryCard() {
     : `<span style="color:var(--red-text);">Not yet verified as paid</span>`;
   // Fresh-fetched above rather than trusted from login time, since hiding
   // is an admin action that can happen at any point in a player's session.
-  document.getElementById("profile-hidden-notice").classList.toggle("hidden", currentPlayer.is_participant !== false);
+  // A non-playing admin (is_admin AND pool_exempt — a backup admin who
+  // still pays and plays, like Ava, is NOT this) is excluded from the
+  // league everywhere regardless of this flag (see the
+  // or=(is_admin.eq.false,pool_exempt.eq.false) filters added alongside
+  // is_participant), so the "make a prediction and you'll be added back"
+  // notice would be meaningless noise for that account — never shown to it.
+  const isNonPlayingAdmin = currentPlayer.is_admin && currentPlayer.pool_exempt;
+  document.getElementById("profile-hidden-notice").classList.toggle("hidden", isNonPlayingAdmin || currentPlayer.is_participant !== false);
 }
 
 // iOS only ever allows push notifications for a PWA actually launched from
@@ -1927,7 +1934,7 @@ async function renderPicksOverlay() {
   fetchNextFixture().then(renderVerdictPanel);
 
   const [players, predictions, results, fixtures] = await Promise.all([
-    sbFetchAll("players?is_active=eq.true&is_participant=eq.true&select=*&order=display_name.asc"),
+    sbFetchAll("players?is_active=eq.true&is_participant=eq.true&or=(is_admin.eq.false,pool_exempt.eq.false)&select=*&order=display_name.asc"),
     sbFetchAll("predictions?select=*"),
     sbFetchAll("results?select=*"),
     sbFetchAll("fixtures?select=*&order=kickoff.asc")
@@ -2472,7 +2479,7 @@ async function renderAdminMissingPanel() {
   const weekAhead = now + 7 * 24 * 3600 * 1000;
   const [fixtures, players, pushSubs] = await Promise.all([
     sbFetchAll("fixtures?select=*"),
-    sbFetchAll("players?is_active=eq.true&is_participant=eq.true&select=*&order=display_name.asc"),
+    sbFetchAll("players?is_active=eq.true&is_participant=eq.true&or=(is_admin.eq.false,pool_exempt.eq.false)&select=*&order=display_name.asc"),
     sbFetchAll("push_subscriptions?select=player_id")
   ]);
   const notifyingPlayerIds = new Set(pushSubs.map(s => s.player_id));
@@ -2556,13 +2563,17 @@ function streakNudgeLink(phoneNumber, displayName, streak) {
    properly, long enough that one or two forgotten weeks don't flag
    everybody. The Hide button here is the same is_participant toggle used
    everywhere else, just reachable without hunting through the full player
-   list first. */
+   list first. Non-playing admin accounts (is_admin AND pool_exempt) are
+   excluded outright rather than relying on someone remembering to hide
+   them manually, since they never predict and would otherwise sit
+   permanently on this list. A playing admin who pays normally (pool_exempt
+   is false) is a real entrant and stays fully visible everywhere. */
 async function renderAdminInactivityPanel() {
   const slot = document.getElementById("admin-inactivity-slot");
   slot.innerHTML = `<div class="placeholder-note">Loading…</div>`;
   const now = Date.now();
   const [players, fixtures, allPredictions] = await Promise.all([
-    sbFetchAll("players?is_active=eq.true&is_participant=eq.true&select=*&order=display_name.asc"),
+    sbFetchAll("players?is_active=eq.true&is_participant=eq.true&or=(is_admin.eq.false,pool_exempt.eq.false)&select=*&order=display_name.asc"),
     sbFetchAll("fixtures?select=id,kickoff"),
     sbFetchAll("predictions?select=player_id,fixture_id")
   ]);
@@ -2646,7 +2657,7 @@ async function renderAdminReadyToUnhidePanel() {
   if (!slot) return;
   slot.innerHTML = `<div class="placeholder-note">Loading…</div>`;
 
-  const hidden = await sbFetchAll("players?is_active=eq.true&is_participant=eq.false&select=*");
+  const hidden = await sbFetchAll("players?is_active=eq.true&is_participant=eq.false&or=(is_admin.eq.false,pool_exempt.eq.false)&select=*");
   const withHiddenAt = hidden.filter(p => p.hidden_at);
 
   if (withHiddenAt.length === 0) {
@@ -3756,8 +3767,13 @@ function computePrizePool(players) {
   const verifiedCount = countingPlayers.filter(p => p.payment_verified).length;
   const { totalCollected, adminFee, pool, amounts } = computePrizeAmountsForCount(verifiedCount);
 
+  // pool_exempt already means "doesn't count towards the pool" everywhere
+  // else in this function (unpaid list, entries, verifiedCount) — an
+  // admin-only account (like Ant's own) is marked pool_exempt for exactly
+  // this reason, so Registered should exclude it too rather than counting
+  // admin accounts as if they were registered players.
   return {
-    registered: players.length,
+    registered: players.filter(p => !p.pool_exempt).length,
     entries: countingPlayers.length,
     verifiedCount,
     totalCollected,
@@ -4654,7 +4670,7 @@ async function renderSeasonSummary() {
   slot.innerHTML = `<div class="placeholder-note">Loading…</div>`;
 
   const [players, allPredictions, allResults, allFixtures] = await Promise.all([
-    sbFetchAll("players?is_active=eq.true&is_participant=eq.true&select=*"),
+    sbFetchAll("players?is_active=eq.true&is_participant=eq.true&or=(is_admin.eq.false,pool_exempt.eq.false)&select=*"),
     sbFetchAll("predictions?select=*"),
     sbFetchAll("results?select=*"),
     sbFetchAll("fixtures?select=*")
@@ -4774,7 +4790,7 @@ async function renderLeaderboard() {
   let players, allPredictions, allResults, allFixtures, prizePlayers;
   try {
     [players, allPredictions, allResults, allFixtures, prizePlayers] = await Promise.all([
-      sbFetchAll("players?is_active=eq.true&is_participant=eq.true&select=*&order=display_name.asc"),
+      sbFetchAll("players?is_active=eq.true&is_participant=eq.true&or=(is_admin.eq.false,pool_exempt.eq.false)&select=*&order=display_name.asc"),
       sbFetchAll("predictions?select=*"),
       sbFetchAll("results?select=*&order=created_at.asc"),
       sbFetchAll("fixtures?select=*"),
@@ -4920,7 +4936,7 @@ async function openAdminPlayerDetail(playerId, playerRow) {
 
   try {
     const [allPlayers, myPredictions, allPredictions, allResults, allFixtures, pushSubs] = await Promise.all([
-      sbFetchAll("players?is_active=eq.true&is_participant=eq.true&select=*"),
+      sbFetchAll("players?is_active=eq.true&is_participant=eq.true&or=(is_admin.eq.false,pool_exempt.eq.false)&select=*"),
       sbFetchAll(`predictions?player_id=eq.${playerId}&select=*&order=created_at.desc`),
       sbFetchAll("predictions?select=*"),
       sbFetchAll("results?select=*"),
