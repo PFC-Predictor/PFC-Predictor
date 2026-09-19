@@ -711,36 +711,12 @@
     <section id="view-profile" class="view">
       <div id="season-summary-slot"></div>
       <div class="card">
-        <div style="display:flex; justify-content:space-between; align-items:center; gap:10px;">
-          <div style="min-width:0;">
-            <div id="profile-name" style="font-weight:700; font-size:15px;"></div>
-            <div style="font-size:12px; color:var(--grey); margin-top:2px;">
-              <span id="profile-mobile"></span>
-              <span id="profile-edit-link" style="color:var(--link); text-decoration:underline; cursor:pointer; margin-left:6px;">Edit</span>
-            </div>
-            <div id="profile-payment-status" style="font-size:12px; margin-top:4px;"></div>
-            <div id="profile-mobile-edit" class="hidden" style="display:flex; gap:6px; margin-top:6px;">
-              <input type="tel" id="profile-mobile-input" style="flex:1; height:36px; border-radius:8px; border:1px solid var(--grey-light); padding:0 8px; font-size:13px;">
-              <button id="btn-save-mobile" style="height:36px; border-radius:8px; border:none; background:var(--navy); color:var(--white); font-size:12px; font-weight:700; padding:0 10px;">Save</button>
-            </div>
-            <div id="profile-mobile-status" style="font-size:11px; color:var(--grey); margin-top:4px;"></div>
-          </div>
-          <div style="display:flex; flex-direction:column; gap:6px;">
-            <button class="btn-primary" id="btn-sign-out" style="background:var(--navy); font-size:12px; padding:0 12px; height:36px; width:auto; white-space:nowrap;">Sign out</button>
-          </div>
-        </div>
+        <div id="profile-name" style="font-weight:700; font-size:15px;"></div>
+        <div id="profile-payment-status" style="font-size:12px; margin-top:4px;"></div>
       </div>
       <div class="card" id="push-notification-card">
         <div class="admin-header" style="margin-top:0;">🔔 Get Notified</div>
         <div id="push-notification-body"></div>
-      </div>
-      <div class="card">
-        <div class="admin-header" style="margin-top:0;">Theme</div>
-        <div style="display:flex; gap:6px;">
-          <button type="button" class="theme-option" data-theme-choice="light">Light Mode</button>
-          <button type="button" class="theme-option" data-theme-choice="dark">Dark Mode</button>
-          <button type="button" class="theme-option" data-theme-choice="auto">Use System Settings</button>
-        </div>
       </div>
       <div class="card" id="pay-entry-card" style="text-align:center;">
         <h3 style="margin-top:0;">£10 entry</h3>
@@ -749,7 +725,14 @@
         <p style="font-size:11px; color:var(--grey); margin-top:10px; margin-bottom:0;">This button opens the pool — you'll still need to tap Contribute inside PayPal itself to actually send your £10.</p>
         <p style="font-size:11px; color:var(--grey); margin-top:6px; margin-bottom:0;">No PayPal account? Tap "Contribute as a Guest" once you're on the page — you don't need to sign up.</p>
       </div>
-      <div class="card collapsible" style="padding:0;">
+      <div class="card collapsible collapsed" style="padding:0;">
+        <div class="collapsible-header" id="past-updates-toggle">
+          <span>📢 Past Updates</span>
+          <span class="chev">▾</span>
+        </div>
+        <div class="collapsible-body" style="padding:0 14px 14px;" id="past-updates-body"></div>
+      </div>
+      <div class="card collapsible collapsed" style="padding:0;">
         <div class="collapsible-header" id="profile-instructions-toggle">
           <span>📖 Instructions</span>
           <span class="chev">▾</span>
@@ -765,7 +748,7 @@
             </video>
             <p>🔄 Something looking off? Close the app fully and reopen it, that usually sorts it</p>
             <p style="margin-top:6px;">🔔 Once you've added it to your Home Screen, head to Profile and turn on notifications, you'll get a nudge if you're about to miss a prediction, and a heads up once results are in</p>
-            <p style="margin-top:6px;">🎨 Prefer a dark version of the app? Head to Profile and pick Dark Mode under Theme, or leave it on Use System Settings and it'll follow whatever your phone's already set to</p>
+            <p style="margin-top:6px;">🎨 Prefer a dark version of the app? Head to Profile, open Settings, and pick Dark Mode under Theme, or leave it on Use System Settings and it'll follow whatever your phone's already set to</p>
             <p style="margin-top:6px;">🚫 Says notifications are blocked, even though your phone settings say they're allowed? On Android, open Chrome itself (not the app), go to the site, tap the small icon next to the address bar, then Permissions, and switch Notifications to Allow there</p>
           </div>
           <div class="modal-section">
@@ -810,7 +793,7 @@
             </video>
             <p style="margin-bottom:6px;"><strong>Prediction Split</strong> — inside Picks, shows how everyone's split on the next fixture</p>
             <p style="margin-bottom:6px;"><strong>League Awards</strong> — also inside Picks: Most Exact Scores, Most Correct Results (includes exact scores, since those are correct too), Most Correct First Goalscorers, Best Called Match, Most Predicted Scorer, and the League Average points per game</p>
-            <p style="margin-bottom:6px;">📢 <strong>Updates</strong> — anything new pops up automatically when you open the app; past ones and a way to suggest a feature live under Past Updates, just below Instructions here in Profile</p>
+            <p style="margin-bottom:6px;">📢 <strong>Updates</strong> — anything new pops up automatically when you open the app; past ones and a way to suggest a feature live under Past Updates here in Profile</p>
             <p style="margin-bottom:6px;">🔗 <strong>Share</strong> — up top on League, get a QR code and link to invite someone</p>
             <p style="margin-bottom:6px;">🔑 Forgotten your PIN? Just message Ant, he can sort you a new one</p>
             <p style="margin-bottom:6px;">📲 Regularly switch between two devices? Sign out of one before logging into the other, otherwise whichever you used most recently becomes the active one and predictions made on the other stop counting</p>
@@ -823,11 +806,46 @@
         </div>
       </div>
       <div class="card collapsible collapsed" style="padding:0;">
-        <div class="collapsible-header" id="past-updates-toggle">
-          <span>📢 Past Updates</span>
+        <div class="collapsible-header" id="settings-toggle">
+          <span>⚙️ Settings</span>
           <span class="chev">▾</span>
         </div>
-        <div class="collapsible-body" style="padding:0 14px 14px;" id="past-updates-body"></div>
+        <div class="collapsible-body" style="padding:0 14px 14px;">
+          <div class="modal-section">
+            <h4>Theme</h4>
+            <div style="display:flex; gap:6px;">
+              <button type="button" class="theme-option" data-theme-choice="light">Light Mode</button>
+              <button type="button" class="theme-option" data-theme-choice="dark">Dark Mode</button>
+              <button type="button" class="theme-option" data-theme-choice="auto">Use System Settings</button>
+            </div>
+          </div>
+          <div class="modal-section">
+            <h4>Mobile number</h4>
+            <div style="font-size:12px; color:var(--grey);">
+              <span id="profile-mobile"></span>
+              <span id="profile-edit-link" style="color:var(--link); text-decoration:underline; cursor:pointer; margin-left:6px;">Edit</span>
+            </div>
+            <div id="profile-mobile-edit" class="hidden" style="display:flex; gap:6px; margin-top:6px;">
+              <input type="tel" id="profile-mobile-input" style="flex:1; height:36px; border-radius:8px; border:1px solid var(--grey-light); padding:0 8px; font-size:13px;">
+              <button id="btn-save-mobile" style="height:36px; border-radius:8px; border:none; background:var(--navy); color:var(--white); font-size:12px; font-weight:700; padding:0 10px;">Save</button>
+            </div>
+            <div id="profile-mobile-status" style="font-size:11px; color:var(--grey); margin-top:4px;"></div>
+          </div>
+          <div class="modal-section">
+            <h4>Name</h4>
+            <!-- Deliberately not a free-text edit — claim_account matches
+                 on exact display_name, and every "log in on a new device"
+                 flow in this app depends on that string never silently
+                 drifting from what a player originally signed up with.
+                 Routed to Ant instead, who has the relink/merge tooling
+                 built specifically for correcting a name safely. -->
+            <p style="font-size:12px; color:var(--grey); margin-bottom:8px;">Playing as <strong id="settings-current-name"></strong>. Names aren't self-editable here, your exact signup name is what finds your account again on a new device, so a typo needs fixing by Ant rather than by you.</p>
+            <a href="#" id="settings-request-name-link" target="_blank" rel="noopener" class="btn-primary" style="display:none; text-decoration:none; line-height:40px; height:40px; background:#25D366; font-size:13px;">💬 Request a name change</a>
+          </div>
+          <div class="modal-section" style="text-align:center;">
+            <button class="btn-primary" id="btn-sign-out" style="background:var(--navy); font-size:13px; height:40px; width:auto; padding:0 16px;">Sign out</button>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -1697,6 +1715,7 @@ document.querySelectorAll("nav.floating-nav .tab").forEach(tab => {
       renderPushNotificationCard();
       renderThemeToggle();
       renderPastUpdatesPanel();
+      renderSettingsPanel();
     }
     if (tab.dataset.view === "leaderboard") renderLeaderboard();
     if (tab.dataset.view === "picks") renderPicksOverlay();
@@ -1775,6 +1794,27 @@ async function renderPastUpdatesPanel() {
     </div>`).join("");
 }
 
+function requestNameChangeLink(adminPhoneNumber, currentName) {
+  const digits = adminPhoneNumber.replace(/\D/g, "");
+  const intl = digits.startsWith("0") ? `44${digits.slice(1)}` : digits;
+  const message = `Hi! Can you update my name on Pompey Predictor? It's currently "${currentName}" and should be: `;
+  return `https://wa.me/${intl}?text=${encodeURIComponent(message)}`;
+}
+
+async function renderSettingsPanel() {
+  const nameEl = document.getElementById("settings-current-name");
+  if (nameEl) nameEl.textContent = currentPlayer?.display_name || "";
+
+  const link = document.getElementById("settings-request-name-link");
+  const admins = await sbFetchAll("players?is_admin=eq.true&is_active=eq.true&select=phone_number&limit=1");
+  if (admins[0]?.phone_number && currentPlayer) {
+    link.href = requestNameChangeLink(admins[0].phone_number, currentPlayer.display_name);
+    link.style.display = "block";
+  } else {
+    link.style.display = "none";
+  }
+}
+
 // Back to a genuine pop-up, not a passive tab badge — deliberately reversing
 // the earlier "don't interrupt them" decision (see the removed whats-new-dot
 // logic in history), because in practice nobody was finding the badge at
@@ -1807,6 +1847,9 @@ document.getElementById("profile-instructions-toggle").addEventListener("click",
   e.currentTarget.closest(".collapsible").classList.toggle("collapsed");
 });
 document.getElementById("past-updates-toggle").addEventListener("click", (e) => {
+  e.currentTarget.closest(".collapsible").classList.toggle("collapsed");
+});
+document.getElementById("settings-toggle").addEventListener("click", (e) => {
   e.currentTarget.closest(".collapsible").classList.toggle("collapsed");
 });
 
@@ -4978,7 +5021,7 @@ function showToast(message, isError = false) {
     if (view === "fixtures") return initFixturesView;
     if (view === "leaderboard") return renderLeaderboard;
     if (view === "picks") return renderPicksOverlay;
-    if (view === "profile") return () => { refreshPayEntryCard(); renderSeasonSummary(); renderPastUpdatesPanel(); };
+    if (view === "profile") return () => { refreshPayEntryCard(); renderSeasonSummary(); renderPastUpdatesPanel(); renderSettingsPanel(); };
     return null;
   }
 
