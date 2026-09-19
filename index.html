@@ -713,6 +713,9 @@
       <div class="card">
         <div id="profile-name" style="font-weight:700; font-size:15px;"></div>
         <div id="profile-payment-status" style="font-size:12px; margin-top:4px;"></div>
+        <div id="profile-hidden-notice" class="hidden" style="font-size:12px; color:var(--navy-text); background:var(--page-bg); border-radius:8px; padding:8px 10px; margin-top:8px; line-height:1.4;">
+          👻 You're currently hidden from the League table. Make a new prediction and Ant will see you're back and add you in again.
+        </div>
       </div>
       <div class="card" id="push-notification-card">
         <div class="admin-header" style="margin-top:0;">🔔 Get Notified</div>
@@ -859,6 +862,8 @@
       </div>
       <div id="admin-results-slot"></div>
       <div id="admin-missing-slot"></div>
+      <div id="admin-inactivity-slot"></div>
+      <div id="admin-readytounhide-slot" style="margin-top:12px;"></div>
       <div id="admin-recentpreds-slot"></div>
 
       <div class="admin-group-header">💰 Money</div>
@@ -1555,16 +1560,22 @@ document.getElementById("btn-sign-out").addEventListener("click", () => {
 async function refreshPayEntryCard() {
   const card = document.getElementById("pay-entry-card");
   try {
-    const res = await fetch(`${REST_URL}/players?id=eq.${currentPlayer.id}&select=payment_verified`, {
+    const res = await fetch(`${REST_URL}/players?id=eq.${currentPlayer.id}&select=payment_verified,is_participant`, {
       headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${getAccessToken()}` }
     });
     const rows = await res.json();
-    if (rows[0]) currentPlayer.payment_verified = rows[0].payment_verified;
+    if (rows[0]) {
+      currentPlayer.payment_verified = rows[0].payment_verified;
+      currentPlayer.is_participant = rows[0].is_participant;
+    }
   } catch (e) { /* fall back to whatever's already cached rather than blocking the tab */ }
   card.classList.toggle("hidden", !!currentPlayer.payment_verified);
   document.getElementById("profile-payment-status").innerHTML = currentPlayer.payment_verified
     ? `<span class="lb-paid-tick">✓ Paid</span>`
     : `<span style="color:var(--red-text);">Not yet verified as paid</span>`;
+  // Fresh-fetched above rather than trusted from login time, since hiding
+  // is an admin action that can happen at any point in a player's session.
+  document.getElementById("profile-hidden-notice").classList.toggle("hidden", currentPlayer.is_participant !== false);
 }
 
 // iOS only ever allows push notifications for a PWA actually launched from
@@ -1728,6 +1739,8 @@ function renderAdminPanels() {
   renderAdminPaymentDashboard();
   renderAdminResultsPanel();
   renderAdminMissingPanel();
+  renderAdminInactivityPanel();
+  renderAdminReadyToUnhidePanel();
   renderAdminRecentPredictionsPanel();
   renderAdminSquadPanel();
   renderAdminPaymentLogPanel();
@@ -2447,6 +2460,7 @@ async function renderAdminSquadPanel() {
 
 /* ---------- Admin: Missing Predictions (next 7 days) ---------- */
 let missingPanelCollapsed = true;
+let inactivityPanelCollapsed = true;
 let recentPredsPanelCollapsed = true;
 let prizeCalcCollapsed = true;
 let paymentLogCollapsed = true;
@@ -2521,6 +2535,172 @@ async function renderAdminMissingPanel() {
 
   slot.querySelectorAll("[data-notify-missing]").forEach(btn => {
     btn.addEventListener("click", () => sendPushNotification("missing", btn.dataset.notifyMissing, btn));
+  });
+}
+
+function streakNudgeLink(phoneNumber, displayName, streak) {
+  const digits = phoneNumber.replace(/\D/g, "");
+  const intl = digits.startsWith("0") ? `44${digits.slice(1)}` : digits;
+  const firstName = displayName.split(" ")[0];
+  const message = `Hi ${firstName}, noticed you've missed the last ${streak} predictions, everything OK? No worries if you're just busy, jump back in whenever suits, or let me know if you'd rather step away from the league.`;
+  return `https://wa.me/${intl}?text=${encodeURIComponent(message)}`;
+}
+
+/* ---------- Admin: Gone Quiet (current run of missed fixtures) ----------
+   Deliberately a different question from Missing Predictions above, which
+   only looks 7 days ahead. This looks backward: for each active player,
+   how many of the most recent already-kicked-off fixtures in a row have
+   they not predicted, counting only fixtures from after they joined so a
+   brand new player isn't flagged for games that happened before they
+   existed. Threshold is 3 in a row — short enough to catch someone
+   properly, long enough that one or two forgotten weeks don't flag
+   everybody. The Hide button here is the same is_participant toggle used
+   everywhere else, just reachable without hunting through the full player
+   list first. */
+async function renderAdminInactivityPanel() {
+  const slot = document.getElementById("admin-inactivity-slot");
+  slot.innerHTML = `<div class="placeholder-note">Loading…</div>`;
+  const now = Date.now();
+  const [players, fixtures, allPredictions] = await Promise.all([
+    sbFetchAll("players?is_active=eq.true&is_participant=eq.true&select=*&order=display_name.asc"),
+    sbFetchAll("fixtures?select=id,kickoff"),
+    sbFetchAll("predictions?select=player_id,fixture_id")
+  ]);
+
+  const pastFixturesDesc = fixtures
+    .filter(f => new Date(f.kickoff).getTime() <= now)
+    .sort((a, b) => new Date(b.kickoff) - new Date(a.kickoff));
+  const predictedSet = new Set(allPredictions.map(p => `${p.player_id}:${p.fixture_id}`));
+
+  const quiet = players
+    .map(p => {
+      const joinedAt = new Date(p.created_at).getTime();
+      let streak = 0;
+      for (const f of pastFixturesDesc) {
+        if (new Date(f.kickoff).getTime() < joinedAt) break;
+        if (predictedSet.has(`${p.id}:${f.id}`)) break;
+        streak++;
+      }
+      return { player: p, streak };
+    })
+    .filter(r => r.streak >= 3)
+    .sort((a, b) => b.streak - a.streak || a.player.display_name.localeCompare(b.player.display_name));
+
+  if (pastFixturesDesc.length === 0) {
+    slot.innerHTML = `<div class="card"><div class="admin-header" style="margin-top:0;">Gone Quiet</div><div class="placeholder-note">No fixtures played yet this season.</div></div>`;
+    return;
+  }
+
+  slot.innerHTML = `
+    <div class="card collapsible ${inactivityPanelCollapsed ? 'collapsed' : ''}" style="padding:0;">
+      <div class="collapsible-header" id="inactivity-toggle">
+        <span>👻 Gone Quiet (${quiet.length})</span>
+        <span class="chev">▾</span>
+      </div>
+      <div class="collapsible-body" style="padding:0 14px 14px;">
+        <div style="font-size:11px; color:var(--grey); margin-bottom:8px;">Missed their last 3+ predictions in a row, not just the upcoming one.</div>
+        ${quiet.length === 0 ? `<div style="font-size:12px; color:#1c8a45;">Nobody's currently on a run of misses ✓</div>` : quiet.map(({ player: p, streak }) => `
+          <div class="player-row">
+            <div class="pinfo">
+              <div class="pname">${p.display_name.replace(/\s*⚠️\s*/g, "")}</div>
+              <div class="pmeta">Missed the last ${streak} in a row</div>
+            </div>
+            <div class="pactions">
+              ${p.phone_number
+                ? `<a href="${streakNudgeLink(p.phone_number, p.display_name, streak)}" target="_blank" rel="noopener" class="btn-verify" style="background:#25D366; color:var(--white); text-decoration:none; display:inline-block;">WhatsApp</a>`
+                : `<span style="font-size:11px; color:var(--grey);">No number</span>`}
+              <button class="btn-verify" style="background:var(--grey-light); color:var(--text);" data-toggle-participant="${p.id}" data-current="true">Hide</button>
+            </div>
+          </div>`).join("")}
+      </div>
+    </div>`;
+
+  document.getElementById("inactivity-toggle").addEventListener("click", (e) => {
+    const panel = e.currentTarget.closest(".collapsible");
+    panel.classList.toggle("collapsed");
+    inactivityPanelCollapsed = panel.classList.contains("collapsed");
+  });
+
+  slot.querySelectorAll("[data-toggle-participant]").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const currentlyShown = btn.dataset.current === "true";
+      btn.disabled = true;
+      try {
+        await toggleParticipant(btn.dataset.toggleParticipant, !currentlyShown);
+        renderAdminInactivityPanel();
+        renderAdminReadyToUnhidePanel();
+      } catch (err) { alert(err.message); btn.disabled = false; }
+    });
+  });
+}
+
+/* ---------- Admin: Ready to Un-hide ----------
+   A hidden player (is_participant=false) can still log in and predict —
+   hiding only affects the league table, not their account — so this
+   catches anyone who's started predicting again since being hidden.
+   Compares each prediction's created_at against hidden_at rather than
+   just "have they ever predicted", since they obviously have plenty of
+   predictions from before they went quiet. */
+async function renderAdminReadyToUnhidePanel() {
+  const slot = document.getElementById("admin-readytounhide-slot");
+  if (!slot) return;
+  slot.innerHTML = `<div class="placeholder-note">Loading…</div>`;
+
+  const hidden = await sbFetchAll("players?is_active=eq.true&is_participant=eq.false&select=*");
+  const withHiddenAt = hidden.filter(p => p.hidden_at);
+
+  if (withHiddenAt.length === 0) {
+    slot.innerHTML = "";
+    return;
+  }
+
+  const preds = await sbFetchAll(`predictions?player_id=in.(${withHiddenAt.map(p => p.id).join(",")})&select=player_id,created_at`);
+  const latestPredByPlayer = new Map();
+  preds.forEach(p => {
+    const existing = latestPredByPlayer.get(p.player_id);
+    if (!existing || new Date(p.created_at) > new Date(existing)) latestPredByPlayer.set(p.player_id, p.created_at);
+  });
+
+  const readyToUnhide = withHiddenAt
+    .filter(p => {
+      const latest = latestPredByPlayer.get(p.id);
+      return latest && new Date(latest).getTime() > new Date(p.hidden_at).getTime();
+    })
+    .sort((a, b) => a.display_name.localeCompare(b.display_name));
+
+  if (readyToUnhide.length === 0) {
+    slot.innerHTML = "";
+    return;
+  }
+
+  slot.innerHTML = `
+    <div class="card" style="padding:0; border:2px solid var(--gold);">
+      <div class="collapsible-header" style="cursor:default;">
+        <span>🙈 Ready to Un-hide (${readyToUnhide.length})</span>
+      </div>
+      <div class="collapsible-body" style="padding:0 14px 14px;">
+        <div style="font-size:11px; color:var(--grey); margin-bottom:8px;">Hidden from the league, but they've predicted again since — probably means they're back.</div>
+        ${readyToUnhide.map(p => `
+          <div class="player-row">
+            <div class="pinfo">
+              <div class="pname">${p.display_name.replace(/\s*⚠️\s*/g, "")}</div>
+              <div class="pmeta">Last predicted ${new Date(latestPredByPlayer.get(p.id)).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}, since being hidden</div>
+            </div>
+            <button class="btn-verify" style="background:var(--gold); color:var(--navy);" data-toggle-participant="${p.id}" data-current="false">Un-hide</button>
+          </div>`).join("")}
+      </div>
+    </div>`;
+
+  slot.querySelectorAll("[data-toggle-participant]").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const currentlyShown = btn.dataset.current === "true";
+      btn.disabled = true;
+      try {
+        await toggleParticipant(btn.dataset.toggleParticipant, !currentlyShown);
+        renderAdminReadyToUnhidePanel();
+        renderAdminInactivityPanel();
+      } catch (err) { alert(err.message); btn.disabled = false; }
+    });
   });
 }
 
@@ -3437,6 +3617,10 @@ async function togglePoolExempt(playerId, exempt) {
 // Awards — all three already filter on is_participant — while leaving
 // them fully counted for payment and prize pool purposes, and leaving
 // their account intact if they ever come back and start predicting again.
+// hidden_at is stamped alongside is_participant so the admin's "Ready to
+// Un-hide" panel can tell a genuinely new prediction (made after hiding)
+// apart from an old one made before they went quiet — cleared on un-hide
+// either way, since a stale timestamp from last time would be misleading.
 async function toggleParticipant(playerId, participant) {
   const res = await fetch(`${REST_URL}/players?id=eq.${playerId}`, {
     method: "PATCH",
@@ -3446,7 +3630,7 @@ async function toggleParticipant(playerId, participant) {
       "Content-Type": "application/json",
       Prefer: "return=representation"
     },
-    body: JSON.stringify({ is_participant: participant })
+    body: JSON.stringify({ is_participant: participant, hidden_at: participant ? null : new Date().toISOString() })
   });
   if (!res.ok) throw new Error("Could not update league visibility.");
   return res.json();
