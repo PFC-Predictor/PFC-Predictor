@@ -3053,6 +3053,14 @@ let currentMonthKey = null;
 let availableMonths = [];
 let countdownTimers = [];
 
+// Cached across renders purely so the hero card and the month-nav buttons
+// can recompute "N still to make" for whichever month is on screen without
+// a fresh fetch — refreshed on every initFixturesView() call (i.e. every
+// time the Predictions tab is opened), never stale for longer than that.
+let cachedAllFixturesForHero = [];
+let cachedPredictedFixtureIds = new Set();
+let cachedNextFixture = null;
+
 function clearCountdownTimers() {
   countdownTimers.forEach(t => clearInterval(t));
   countdownTimers = [];
@@ -3066,6 +3074,25 @@ function monthLabelFor(monthKey) {
   const [y, m] = monthKey.split("-").map(Number);
   return new Date(y, m - 1, 1).toLocaleDateString("en-GB", { month: "long", year: "numeric" }).toUpperCase();
 }
+// Same thing but not shouting — for use inside a sentence like "3 still to
+// make in October 2026", where the all-caps month-nav label would look odd.
+function monthLabelSentenceCase(monthKey) {
+  const [y, m] = monthKey.split("-").map(Number);
+  return new Date(y, m - 1, 1).toLocaleDateString("en-GB", { month: "long", year: "numeric" });
+}
+
+// How many of THIS player's still-open (not yet kicked off), not-yet-
+// predicted fixtures fall in the given month — the number the hero card
+// leads with, so it reflects whichever month is actually on screen.
+function outstandingCountForMonth(monthKey) {
+  if (!monthKey) return 0;
+  const now = Date.now();
+  return cachedAllFixturesForHero.filter(f =>
+    monthKeyFor(f.kickoff) === monthKey &&
+    new Date(f.kickoff).getTime() > now &&
+    !cachedPredictedFixtureIds.has(f.id)
+  ).length;
+}
 
 async function initFixturesView() {
   clearCountdownTimers();
@@ -3074,11 +3101,29 @@ async function initFixturesView() {
     sbFetchAll("fixtures?select=*&order=kickoff.asc")
   ]);
 
-  availableMonths = [...new Set(allFixtures.map(f => monthKeyFor(f.kickoff)))].sort();
-  const preferredMonth = monthKeyFor(next ? next.kickoff : (allFixtures[0]?.kickoff || new Date().toISOString()));
-  currentMonthKey = availableMonths.includes(preferredMonth) ? preferredMonth : (availableMonths[0] || null);
-
   const myPreds = await sbFetchAll(`predictions?player_id=eq.${currentPlayer.id}&select=*`);
+
+  cachedAllFixturesForHero = allFixtures;
+  cachedPredictedFixtureIds = new Set(myPreds.map(p => p.fixture_id));
+  cachedNextFixture = next;
+
+  availableMonths = [...new Set(allFixtures.map(f => monthKeyFor(f.kickoff)))].sort();
+
+  // Land wherever this player actually still has predictions outstanding,
+  // rather than wherever the single soonest fixture happens to fall. Those
+  // are usually the same month, but not always — if everything left in the
+  // current month is already predicted and a later month's fixtures are
+  // already released, this jumps straight to the "still to make" month
+  // instead of opening on a screen of cards that are all already filled in.
+  // allFixtures is already ordered by kickoff ascending, so the first match
+  // here is the earliest outstanding one.
+  const now = Date.now();
+  const outstandingFixtures = allFixtures.filter(f =>
+    new Date(f.kickoff).getTime() > now && !cachedPredictedFixtureIds.has(f.id)
+  );
+  const earliestOutstandingMonth = outstandingFixtures.length ? monthKeyFor(outstandingFixtures[0].kickoff) : null;
+  const preferredMonth = earliestOutstandingMonth || monthKeyFor(next ? next.kickoff : (allFixtures[0]?.kickoff || new Date().toISOString()));
+  currentMonthKey = availableMonths.includes(preferredMonth) ? preferredMonth : (availableMonths[0] || null);
 
   await Promise.all([
     renderHeroCard(next),
@@ -3111,14 +3156,29 @@ function countdownText(iso) {
   return `KICKS OFF IN ${mins} MIN${mins === 1 ? "" : "S"}`;
 }
 
+// Leads with how many predictions this player still has outstanding for
+// whichever month is currently on screen, rather than "Next Up" for a
+// single match — the point being to surface the whole month's remaining
+// work in one go, so it gets filled in in one sitting instead of trickling
+// in match by match. The next kickoff and countdown stay as a smaller
+// secondary line underneath, since that deadline urgency is still useful.
 async function renderHeroCard(next) {
   const slot = document.getElementById("hero-card-slot");
   if (!next) { slot.innerHTML = ""; return; }
+
+  clearCountdownTimers();
+
+  const outstanding = outstandingCountForMonth(currentMonthKey);
+  const monthText = currentMonthKey ? monthLabelSentenceCase(currentMonthKey) : "this month";
+  const headline = outstanding > 0
+    ? `${outstanding} prediction${outstanding === 1 ? "" : "s"} still to make in ${monthText}`
+    : `All caught up for ${monthText} ✅`;
+
   slot.innerHTML = `
     <div class="hero-card" id="hero-card" style="cursor:pointer;">
-      <div class="eyebrow">Next Up</div>
-      <div class="match display">${next.home_team.toUpperCase()} v ${next.away_team.toUpperCase()}</div>
-      <div class="kickoff">${fmtKickoff(next.kickoff)}</div>
+      <div class="eyebrow">${outstanding > 0 ? "Still to predict" : "Up to date"}</div>
+      <div class="match" style="font-size:19px; font-weight:700; text-transform:none; line-height:1.3;">${headline}</div>
+      <div class="kickoff">Next up: ${next.home_team} v ${next.away_team} · ${fmtKickoff(next.kickoff)}</div>
       <div class="countdown" id="hero-countdown">${countdownText(next.kickoff)}</div>
     </div>`;
   const el = document.getElementById("hero-countdown");
@@ -3130,6 +3190,8 @@ async function renderHeroCard(next) {
     if (targetMonth !== currentMonthKey && availableMonths.includes(targetMonth)) {
       currentMonthKey = targetMonth;
       await renderMonth(currentMonthKey);
+      await renderHeroCard(next); // headline names "this month" — keep it matching whatever we just jumped to
+      return;
     }
     const card = document.getElementById(`fixture-card-${next.id}`);
     if (!card) return;
@@ -3381,11 +3443,15 @@ function buildMatchCard(fixture, squad, existingPred, result) {
 
 document.getElementById("month-prev").addEventListener("click", () => {
   const idx = availableMonths.indexOf(currentMonthKey);
-  if (idx > 0) { currentMonthKey = availableMonths[idx - 1]; renderMonth(currentMonthKey); }
+  // Re-render the hero card too, not just the match list — its headline
+  // names whichever month is on screen ("N still to make in <month>"), so
+  // paging away from the month it was computed for would otherwise leave
+  // it quietly describing the wrong month.
+  if (idx > 0) { currentMonthKey = availableMonths[idx - 1]; renderMonth(currentMonthKey); renderHeroCard(cachedNextFixture); }
 }, { passive: true });
 document.getElementById("month-next").addEventListener("click", () => {
   const idx = availableMonths.indexOf(currentMonthKey);
-  if (idx < availableMonths.length - 1) { currentMonthKey = availableMonths[idx + 1]; renderMonth(currentMonthKey); }
+  if (idx < availableMonths.length - 1) { currentMonthKey = availableMonths[idx + 1]; renderMonth(currentMonthKey); renderHeroCard(cachedNextFixture); }
 }, { passive: true });
 
 /* ============================================================
