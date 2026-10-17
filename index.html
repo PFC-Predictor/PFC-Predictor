@@ -2666,11 +2666,13 @@ async function renderAdminReadyToUnhidePanel() {
     return;
   }
 
-  const preds = await sbFetchAll(`predictions?player_id=in.(${withHiddenAt.map(p => p.id).join(",")})&select=player_id,created_at`);
+  const preds = await sbFetchAll(`predictions?player_id=in.(${withHiddenAt.map(p => p.id).join(",")})&select=player_id,created_at,updated_at`);
   const latestPredByPlayer = new Map();
   preds.forEach(p => {
+    // updated_at catches edits to an existing prediction; created_at covers older rows that never had one
+    const stamp = p.updated_at || p.created_at;
     const existing = latestPredByPlayer.get(p.player_id);
-    if (!existing || new Date(p.created_at) > new Date(existing)) latestPredByPlayer.set(p.player_id, p.created_at);
+    if (!existing || new Date(stamp) > new Date(existing)) latestPredByPlayer.set(p.player_id, stamp);
   });
 
   const readyToUnhide = withHiddenAt
