@@ -2527,7 +2527,7 @@ async function renderAdminMissingPanel() {
               <div class="player-row" style="padding:6px 0;">
                 <div class="pinfo"><div class="pname" style="font-size:13px;">${m.display_name}${notifyingPlayerIds.has(m.id) ? ' <span title="Already gets push notifications">🔔</span>' : ''}</div></div>
                 ${m.phone_number
-                  ? `<a href="${fixtureNudgeLink(m.phone_number, m.display_name, f.home_team, f.away_team, f.kickoff)}" target="_blank" rel="noopener" class="btn-verify" style="background:#25D366; color:var(--white); text-decoration:none; display:inline-block;">WhatsApp</a>`
+                  ? `<a href="${fixtureNudgeLink(m.phone_number, m.display_name, f.home_team, f.away_team, f.kickoff, notifyingPlayerIds.has(m.id))}" target="_blank" rel="noopener" class="btn-verify" style="background:#25D366; color:var(--white); text-decoration:none; display:inline-block;">WhatsApp</a>`
                   : `<span style="font-size:11px; color:var(--grey);">No number</span>`}
               </div>`).join("")}
           ` : `<div style="font-size:12px; color:#1c8a45;">Everyone's in ✓</div>`}
@@ -3831,12 +3831,13 @@ function whatsappNudgeLink(phoneNumber) {
   return `https://wa.me/${intl}?text=${encodeURIComponent(message)}`;
 }
 
-function fixtureNudgeLink(phoneNumber, displayName, homeTeam, awayTeam, kickoff) {
+function fixtureNudgeLink(phoneNumber, displayName, homeTeam, awayTeam, kickoff, hasNotifications) {
   const digits = phoneNumber.replace(/\D/g, "");
   const intl = digits.startsWith("0") ? `44${digits.slice(1)}` : digits;
   const firstName = displayName.split(" ")[0];
   const when = new Date(kickoff).toLocaleString("en-GB", { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
-  const message = `Hi ${firstName}, don't forget to predict ${homeTeam} v ${awayTeam}, ${when}. Turn on notifications in Profile and you'll get reminded automatically next time.`;
+  const notifyLine = hasNotifications ? "" : " Turn on notifications in Profile and you'll get reminded automatically next time.";
+  const message = `Hi ${firstName}, don't forget to predict ${homeTeam} v ${awayTeam}, ${when}.${notifyLine}`;
   return `https://wa.me/${intl}?text=${encodeURIComponent(message)}`;
 }
 
@@ -4033,6 +4034,7 @@ async function renderAdminPaymentDashboard() {
           </div>
           <div class="pactions" data-more-panel="${p.id}" style="display:none; width:100%; justify-content:flex-end; margin-top:6px;">
             <button class="btn-verify" style="background:var(--grey-light); color:var(--text);" data-edit-name="${p.id}">Edit name</button>
+            <button class="btn-verify" style="background:var(--grey-light); color:var(--text);" data-edit-mobile="${p.id}">${p.phone_number ? "Edit mobile" : "Add mobile"}</button>
             <button class="btn-verify" style="background:var(--grey-light); color:var(--text);" data-exempt="${p.id}" data-current="${p.pool_exempt}">${p.pool_exempt ? "Un-exempt" : "Exempt"}</button>
             <button class="btn-verify" style="background:${p.is_participant === false ? 'var(--gold)' : 'var(--grey-light)'}; color:${p.is_participant === false ? 'var(--navy)' : 'var(--text)'};" data-toggle-participant="${p.id}" data-current="${p.is_participant !== false}">${p.is_participant === false ? "Hidden — Un-hide" : "Hide from league"}</button>
             ${!p.payment_verified && !p.pool_exempt && p.phone_number ? `<a href="${whatsappNudgeLink(p.phone_number)}" target="_blank" rel="noopener" class="btn-verify" style="background:#25D366; color:var(--white); text-decoration:none; display:inline-block;">WhatsApp</a>` : ""}
@@ -4047,6 +4049,11 @@ async function renderAdminPaymentDashboard() {
             <input type="text" data-name-edit-input="${p.id}" value="${escapeHtml(p.display_name.replace(/\s*⚠️\s*/g, "").trim())}" style="flex:1; height:36px; border-radius:8px; border:1px solid var(--grey-light); padding:0 8px; font-size:13px;">
             <button class="btn-verify" data-name-save="${p.id}">Save</button>
             <button class="btn-verify" style="background:var(--grey-light); color:var(--text);" data-name-cancel="${p.id}">Cancel</button>
+          </div>
+          <div class="pactions" data-mobile-edit-row="${p.id}" style="display:none; width:100%; gap:6px; margin-top:6px;">
+            <input type="tel" data-mobile-edit-input="${p.id}" value="${escapeHtml(p.phone_number || "")}" placeholder="Mobile number" style="flex:1; height:36px; border-radius:8px; border:1px solid var(--grey-light); padding:0 8px; font-size:13px;">
+            <button class="btn-verify" data-mobile-save="${p.id}">Save</button>
+            <button class="btn-verify" style="background:var(--grey-light); color:var(--text);" data-mobile-cancel="${p.id}">Cancel</button>
           </div>
         </div>`;
       }).join("")}
@@ -4227,6 +4234,38 @@ async function renderAdminPaymentDashboard() {
           body: JSON.stringify({ display_name: finalName })
         });
         if (!res.ok) throw new Error("Could not save the new name.");
+        renderAdminPaymentDashboard();
+      } catch (err) { alert(err.message); btn.disabled = false; btn.textContent = "Save"; }
+    });
+  });
+
+  slot.querySelectorAll("[data-edit-mobile]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const id = btn.dataset.editMobile;
+      slot.querySelector(`[data-more-panel="${id}"]`).style.display = "none";
+      slot.querySelector(`[data-mobile-edit-row="${id}"]`).style.display = "flex";
+      slot.querySelector(`[data-mobile-edit-input="${id}"]`).focus();
+    });
+  });
+  slot.querySelectorAll("[data-mobile-cancel]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      slot.querySelector(`[data-mobile-edit-row="${btn.dataset.mobileCancel}"]`).style.display = "none";
+    });
+  });
+  slot.querySelectorAll("[data-mobile-save]").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const id = btn.dataset.mobileSave;
+      const cleaned = slot.querySelector(`[data-mobile-edit-input="${id}"]`).value.replace(/[^\d+]/g, "");
+      if (cleaned.replace(/\D/g, "").length < 10) { alert("That doesn't look like a full mobile number."); return; }
+      btn.disabled = true; btn.textContent = "Saving…";
+      try {
+        const res = await fetch(`${REST_URL}/players?id=eq.${id}`, {
+          method: "PATCH",
+          headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${getAccessToken()}`, "Content-Type": "application/json", Prefer: "return=representation" },
+          body: JSON.stringify({ phone_number: cleaned })
+        });
+        const rows = await res.json().catch(() => []);
+        if (!res.ok || !Array.isArray(rows) || rows.length === 0) throw new Error("Could not save that number.");
         renderAdminPaymentDashboard();
       } catch (err) { alert(err.message); btn.disabled = false; btn.textContent = "Save"; }
     });
