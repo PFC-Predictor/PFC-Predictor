@@ -1972,17 +1972,6 @@ function renderAwardsPanel(players, predictions, resultByFixture, fixtures) {
   const correctMax = topCorrect[0]?.correctTotal;
   const scorerMax = topScorer[0]?.scorer;
 
-  // best called match — fixtures with 5+ predictions, most correct-result outcomes
-  let bestMatch = null;
-  fixtures.forEach(f => {
-    const result = resultByFixture.get(f.id);
-    if (!result) return;
-    const preds = predictions.filter(p => p.fixture_id === f.id && p.home_score != null);
-    if (preds.length < 5) return;
-    const correctCount = preds.filter(p => outcomeOf(p.home_score, p.away_score) === outcomeOf(result.home_score, result.away_score)).length;
-    if (!bestMatch || correctCount > bestMatch.correctCount) bestMatch = { fixture: f, correctCount, total: preds.length };
-  });
-
   // most predicted first goalscorer — tallied across every fixture that's
   // actually finished, so it only reflects matches with a result in, and
   // grows as each new result gets entered rather than counting picks for
@@ -1994,10 +1983,10 @@ function renderAwardsPanel(players, predictions, resultByFixture, fixtures) {
       scorerPickCounts.set(p.first_scorer, (scorerPickCounts.get(p.first_scorer) || 0) + 1);
     });
   });
-  let topPickedScorer = null, topPickedScorerCount = 0;
-  scorerPickCounts.forEach((count, name) => {
-    if (count > topPickedScorerCount) { topPickedScorer = name; topPickedScorerCount = count; }
-  });
+  const totalScorerPicks = [...scorerPickCounts.values()].reduce((a, b) => a + b, 0);
+  const topPickedScorers = [...scorerPickCounts.entries()]
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .slice(0, 2);
 
   slot.innerHTML = `
     <div class="awards-panel">
@@ -2005,12 +1994,11 @@ function renderAwardsPanel(players, predictions, resultByFixture, fixtures) {
       ${exactMax ? `<div class="award-item"><span class="al">Most Exact Scores</span><span class="av">${topExact.filter(s => s.exact === exactMax).map(s => s.player.display_name).join(", ")}</span></div>` : ""}
       ${correctMax ? `<div class="award-item"><span class="al">Most Correct Results</span><span class="av">${topCorrect.filter(s => s.correctTotal === correctMax).map(s => s.player.display_name).join(", ")}</span></div>` : ""}
       ${scorerMax ? `<div class="award-item"><span class="al">Most Correct First Goalscorers</span><span class="av">${topScorer.filter(s => s.scorer === scorerMax).map(s => s.player.display_name).join(", ")}</span></div>` : ""}
-      ${bestMatch ? `<div class="award-item"><span class="al">Best Called Match</span><span class="av">${bestMatch.fixture.home_team} v ${bestMatch.fixture.away_team} (${bestMatch.correctCount}/${bestMatch.total})</span></div>` : ""}
-      ${topPickedScorer ? `<div class="award-item"><span class="al">Most Predicted Scorer</span><span class="av">${topPickedScorer} (${topPickedScorerCount} picks)</span></div>` : ""}
+      ${topPickedScorers.length ? `<div class="award-item"><span class="al">Most Predicted Scorers</span><span class="av">${topPickedScorers.map(([name, count]) => `${name} (${Math.round(count / totalScorerPicks * 100)}%)`).join(", ")}</span></div>` : ""}
       ${(() => {
         const totalScored = standings.reduce((sum, s) => sum + s.scoredCount, 0);
         const totalPts = standings.reduce((sum, s) => sum + s.total, 0);
-        return totalScored > 0 ? `<div class="award-item"><span class="al">League Average</span><span class="av">${(totalPts / totalScored).toFixed(2)} pts/game</span></div>` : "";
+        return totalScored > 0 ? `<div class="award-item"><span class="al">Points Average</span><span class="av">${(totalPts / totalScored).toFixed(2)} pts/game</span></div>` : "";
       })()}
     </div>`;
 }
@@ -2660,7 +2648,11 @@ async function renderAdminReadyToUnhidePanel() {
   slot.innerHTML = `<div class="placeholder-note">Loading…</div>`;
 
   const hidden = await sbFetchAll("players?is_active=eq.true&is_participant=eq.false&or=(is_admin.eq.false,pool_exempt.eq.false)&select=*");
-  const withHiddenAt = hidden.filter(p => p.hidden_at);
+  // Players hidden before hidden_at existed have no stamp, so fall back to
+  // "predicted in the last 3 days" rather than silently ignoring them.
+  const fallbackCutoff = Date.now() - 3 * 24 * 3600 * 1000;
+  const hiddenSince = p => p.hidden_at ? new Date(p.hidden_at).getTime() : fallbackCutoff;
+  const withHiddenAt = hidden;
 
   if (withHiddenAt.length === 0) {
     slot.innerHTML = "";
@@ -2679,7 +2671,7 @@ async function renderAdminReadyToUnhidePanel() {
   const readyToUnhide = withHiddenAt
     .filter(p => {
       const latest = latestPredByPlayer.get(p.id);
-      return latest && new Date(latest).getTime() > new Date(p.hidden_at).getTime();
+      return latest && new Date(latest).getTime() > hiddenSince(p);
     })
     .sort((a, b) => a.display_name.localeCompare(b.display_name));
 
@@ -3375,6 +3367,11 @@ function buildMatchCard(fixture, squad, existingPred, result) {
       const pompeyScore = homeIsPompey ? h : (awayIsPompey ? a : null);
       if (pompeyScore !== null && pompeyScore >= 1 && !scorerValue) {
         statusEl.textContent = "You've got Pompey scoring — pick a first goalscorer before saving.";
+        return;
+      }
+      if (pompeyScore === 0 && scorerValue) {
+        statusEl.style.color = "var(--red)";
+        statusEl.textContent = "You've got Pompey not scoring — remove the first goalscorer, or change the score, before saving.";
         return;
       }
       saveBtn.disabled = true;
@@ -5125,12 +5122,24 @@ function renderSeasonRecords(players, predictions, allResults, resultsByFixture,
     .map(r => ({ player: r.player, rate: (r.exact * POINTS.EXACT + r.correct * POINTS.CORRECT) / r.scoredCount }))
     .sort((a, b) => b.rate - a.rate)[0];
 
+  // best called match: fixtures with 5+ predictions, most correct-result outcomes
+  let bestMatch = null;
+  fixtureById.forEach(f => {
+    const result = resultsByFixture.get(f.id);
+    if (!result) return;
+    const preds = predictions.filter(p => p.fixture_id === f.id && p.home_score != null);
+    if (preds.length < 5) return;
+    const correctCount = preds.filter(p => outcomeOf(p.home_score, p.away_score) === outcomeOf(result.home_score, result.away_score)).length;
+    if (!bestMatch || correctCount > bestMatch.correctCount) bestMatch = { fixture: f, correctCount, total: preds.length };
+  });
+
   const rows = [
     highest && `<div class="record-row"><div class="rlabel">Highest single match score</div><div class="rdetail">${highest.entries.map(e => e.player?.display_name || "—").join(", ")} — ${highest.total} pts (${highest.entries[0].fixture ? `${highest.entries[0].fixture.home_team} v ${highest.entries[0].fixture.away_team}` : "unknown fixture"})</div></div>`,
     mostExact && `<div class="record-row"><div class="rlabel">Most exact scores</div><div class="rdetail">${mostExact.players.map(p => p.display_name).join(", ")} — ${mostExact.value}</div></div>`,
     mostScorer && `<div class="record-row"><div class="rlabel">Most first Pompey goalscorer picks correct</div><div class="rdetail">${mostScorer.players.map(p => p.display_name).join(", ")} — ${mostScorer.value}</div></div>`,
     longestCorrectStreak && `<div class="record-row"><div class="rlabel">Longest correct-result streak</div><div class="rdetail">${longestCorrectStreak.players.map(p => p.display_name).join(", ")} — ${longestCorrectStreak.value}</div></div>`,
     longestExactStreak && `<div class="record-row"><div class="rlabel">Longest exact-score streak</div><div class="rdetail">${longestExactStreak.players.map(p => p.display_name).join(", ")} — ${longestExactStreak.value}</div></div>`,
+    bestMatch && `<div class="record-row"><div class="rlabel">Best called match</div><div class="rdetail">${bestMatch.fixture.home_team} v ${bestMatch.fixture.away_team} — ${bestMatch.correctCount}/${bestMatch.total} correct</div></div>`,
     bestRate && `<div class="record-row"><div class="rlabel">Best performance rate</div><div class="rdetail">${bestRate.player.display_name} — ${bestRate.rate.toFixed(2)} pts/prediction</div></div>`
   ].filter(Boolean);
 
@@ -5143,6 +5152,7 @@ function renderSeasonRecords(players, predictions, allResults, resultsByFixture,
     if (mostScorer) lines.push(`Most scorer picks: ${mostScorer.players.map(p => p.display_name).join(", ")} — ${mostScorer.value}`);
     if (longestCorrectStreak) lines.push(`Longest correct streak: ${longestCorrectStreak.players.map(p => p.display_name).join(", ")} — ${longestCorrectStreak.value}`);
     if (longestExactStreak) lines.push(`Longest exact streak: ${longestExactStreak.players.map(p => p.display_name).join(", ")} — ${longestExactStreak.value}`);
+    if (bestMatch) lines.push(`Best called match: ${bestMatch.fixture.home_team} v ${bestMatch.fixture.away_team} — ${bestMatch.correctCount}/${bestMatch.total}`);
     if (bestRate) lines.push(`Best rate: ${bestRate.player.display_name} — ${bestRate.rate.toFixed(2)} pts/prediction`);
     const text = lines.join("\n");
     if (navigator.share) navigator.share({ text }).catch(() => {});
