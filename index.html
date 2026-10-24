@@ -1988,6 +1988,16 @@ function renderAwardsPanel(players, predictions, resultByFixture, fixtures) {
     .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
     .slice(0, 2);
 
+  // Pompey's top first-goal scorer this season, from entered results only
+  // (only the first Pompey goal per match is recorded, so this is first goals,
+  // not total goals). Own goals and blanks aren't a player, so are skipped.
+  const firstGoalCounts = new Map();
+  resultByFixture.forEach(r => {
+    if (r.first_scorer && r.first_scorer !== "Own goal") firstGoalCounts.set(r.first_scorer, (firstGoalCounts.get(r.first_scorer) || 0) + 1);
+  });
+  const firstGoalMax = Math.max(0, ...firstGoalCounts.values());
+  const topFirstGoalScorers = firstGoalMax > 0 ? [...firstGoalCounts.entries()].filter(([, c]) => c === firstGoalMax).map(([n]) => n).sort() : [];
+
   slot.innerHTML = `
     <div class="awards-panel">
       <div class="ap-title">League Awards</div>
@@ -1995,12 +2005,19 @@ function renderAwardsPanel(players, predictions, resultByFixture, fixtures) {
       ${correctMax ? `<div class="award-item"><span class="al">Most Correct Results</span><span class="av">${topCorrect.filter(s => s.correctTotal === correctMax).map(s => s.player.display_name).join(", ")}</span></div>` : ""}
       ${scorerMax ? `<div class="award-item"><span class="al">Most Correct First Goalscorers</span><span class="av">${topScorer.filter(s => s.scorer === scorerMax).map(s => s.player.display_name).join(", ")}</span></div>` : ""}
       ${topPickedScorers.length ? `<div class="award-item"><span class="al">Most Predicted Scorers</span><span class="av">${topPickedScorers.map(([name, count]) => `${name} (${Math.round(count / totalScorerPicks * 100)}%)`).join(", ")}</span></div>` : ""}
+      ${topFirstGoalScorers.length ? `<div class="award-item"><span class="al">Pompey's Top First Goalscorer</span><span class="av">${topFirstGoalScorers.join(", ")} (${firstGoalMax})</span></div>` : ""}
       ${(() => {
         const totalScored = standings.reduce((sum, s) => sum + s.scoredCount, 0);
         const totalPts = standings.reduce((sum, s) => sum + s.total, 0);
         return totalScored > 0 ? `<div class="award-item"><span class="al">Points Average</span><span class="av">${(totalPts / totalScored).toFixed(2)} pts/game</span></div>` : "";
       })()}
     </div>`;
+}
+
+function resultScorerLabel(result) {
+  if (!result) return "";
+  if (result.first_scorer === "Own goal") return "Own goal";
+  return result.first_scorer || "No Pompey goalscorer";
 }
 
 function badgeFor(pred, result) {
@@ -2055,6 +2072,7 @@ function renderPicksGrid(players, predictions, resultByFixture, fixtures) {
           return `
           <div class="pick-card">
             <div class="pc-teams"><span>${f.home_team} v ${f.away_team}</span>${result ? `<span class="pc-ft-badge"><span class="pc-ft-label">FULL-TIME</span>${result.home_score}-${result.away_score}</span>` : ""}</div>
+            ${result ? `<div style="font-size:11px; color:var(--grey); margin:-2px 0 6px;">⚽ First Pompey goal: ${resultScorerLabel(result)}</div>` : ""}
             ${scoreGroups.map(([scoreKey, entries]) => `
               <div class="pick-score-group">
                 <div class="pick-score-label">${scoreKey} <span class="pick-score-count">(${entries.length})</span></div>
@@ -2101,7 +2119,7 @@ function renderPicksHistoryFor(playerId, playerById, predictions, resultByFixtur
           ${badge}
         </div>
         <div style="color:var(--grey); margin-top:2px;">
-          Predicted ${r.pred.home_score}-${r.pred.away_score}${r.result ? ` · Result ${r.result.home_score}-${r.result.away_score}` : ""}
+          Predicted ${r.pred.home_score}-${r.pred.away_score}${r.result ? ` · Result ${r.result.home_score}-${r.result.away_score} · ⚽ ${resultScorerLabel(r.result)}` : ""}
           ${r.pred.first_scorer ? `<span class="pl-sub">⚽ ${r.pred.first_scorer}</span>` : ""}
         </div>
       </div>`;
@@ -4995,7 +5013,7 @@ async function openPlayerCard(playerId, playerName, isPaid) {
           ${badge}
         </div>
         <div style="color:var(--grey); margin-top:2px;">
-          Predicted ${r.pred.home_score}-${r.pred.away_score}${r.result ? ` · Result ${r.result.home_score}-${r.result.away_score}` : ""}
+          Predicted ${r.pred.home_score}-${r.pred.away_score}${r.result ? ` · Result ${r.result.home_score}-${r.result.away_score} · ⚽ ${resultScorerLabel(r.result)}` : ""}
           ${r.pred.first_scorer ? `<span class="pl-sub">⚽ ${r.pred.first_scorer}</span>` : ""}
         </div>
       </div>`;
