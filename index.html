@@ -797,7 +797,7 @@
               <source src="./picks-updates-intro.mp4" type="video/mp4">
             </video>
             <p style="margin-bottom:6px;"><strong>Prediction Split</strong> — inside Picks, shows how everyone's split on the next fixture</p>
-            <p style="margin-bottom:6px;"><strong>League Awards</strong> — also inside Picks: Most Exact Scores, Most Correct Results (includes exact scores, since those are correct too), Most Correct First Goalscorers, Best Called Match, Most Predicted Scorer, and the League Average points per game</p>
+            <p style="margin-bottom:6px;"><strong>League Awards</strong> — also inside Picks: Most Exact Scores, Most Correct Results (includes exact scores, since those are correct too), Most Correct First Goalscorers, the two Most Predicted Scorers (as a percentage of picks), and the Points Average per game. Best Called Match now lives in Season Records</p>
             <p style="margin-bottom:6px;">📢 <strong>Updates</strong> — anything new pops up automatically when you open the app; past ones and a way to suggest a feature live under Past Updates here in Profile</p>
             <p style="margin-bottom:6px;">🔗 <strong>Share</strong> — up top on League, get a QR code and link to invite someone</p>
             <p style="margin-bottom:6px;">🔑 Forgotten your PIN? Just message Ant, he can sort you a new one</p>
@@ -2937,6 +2937,9 @@ function calcPoints(prediction, result) {
     breakdown.scorer = true;
     breakdown.total += POINTS.SCORER;
   }
+  // Own goal: admin picks "Own goal" on the result, so result.first_scorer is
+  // truthy and nobody scores the bonus (a "No Pompey goalscorer" pick isn't
+  // right either, because Pompey did score). Falls through both branches.
   // Portsmouth didn't score at all — admin leaves result.first_scorer blank
   // whenever that's true, since there's nothing to enter. A player who also
   // correctly picked "No Pompey goalscorer" gets the same bonus a correct
@@ -5228,6 +5231,7 @@ async function renderAdminResultsPanel() {
               <input type="tel" inputmode="numeric" maxlength="2" class="rr-away" value="${existing?.away_score ?? ''}" placeholder="0">
               <select class="rr-scorer">
                 <option value="">No Pompey goalscorer</option>
+                <option value="Own goal" ${existing?.first_scorer === "Own goal" ? "selected" : ""}>Own goal (Pompey scored, no Pompey scorer)</option>
                 ${sortSquadByPosition(squad).filter(s => s.active || existing?.first_scorer === s.player_name).map(s => `<option value="${s.player_name}" ${existing?.first_scorer === s.player_name ? "selected" : ""}>${s.player_name}${s.position ? ` (${positionLabel(s.position)})` : ""}${!s.active ? " — inactive" : ""}</option>`).join("")}
               </select>
             </div>
