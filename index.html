@@ -675,6 +675,7 @@
       </div>
 
       <div id="match-list"></div>
+      <div id="award-status-slot"></div>
     </section>
 
     <section id="view-leaderboard" class="view">
@@ -3116,7 +3117,8 @@ async function initFixturesView() {
     renderStatsPills(),
     renderMonth(currentMonthKey, allFixtures),
     renderReminderBanner(allFixtures, myPreds),
-    renderDuplicateWarningBanner()
+    renderDuplicateWarningBanner(),
+    renderAwardStatusCard()
   ]);
 }
 
@@ -4756,6 +4758,72 @@ function denseRank(standings) {
   return sorted.map((row, i) => ({ ...row, rank: i + 1 }));
 }
 
+/* ---------- Award status (encouragement) ----------
+   Works out where one player stands against the three League Awards
+   categories (same definitions as renderAwardsPanel: exact, exact+correct,
+   correct first goalscorer) plus whether they're the biggest mover up after
+   the latest result (same definition as the League's mover card). Used for
+   the Profile "Award Watch" tile and the leader-only card on the
+   predictions screen. */
+function awardStatusFor(players, predictions, resultsByFixture, allResults, playerId) {
+  const standings = computeStandingsFor(players, predictions, resultsByFixture);
+  const mine = standings.find(r => r.player.id === playerId);
+  if (!mine) return null;
+  const cats = [
+    { label: "Most Exact Scores", value: r => r.exact },
+    { label: "Most Correct Results", value: r => r.exact + r.correct },
+    { label: "Most Correct First Goalscorers", value: r => r.scorer }
+  ].map(c => {
+    const max = Math.max(0, ...standings.map(c.value));
+    const mineVal = c.value(mine);
+    const leaders = standings.filter(r => c.value(r) === max).length;
+    return { label: c.label, max, mineVal, leading: max > 0 && mineVal === max, joint: leaders > 1, away: max - mineVal };
+  });
+
+  let mover = 0;
+  if (allResults.length > 0) {
+    const resultsBefore = new Map(allResults.slice(0, -1).map(r => [r.fixture_id, r]));
+    const nowRanked = denseRank(standings);
+    const prevRanked = denseRank(computeStandingsFor(players, predictions, resultsBefore));
+    const prevRank = new Map(prevRanked.map(r => [r.player.id, r.rank]));
+    const moves = nowRanked.map(r => ({ id: r.player.id, up: (prevRank.get(r.player.id) ?? r.rank) - r.rank }))
+      .filter(m => m.up > 0).sort((a, b) => b.up - a.up);
+    if (moves.length && moves[0].id === playerId) mover = moves[0].up;
+  }
+  return { cats, mover, scoredCount: mine.scoredCount };
+}
+
+async function renderAwardStatusCard() {
+  const slot = document.getElementById("award-status-slot");
+  if (!slot) return;
+  slot.innerHTML = "";
+  if (!currentPlayer) return;
+  try {
+    const [players, predictions, results] = await Promise.all([
+      sbFetchAll("players?is_active=eq.true&is_participant=eq.true&or=(is_admin.eq.false,pool_exempt.eq.false)&select=*"),
+      sbFetchAll("predictions?select=*"),
+      sbFetchAll("results?select=*")
+    ]);
+    const status = awardStatusFor(players, predictions, new Map(results.map(r => [r.fixture_id, r])), results, currentPlayer.id);
+    if (!status || status.scoredCount === 0) return;
+    const lines = [];
+    const leading = status.cats.filter(c => c.leading);
+    if (leading.length) {
+      lines.push(`🏆 Well done, you're ${leading.some(c => c.joint) ? "joint " : ""}top for ${leading.map(c => c.label).join(" and ")}`);
+    }
+    if (status.mover > 0) {
+      lines.push(`🚀 You're the biggest mover, up ${status.mover} place${status.mover === 1 ? "" : "s"} after the latest result`);
+    }
+    if (!lines.length) return;
+    slot.innerHTML = `
+      <div style="background:var(--navy); color:var(--white); border:1px solid var(--gold); border-radius:14px; padding:10px 14px; margin:12px 0; text-align:center; font-size:13px; font-weight:600; line-height:1.5;">
+        ${lines.join("<br>")}
+      </div>`;
+  } catch (err) {
+    slot.innerHTML = ""; // purely a nice-to-have, never worth surfacing an error
+  }
+}
+
 async function renderSeasonSummary() {
   const slot = document.getElementById("season-summary-slot");
   if (!currentPlayer) { slot.innerHTML = ""; return; }
@@ -4801,6 +4869,16 @@ async function renderSeasonSummary() {
         : `${pointsBehind} point${pointsBehind === 1 ? "" : "s"} behind ${playerAbove.player.display_name} (${playerAbove.total})`
       : "";
 
+  // Award Watch: leading anything? else the closest category within 3
+  const awardStatus = awardStatusFor(players, allPredictions, resultsByFixture, allResults, currentPlayer.id);
+  let awardLine = "";
+  if (awardStatus) {
+    const leadingCats = awardStatus.cats.filter(c => c.leading);
+    const close = awardStatus.cats.filter(c => !c.leading && c.max > 0 && c.away >= 1 && c.away <= 3).sort((a, b) => a.away - b.away)[0];
+    if (leadingCats.length) awardLine = `🏆 You're ${leadingCats.some(c => c.joint) ? "joint " : ""}top for ${leadingCats.map(c => c.label).join(" and ")}`;
+    else if (close) awardLine = `${close.away} away from ${close.label}`;
+  }
+
   slot.innerHTML = `
     <div class="card">
       <div class="admin-header" style="margin-top:0;">Your Season So Far</div>
@@ -4811,6 +4889,11 @@ async function renderSeasonSummary() {
         <div class="ss-tile"><div class="label">Correct Results</div><div class="value">${mine.correct}</div></div>
         <div class="ss-tile"><div class="label">Correct First GS</div><div class="value">${mine.scorer}</div></div>
         <div class="ss-tile"><div class="label">Avg Points/Game</div><div class="value">${(mine.total / mine.scoredCount).toFixed(2)}</div></div>
+        ${awardLine ? `
+        <div class="ss-tile wide">
+          <div class="label">Award Watch</div>
+          <div style="font-size:14px; font-weight:700; color:var(--navy-text); margin-top:2px;">${awardLine}</div>
+        </div>` : ""}
         ${gapLine ? `
         <div class="ss-tile wide">
           <div class="label">Gap To Next Place</div>
