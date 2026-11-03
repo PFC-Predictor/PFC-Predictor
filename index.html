@@ -722,6 +722,11 @@
         <div class="admin-header" style="margin-top:0;">🔔 Get Notified</div>
         <div id="push-notification-body"></div>
       </div>
+      <div class="card" id="suggest-feature-card" style="text-align:center;">
+        <div style="font-weight:700; margin-bottom:6px;">💡 Got an idea for the app?</div>
+        <p style="font-size:12px; color:var(--grey); margin-bottom:10px;">Suggest a feature and it goes straight to Ant.</p>
+        <div id="suggest-feature-body"></div>
+      </div>
       <div class="card" id="pay-entry-card" style="text-align:center;">
         <h3 style="margin-top:0;">£10 entry</h3>
         <p style="font-size:13px; color:var(--grey); margin-bottom:14px;">Pay into the shared PayPal pool to confirm your place in the league.</p>
@@ -799,7 +804,7 @@
             </video>
             <p style="margin-bottom:6px;"><strong>Prediction Split</strong> — inside Picks, shows how everyone's split on the next fixture</p>
             <p style="margin-bottom:6px;"><strong>League Awards</strong> — also inside Picks: Most Exact Scores, Most Correct Results (includes exact scores, since those are correct too), Most Correct First Goalscorers, the two Most Predicted Scorers (as a percentage of picks), and the Points Average per game. Best Called Match now lives in Season Records</p>
-            <p style="margin-bottom:6px;">📢 <strong>Updates</strong> — anything new pops up automatically when you open the app; past ones and a way to suggest a feature live under Past Updates here in Profile</p>
+            <p style="margin-bottom:6px;">📢 <strong>Updates</strong> — anything new pops up automatically when you open the app; past ones live under Past Updates here in Profile, and Suggest a feature sits just under Get Notified</p>
             <p style="margin-bottom:6px;">🔗 <strong>Share</strong> — up top on League, get a QR code and link to invite someone</p>
             <p style="margin-bottom:6px;">🔑 Forgotten your PIN? Just message Ant, he can sort you a new one</p>
             <p style="margin-bottom:6px;">📲 Regularly switch between two devices? Sign out of one before logging into the other, otherwise whichever you used most recently becomes the active one and predictions made on the other stop counting</p>
@@ -944,6 +949,9 @@
       </div>
       <div class="modal-body">
         <div class="modal-section" id="app-update-body"></div>
+        <div style="text-align:center; font-size:12px; color:var(--grey); margin-top:6px;">
+          💡 Got an idea? <a href="#" id="app-update-suggest" style="color:var(--link); font-weight:700;">Suggest a feature in Profile</a>
+        </div>
       </div>
     </div>
   </div>
@@ -1798,12 +1806,15 @@ async function renderPastUpdatesPanel() {
     sbFetchAll("players?is_admin=eq.true&is_active=eq.true&select=phone_number&limit=1")
   ]);
 
-  const suggestCard = admins[0]?.phone_number ? `
-    <div class="card" style="text-align:center; margin-bottom:14px;">
-      <div style="font-weight:700; margin-bottom:6px;">💡 Got an idea for the app?</div>
-      <p style="font-size:12px; color:var(--grey); margin-bottom:10px;">Suggest a feature and it goes straight to Ant.</p>
-      <a href="${suggestFeatureLink(admins[0].phone_number)}" target="_blank" rel="noopener" class="btn-primary" style="display:block; text-decoration:none; line-height:44px; background:#25D366;">💬 Suggest a feature</a>
-    </div>` : "";
+  const suggestSlot = document.getElementById("suggest-feature-body");
+  const suggestCardEl = document.getElementById("suggest-feature-card");
+  if (admins[0]?.phone_number) {
+    suggestSlot.innerHTML = `<a href="${suggestFeatureLink(admins[0].phone_number)}" target="_blank" rel="noopener" class="btn-primary" style="display:block; text-decoration:none; line-height:44px; background:#25D366;">💬 Suggest a feature</a>`;
+    suggestCardEl.style.display = "";
+  } else {
+    suggestCardEl.style.display = "none";
+  }
+  const suggestCard = "";
 
   if (updates.length === 0) {
     body.innerHTML = suggestCard + `<div class="placeholder-note">No updates posted yet.</div>`;
@@ -1858,6 +1869,12 @@ async function checkForUnseenUpdate() {
       closeModal("modal-app-update");
     };
     document.getElementById("app-update-close").onclick = dismiss;
+    document.getElementById("app-update-suggest").onclick = (e) => {
+      e.preventDefault();
+      dismiss();
+      document.querySelector('nav.floating-nav .tab[data-view="profile"]')?.click();
+      setTimeout(() => document.getElementById("suggest-feature-card")?.scrollIntoView({ behavior: "smooth", block: "center" }), 300);
+    };
     document.getElementById("modal-app-update").onclick = (e) => {
       if (e.target.id === "modal-app-update") dismiss();
     };
@@ -3855,9 +3872,10 @@ function fixtureNudgeLink(phoneNumber, displayName, homeTeam, awayTeam, kickoff,
   const digits = phoneNumber.replace(/\D/g, "");
   const intl = digits.startsWith("0") ? `44${digits.slice(1)}` : digits;
   const firstName = displayName.split(" ")[0];
-  const when = new Date(kickoff).toLocaleString("en-GB", { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
+  // Always UK time in the message, whichever timezone the admin is sending it from
+  const when = new Date(kickoff).toLocaleString("en-GB", { timeZone: "Europe/London", weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
   const notifyLine = hasNotifications ? "" : " Turn on notifications in Profile and you'll get reminded automatically next time.";
-  const message = `Hi ${firstName}, don't forget to predict ${homeTeam} v ${awayTeam}, ${when}.${notifyLine}`;
+  const message = `Hi ${firstName}, don't forget to predict ${homeTeam} v ${awayTeam}, ${when}. Easiest thing is to do all of this month's fixtures in one go, then you can forget about it and I won't need to nudge you.${notifyLine}`;
   return `https://wa.me/${intl}?text=${encodeURIComponent(message)}`;
 }
 
