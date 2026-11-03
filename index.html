@@ -342,7 +342,10 @@
     background:var(--grey-light); color:var(--grey);
   }
   .mc-badge.active{background:#e7f6ec; color:#1c8a45;}
-  .mc-scores{display:flex; align-items:center; justify-content:center; gap:14px; margin-bottom:12px;}
+  .mc-scores{display:flex; align-items:center; justify-content:center; gap:8px; margin-bottom:12px;}
+  .mc-scores .mc-team{flex:1 1 0; min-width:0; font-weight:700; font-size:14px; line-height:1.2; overflow-wrap:anywhere;}
+  .mc-scores .mc-team.home{text-align:right;}
+  .mc-scores .mc-team.away{text-align:left;}
   .mc-scores input{
     width:56px; height:56px; text-align:center; font-size:24px; font-weight:700;
     border-radius:12px; border:2px solid var(--grey-light); background:var(--grey-light); color:var(--text);
@@ -3367,19 +3370,20 @@ function buildMatchCard(fixture, squad, existingPred, result) {
   const header = `
     <div class="mc-top">
       <div>
-        ${isCup ? `<div style="font-size:10px; font-weight:700; color:var(--red-text); letter-spacing:0.5px; text-transform:uppercase; margin-bottom:2px;">🏆 ${fixture.competition}</div>` : ""}
-        <div class="mc-teams">${fixture.home_team} v ${fixture.away_team}</div>
+        ${isCup ? `<div style="font-size:10px; font-weight:700; color:var(--red-text); letter-spacing:0.5px; text-transform:uppercase;">🏆 ${fixture.competition}</div>` : ""}
       </div>
       ${badge}
     </div>`;
 
   wrap.innerHTML = header + `
     <div class="mc-scores">
+      <span class="mc-team home">${fixture.home_team}</span>
       <input type="tel" inputmode="numeric" maxlength="1" class="mc-home"
-        value="${existingPred?.home_score ?? ""}">
+        aria-label="${fixture.home_team} score" value="${existingPred?.home_score ?? ""}">
       <span class="sep">–</span>
       <input type="tel" inputmode="numeric" maxlength="1" class="mc-away"
-        value="${existingPred?.away_score ?? ""}">
+        aria-label="${fixture.away_team} score" value="${existingPred?.away_score ?? ""}">
+      <span class="mc-team away">${fixture.away_team}</span>
     </div>
     <div class="mc-scorer">
       <label>First Pompey goalscorer</label>
