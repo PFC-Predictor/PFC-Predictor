@@ -854,6 +854,7 @@
                  Routed to Ant instead, who has the relink/merge tooling
                  built specifically for correcting a name safely. -->
             <p style="font-size:12px; color:var(--grey); margin-bottom:8px;">Playing as <strong id="settings-current-name"></strong>. Names aren't self-editable here, your exact signup name is what finds your account again on a new device, so a typo needs fixing by Ant rather than by you.</p>
+            <div id="settings-miss-streak" style="display:none; border-radius:10px; padding:10px 12px; margin-bottom:8px; font-size:12px; line-height:1.4;"></div>
             <a href="#" id="settings-request-name-link" target="_blank" rel="noopener" class="btn-primary" style="display:none; text-decoration:none; line-height:40px; height:40px; background:#25D366; font-size:13px;">💬 Request a name change</a>
           </div>
           <div class="modal-section" style="text-align:center;">
@@ -1838,9 +1839,65 @@ function requestNameChangeLink(adminPhoneNumber, currentName) {
   return `https://wa.me/${intl}?text=${encodeURIComponent(message)}`;
 }
 
+/* Player's own "missed in a row" count: same definition as the admin Gone
+   Quiet panel (most recent already-kicked-off fixtures since they joined,
+   counted back until one they predicted). Reaches 3 = they appear in Gone
+   Quiet and may be hidden. Purely informational, and stays silent if
+   anything fails to load. */
+function missStreakFor(player, fixtures, predictedFixtureIds, now = Date.now()) {
+  const joinedAt = new Date(player.created_at).getTime();
+  const past = fixtures.filter(f => new Date(f.kickoff).getTime() <= now)
+    .sort((a, b) => new Date(b.kickoff) - new Date(a.kickoff));
+  let streak = 0;
+  for (const f of past) {
+    if (new Date(f.kickoff).getTime() < joinedAt) break;
+    if (predictedFixtureIds.has(f.id)) break;
+    streak++;
+  }
+  return streak;
+}
+
+function missStreakLabel(streak) {
+  if (streak === 0) return "✅ 0, up to date";
+  if (streak < 3) return `⚠️ ${streak} of 3, appears in Gone Quiet at 3`;
+  return `🚨 ${streak}, in Gone Quiet`;
+}
+
+async function renderMissStreak() {
+  const el = document.getElementById("settings-miss-streak");
+  if (!el) return;
+  el.style.display = "none";
+  // Admin-only: players don't see this counter, it's for the admin's own
+  // Settings and the admin player-detail pop-up.
+  if (!currentPlayer || !currentPlayer.is_admin || currentPlayer.pool_exempt) return;
+  try {
+    const [fixtures, preds] = await Promise.all([
+      sbFetchAll("fixtures?select=id,kickoff"),
+      sbFetchAll(`predictions?player_id=eq.${currentPlayer.id}&select=fixture_id`)
+    ]);
+    const streak = missStreakFor(currentPlayer, fixtures, new Set(preds.map(p => p.fixture_id)));
+    let bg = "#e7f6ec", fg = "#1c8a45", text;
+    if (currentPlayer.is_participant === false) {
+      bg = "var(--page-bg)"; fg = "var(--navy-text)";
+      text = `👻 Missed in a row: <strong>${streak}</strong>. You're currently hidden from the League. Make a new prediction and you'll be added back in.`;
+    } else if (streak === 0) {
+      text = `✅ Missed predictions in a row: <strong>0</strong>. You're up to date.`;
+    } else if (streak < 3) {
+      bg = "#fff4d6"; fg = "#8a5a00";
+      text = `⚠️ Missed predictions in a row: <strong>${streak} of 3</strong>. Predict your next match to reset it to 0. At 3 you'll be flagged and may be hidden from the League.`;
+    } else {
+      bg = "#fde8e8"; fg = "var(--red-text, #b42318)";
+      text = `🚨 Missed predictions in a row: <strong>${streak}</strong>. You've reached the point where you can be hidden from the League. Make a prediction to reset it.`;
+    }
+    el.style.background = bg; el.style.color = fg; el.innerHTML = text; el.style.display = "block";
+  } catch (e) { el.style.display = "none"; }
+}
+
 async function renderSettingsPanel() {
   const nameEl = document.getElementById("settings-current-name");
   if (nameEl) nameEl.textContent = currentPlayer?.display_name || "";
+
+  renderMissStreak();
 
   const link = document.getElementById("settings-request-name-link");
   const admins = await sbFetchAll("players?is_admin=eq.true&is_active=eq.true&select=phone_number&limit=1");
@@ -2497,6 +2554,7 @@ async function renderAdminSquadPanel() {
 /* ---------- Admin: Missing Predictions (next 7 days) ---------- */
 let missingPanelCollapsed = true;
 let inactivityPanelCollapsed = true;
+let headingQuietCollapsed = true;
 let recentPredsPanelCollapsed = true;
 let prizeCalcCollapsed = true;
 let paymentLogCollapsed = true;
@@ -2623,8 +2681,10 @@ async function renderAdminInactivityPanel() {
       }
       return { player: p, streak };
     })
-    .filter(r => r.streak >= 3)
-    .sort((a, b) => b.streak - a.streak || a.player.display_name.localeCompare(b.player.display_name));
+    ;
+  const byStreakThenName = (a, b) => b.streak - a.streak || a.player.display_name.localeCompare(b.player.display_name);
+  const headingQuiet = quiet.filter(r => r.streak === 1 || r.streak === 2).sort(byStreakThenName);
+  quiet.splice(0, quiet.length, ...quiet.filter(r => r.streak >= 3).sort(byStreakThenName));
 
   if (pastFixturesDesc.length === 0) {
     slot.innerHTML = `<div class="card"><div class="admin-header" style="margin-top:0;">Gone Quiet</div><div class="placeholder-note">No fixtures played yet this season.</div></div>`;
@@ -2653,8 +2713,29 @@ async function renderAdminInactivityPanel() {
             </div>
           </div>`).join("")}
       </div>
+    </div>
+    <div class="card collapsible ${headingQuietCollapsed ? 'collapsed' : ''}" style="padding:0; margin-top:12px;">
+      <div class="collapsible-header" id="heading-quiet-toggle">
+        <span>⚠️ Heading Towards Gone Quiet (${headingQuiet.length})</span>
+        <span class="chev">▾</span>
+      </div>
+      <div class="collapsible-body" style="padding:0 14px 14px;">
+        <div style="font-size:11px; color:var(--grey); margin-bottom:8px;">Missed their last 1 or 2 predictions. At 3 in a row they move up into Gone Quiet. Hidden players aren't listed.</div>
+        ${headingQuiet.length === 0 ? `<div style="font-size:12px; color:#1c8a45;">Nobody's on 1 or 2 missed ✓</div>` : headingQuiet.map(({ player: p, streak }) => `
+          <div class="player-row">
+            <div class="pinfo">
+              <div class="pname">${p.display_name.replace(/\s*⚠️\s*/g, "")}</div>
+              <div class="pmeta">${streak} of 3 missed in a row</div>
+            </div>
+          </div>`).join("")}
+      </div>
     </div>`;
 
+  document.getElementById("heading-quiet-toggle").addEventListener("click", (e) => {
+    const panel = e.currentTarget.closest(".collapsible");
+    panel.classList.toggle("collapsed");
+    headingQuietCollapsed = panel.classList.contains("collapsed");
+  });
   document.getElementById("inactivity-toggle").addEventListener("click", (e) => {
     const panel = e.currentTarget.closest(".collapsible");
     panel.classList.toggle("collapsed");
@@ -5155,6 +5236,7 @@ async function openAdminPlayerDetail(playerId, playerRow) {
       ${row("Mobile number", playerRow?.phone_number || "No number on file")}
       ${row("Joined", playerRow ? new Date(playerRow.created_at).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit" }) : "—")}
       ${row("Last predicted", lastPred ? `${lastFixture ? `${lastFixture.home_team} v ${lastFixture.away_team}` : "a fixture"} · ${new Date(lastPred.created_at).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}` : "No predictions yet")}
+      ${row("Missed in a row", playerRow ? missStreakLabel(missStreakFor(playerRow, allFixtures, new Set(myPredictions.map(p => p.fixture_id)))) : "—")}
       ${row("PIN set", playerRow?.pin_hash ? "✅ Yes" : "⚠️ No — won't show the reclaim popup until they set one")}
       ${row("Notifications", pushSubs.length > 0 ? `✅ Enabled (${pushSubs.length} device${pushSubs.length === 1 ? "" : "s"})` : "Not enabled")}
       ${row("League standing", mine ? `${mine.rank} of ${standings.length} — ${mine.total} pts (${mine.exact} exact, ${mine.correct} correct, ${mine.scorer} scorer)` : "Not currently in the league table")}
